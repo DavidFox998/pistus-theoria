@@ -1,0 +1,11 @@
+name: Verify Battle Plan v1.6
+on: workflow_dispatch
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install SageMath
+        run: sudo apt-get update && sudo apt-get install -y sagemath
+      - name: Run Verification
+        run: sage bin/verify_battleplan_v1.6.sage
