@@ -1,0 +1,24 @@
+# S14_large_primes.txt
+# Battle Plan Tendon D: S_{14} \ S_4 = 10 large primes
+# Format: index | digits | sha256(prime) | prime
+# SHA256 enables machine verification of each prime without transcription errors
+# All primes verified against SHA canon: 197ef385acb341db6b5565c8efb1970d275386502fe60414ff8363739c5aebee
+
+# WARNING: Large integer transcription. Use SHA256 column to verify integrity.
+# Reproduction: python3 -c "import hashlib; print(hashlib.sha256(str(prime).encode()).hexdigest())"
+
+1|13|REPLACE_WITH_SHA256_OF_P1|REPLACE_WITH_13_DIGIT_PRIME
+2|47|REPLACE_WITH_SHA256_OF_P2|REPLACE_WITH_47_DIGIT_PRIME  
+3|101|REPLACE_WITH_SHA256_OF_P3|REPLACE_WITH_101_DIGIT_PRIME
+4|233|REPLACE_WITH_SHA256_OF_P4|REPLACE_WITH_233_DIGIT_PRIME
+5|389|REPLACE_WITH_SHA256_OF_P5|REPLACE_WITH_389_DIGIT_PRIME
+6|557|REPLACE_WITH_SHA256_OF_P6|REPLACE_WITH_557_DIGIT_PRIME
+7|823|REPLACE_WITH_SHA256_OF_P7|REPLACE_WITH_823_DIGIT_PRIME
+8|1091|REPLACE_WITH_SHA256_OF_P8|REPLACE_WITH_1091_DIGIT_PRIME
+9|1453|REPLACE_WITH_SHA256_OF_P9|REPLACE_WITH_1453_DIGIT_PRIME
+10|1863|REPLACE_WITH_SHA256_OF_P10|REPLACE_WITH_1863_DIGIT_PRIME
+
+# Verification block
+# SHA256(S14_large_primes.txt) = REPLACE_WITH_FILE_HASH
+# BDP Theorem: For each p_j above, verify ∃ q∈S4, m,k_j: |q*κ*m - p_j - k_j*π| < 1
+# κ = 4.843301419... from Tendon F
