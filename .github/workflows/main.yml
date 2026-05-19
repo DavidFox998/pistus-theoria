@@ -3,9 +3,14 @@ on: workflow_dispatch
 jobs:
   verify:
     runs-on: ubuntu-latest
+    container: sagemath/sagemath:latest
     steps:
       - uses: actions/checkout@v4
-      - name: Install SageMath
-        run: sudo apt-get update && sudo apt-get install -y sagemath
-      - name: Run Verification
+      - name: Run Battle Plan Verification
         run: sage bin/verify_battleplan_v1.6.sage
+      - name: Show SHA Anchors
+        run: |
+          echo "=== SHA256 Hashes ==="
+          sha256sum data/invariants.json
+          sha256sum data/S4_primes.csv
+          sha256sum data/S14_large_primes.txt
