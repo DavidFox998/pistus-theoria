@@ -1,0 +1,47 @@
+{
+  "battle_plan_version": "v1.6",
+  "sha_canon": "197ef385acb341db6b5565c8efb1970d275386502fe60414ff8363739c5aebee",
+  "sha_v1_6": "594de23659bdeccc5bbf51b25fae78b05b92bf351b8a13eff33b563bbf487010",
+  "tendon_a_diophantine": {
+    "alpha_0": {
+      "value": "299.314159265358979323846264338327950288419716939937510",
+      "formula": "299 + pi/10",
+      "sha256": "REPLACE_WITH_SHA256_OF_ALPHA0_STRING"
+    },
+    "continued_fraction_pi_over_10": [0, 3, 5, 2, 733, 1, 1, 6],
+    "colmez_desert_marker": {
+      "index": 6,
+      "value": 733
+    }
+  },
+  "tendon_b_modular": {
+    "conductor": 10,
+    "genus_gamma0_10": 0
+  },
+  "tendon_d_primes": {
+    "S4": [2, 3, 19, 191],
+    "S4_sha256": "REPLACE_WITH_SHA256_OF_[2,3,19,191]",
+    "S14_minus_S4_count": 10,
+    "S14_minus_S4_digit_range": [13, 1863],
+    "S14_file": "S14_large_primes.txt",
+    "S14_file_sha256": "REPLACE_WITH_SHA256_OF_S14_FILE"
+  },
+  "tendon_e_bost": {
+    "C_alpha0": 8.62945,
+    "threshold": 7.21108,
+    "threshold_formula": "2*sqrt(13)",
+    "threshold_exceeded": true
+  },
+  "tendon_f_invariants": {
+    "N": 143,
+    "g": 13,
+    "discriminant": 5719,
+    "kappa": 4.843301419,
+    "kappa_formula": "phi * c / 10^8"
+  },
+  "reproduction": {
+    "sage_version": ">=9.8",
+    "verification_script": "bin/verify_battleplan_v1.6.sage",
+    "compile_script": "compile_all.sh"
+  }
+}
