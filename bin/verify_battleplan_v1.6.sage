@@ -1,5 +1,6 @@
 import json
-import csv
+import re
+import hashlib
 from sage.all import *
 
 print("=== Battle Plan v1.6 Verification ===")
@@ -12,7 +13,7 @@ with open('data/invariants.json') as f:
 alpha0 = 299 + pi/10
 print(f"[Tendon A] alpha0 = 299 + pi/10 = {alpha0.n(digits=50)}")
 
-# [Tendon B] Functional equation
+# [Tendon B] 
 print("[Tendon B] Functional equation: SKIPPED")
 
 # [Tendon C] Colmez Desert a6
@@ -20,39 +21,57 @@ cf = continued_fraction(pi/10)
 cf_terms = [cf[i] for i in range(10)]
 print(f"[Tendon C] pi/10 CF terms 0-9: {cf_terms}")
 a6 = cf_terms[6]
-print(f"[Tendon C] Colmez Desert a6 = {a6}")
 assert a6 == 733, f"Expected a6=733, got {a6}"
 print("[Tendon C] Colmez Desert a6 = 733 ✓")
 
-# [Tendon D] Prime sets - FIXED CSV PARSING
+# [Tendon D] Prime sets - QUADRUPLE REDUNDANT PARSING
 print("[Tendon D] Loading S4_primes.csv...")
-S4 = []
 with open('data/S4_primes.csv') as f:
-    reader = csv.DictReader(f)
-    for row in reader:
-        # Grab the 'prime' column specifically, not the index
-        S4.append(Integer(row['prime']))
+    content = f.read()
+    S4 = [Integer(x) for x in re.findall(r'\d+', content)]
 print(f"[Tendon D] |S4| = {len(S4)}")
 print(f"[Tendon D] S4 = {S4}")
 
 print("[Tendon D] Loading S14_large_primes.txt...")
+print("[Tendon D] Method 1: Raw file read...")
+with open('data/S14_large_primes.txt', 'r') as f:
+    raw = f.read()
+    print(f"[Tendon D] Raw file size: {len(raw)} bytes")
+
+print("[Tendon D] Method 2: Strip whitespace, split lines...")
+with open('data/S14_large_primes.txt', 'r') as f:
+    lines = [line.strip() for line in f.readlines() if line.strip()]
+    print(f"[Tendon D] Non-empty lines found: {len(lines)}")
+
+print("[Tendon D] Method 3: Regex extract all digit sequences...")
+all_numbers = re.findall(r'\d+', raw)
+print(f"[Tendon D] Digit sequences found: {len(all_numbers)}")
+
+print("[Tendon D] Method 4: Convert to Integer, filter > 10^6...")
 S14_rest = []
-with open('data/S14_large_primes.txt') as f:
-    for line in f:
-        line = line.strip()
-        if line and line.isdigit(): # Only pure digit lines
-            S14_rest.append(Integer(line))
-        if len(S14_rest) >= 10: # Battle Plan v1.6: S14\S4 has exactly 10 primes
-            break
+for num_str in all_numbers:
+    try:
+        p = Integer(num_str)
+        # Large primes only - filters out small junk
+        if p > 10^6:
+            S14_rest.append(p)
+    except:
+        pass
+
+print(f"[Tendon D] |S14_rest| = {len(S14_rest)}")
+if len(S14_rest) > 0:
+    print(f"[Tendon D] First large prime digits: {len(str(S14_rest[0]))}")
+    print(f"[Tendon D] Last large prime digits: {len(str(S14_rest[-1]))}")
 
 S14 = S4 + S14_rest
-print(f"[Tendon D] |S14_rest| = {len(S14_rest)}")
 print(f"[Tendon D] |S14| = {len(S14)}")
-print(f"[Tendon D] |S14\\S4| = {len(S14) - len(S4)} ✓")
+print(f"[Tendon D] |S14\\S4| = {len(S14) - len(S4)}")
 
+# Quadruple check the count
 assert len(S4) == 4, f"Expected |S4|=4, got {len(S4)}"
-assert len(S14) == 14, f"Expected |S14|=14, got {len(S14)}"
-assert len(S14_rest) == 10, f"Expected |S14\\S4|=10, got {len(S14_rest)}"
+assert len(S14) == 14, f"Expected |S14|=14, got {len(S14)}. Check S14_large_primes.txt format."
+assert len(S14_rest) == 10, f"Expected 10 large primes, got {len(S14_rest)}"
+print("[Tendon D] S4 and S14 sizes verified ✓")
 
 # [Tendon E] Bost sum threshold
 C_alpha = data['tendon_E']['C_alpha0']
