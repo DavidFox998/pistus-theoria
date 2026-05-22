@@ -1,6 +1,6 @@
-# [Project name]
+# Theorema Aureum 143 — Certificate Ledger
 
-_Replace the heading above with the project's name, and this line with one sentence describing what this app does for users._
+A machine-proof certificate dashboard tracking the M1→M7 cryptographic proof chain for the Riemann Hypothesis conditional on GRH for X_0(143).
 
 ## Run & Operate
 
@@ -10,6 +10,7 @@ _Replace the heading above with the project's name, and this line with one sente
 - `pnpm --filter @workspace/api-spec run codegen` — regenerate API hooks and Zod schemas from the OpenAPI spec
 - `pnpm --filter @workspace/db run push` — push DB schema changes (dev only)
 - Required env: `DATABASE_URL` — Postgres connection string
+- Required env: `DEFAULT_OBJECT_STORAGE_BUCKET_ID`, `PUBLIC_OBJECT_SEARCH_PATHS`, `PRIVATE_OBJECT_DIR` — object storage (auto-set by Replit)
 
 ## Stack
 
@@ -19,27 +20,50 @@ _Replace the heading above with the project's name, and this line with one sente
 - Validation: Zod (`zod/v4`), `drizzle-zod`
 - API codegen: Orval (from OpenAPI spec)
 - Build: esbuild (CJS bundle)
+- Frontend: React + Vite, Tailwind CSS, shadcn/ui, wouter, TanStack Query
+- File storage: Replit Object Storage (GCS-backed, presigned URL uploads)
 
 ## Where things live
 
-_Populate as you build — short repo map plus pointers to the source-of-truth file for DB schema, API contracts, theme files, etc._
+- `lib/api-spec/openapi.yaml` — API contract (source of truth)
+- `lib/db/src/schema/certificates.ts` — Drizzle schema for the certificates table
+- `artifacts/api-server/src/routes/certificates.ts` — certificate CRUD routes
+- `artifacts/api-server/src/routes/storage.ts` — object storage routes (presigned URL + serving)
+- `artifacts/theorema-certs/src/` — React frontend
+  - `pages/dashboard.tsx` — proof chain overview + master manifest
+  - `pages/certificates/index.tsx` — all 7 modules with upload buttons
+  - `pages/certificates/[moduleId].tsx` — single certificate detail + inline PDF viewer
+  - `components/sha-chip.tsx` — SHA-256 display with copy-on-click
+  - `components/status-badge.tsx` — CERTIFIED / AWAITING / LOCKED badge
+  - `components/pdf-uploader.tsx` — presigned URL upload flow
 
 ## Architecture decisions
 
-_Populate as you build — non-obvious choices a reader couldn't infer from the code (3-5 bullets)._
+- Certificates stored in PostgreSQL; each module's SHA hashes, parent SHA bindings, and Lean theorem names are first-class columns
+- parentShas stored as JSON string in PG (array of 64-char hex strings) to avoid a separate join table
+- PDF upload uses Replit Object Storage presigned URLs — client PUTs directly to GCS, then PATCH updates the certificate's pdfObjectPath
+- Master manifest SHA (M7) is a constant hardcoded in the summary endpoint — it's the sealed SHA of the concatenated module outputs
+- Status field: CERTIFIED = verified, AWAITING = pending, LOCKED = master manifest (M7)
 
 ## Product
 
-_Describe the high-level user-facing capabilities of this app once they exist._
+- Dashboard: DAG status, master manifest SHA, module chain visualization with SHA chips
+- Certificate list: all M1–M7 with status badges, stdout SHA, parent bindings, PDF upload
+- Certificate detail: full SHA table, mathematical claim, inline PDF viewer, Lean binding, audit notes
 
 ## User preferences
 
-_Populate as you build — explicit user instructions worth remembering across sessions._
+- One PDF per module (M1–M7), uploaded one at a time
+- All SHA-256 hashes displayed in monospace, truncated with copy-on-click
+- Audit corrections documented and visible in the notes field per module
 
 ## Gotchas
 
-_Populate as you build — sharp edges, "always run X before Y" rules._
+- After any OpenAPI spec change, run `pnpm --filter @workspace/api-spec run codegen` before touching frontend code
+- parentShas must be JSON-parsed on read (stored as text in PG)
+- The frontend workflow must be restarted after any changes to status-badge.tsx (Vite HMR caches deeply imported types)
 
 ## Pointers
 
 - See the `pnpm-workspace` skill for workspace structure, TypeScript setup, and package details
+- See `.local/skills/object-storage/SKILL.md` for the presigned URL upload architecture

@@ -3,13 +3,17 @@ info:
   # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: Theorema Aureum 143 — Certificate Ledger API
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: certificates
+    description: Certificate module operations
+  - name: storage
+    description: Object storage operations
 paths:
   /healthz:
     get:
@@ -24,6 +28,122 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  /certificates:
+    get:
+      operationId: listCertificates
+      tags: [certificates]
+      summary: List all module certificates
+      responses:
+        "200":
+          description: List of certificates
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Certificate"
+
+  /certificates/summary:
+    get:
+      operationId: getCertificateSummary
+      tags: [certificates]
+      summary: Get DAG summary — overall verification status
+      responses:
+        "200":
+          description: Summary of the proof chain
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CertificateSummary"
+
+  /certificates/{moduleId}:
+    get:
+      operationId: getCertificate
+      tags: [certificates]
+      summary: Get a specific certificate by module ID (e.g. M1)
+      parameters:
+        - name: moduleId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Certificate detail
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Certificate"
+        "404":
+          description: Not found
+    patch:
+      operationId: updateCertificate
+      tags: [certificates]
+      summary: Update a certificate (attach PDF, notes, or mark verified)
+      parameters:
+        - name: moduleId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CertificateUpdate"
+      responses:
+        "200":
+          description: Updated certificate
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Certificate"
+        "404":
+          description: Not found
+
+  /storage/uploads/request-url:
+    post:
+      operationId: requestUploadUrl
+      tags: [storage]
+      summary: Request a presigned upload URL for a PDF
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UploadUrlRequest"
+      responses:
+        "200":
+          description: Presigned upload URL
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UploadUrlResponse"
+
+  /storage/objects/{objectPath}:
+    get:
+      operationId: getObject
+      tags: [storage]
+      summary: Serve an uploaded object (PDF)
+      parameters:
+        - name: objectPath
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Object bytes
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+        "404":
+          description: Not found
+
 components:
   schemas:
     HealthStatus:
@@ -34,3 +154,91 @@ components:
       required:
         - status
 
+    Certificate:
+      type: object
+      required: [moduleId, title, claim, status, sourceSha, stdoutSha, parentShas, dagPosition]
+      properties:
+        moduleId:
+          type: string
+          description: "e.g. M1, M2, ... M7"
+        title:
+          type: string
+        claim:
+          type: string
+          description: One-sentence summary of what this module certifies
+        status:
+          type: string
+          enum: [CERTIFIED, AWAITING, LOCKED]
+        sourceFile:
+          type: ["string", "null"]
+        sourceSha:
+          type: string
+        stdoutSha:
+          type: string
+        parentShas:
+          type: array
+          items:
+            type: string
+          description: SHA-256 digests of parent module outputs this module depends on
+        dagPosition:
+          type: integer
+          description: Position in the M1→M7 DAG (1-indexed)
+        pdfObjectPath:
+          type: ["string", "null"]
+          description: Object storage path of the uploaded PDF
+        leanBinding:
+          type: ["string", "null"]
+          description: Lean theorem name bound to this certificate
+        notes:
+          type: ["string", "null"]
+        updatedAt:
+          type: string
+          format: date-time
+
+    CertificateUpdate:
+      type: object
+      properties:
+        pdfObjectPath:
+          type: ["string", "null"]
+        notes:
+          type: ["string", "null"]
+        status:
+          type: ["string", "null"]
+
+    CertificateSummary:
+      type: object
+      required: [masterSha, totalModules, certifiedCount, awaitingCount, dagSealed]
+      properties:
+        masterSha:
+          type: string
+          description: Master manifest SHA-256 (cat m1.out..m6.out | sha256sum)
+        totalModules:
+          type: integer
+        certifiedCount:
+          type: integer
+        awaitingCount:
+          type: integer
+        dagSealed:
+          type: boolean
+        pdfUploadedCount:
+          type: integer
+
+    UploadUrlRequest:
+      type: object
+      required: [name, size, contentType]
+      properties:
+        name:
+          type: string
+        size:
+          type: integer
+        contentType:
+          type: string
+
+    UploadUrlResponse:
+      type: object
+      required: [uploadURL, objectPath]
+      properties:
+        uploadURL:
+          type: string
+        objectPath:
+          type: string
