@@ -87,6 +87,8 @@ $ lake env lean Verify.lean
 'TheoremaAureum.main_theorem' depends on axioms: []
 ```
 
+**Regenerating VERIFY.txt:** run `./lean-proof/regenerate.sh` to rebuild `lean-proof/VERIFY.txt` from a fresh `lake build` + `lake env lean Verify.lean`. The script fails loudly (and leaves VERIFY.txt unchanged) if any of `main_theorem`, `H2_WeilTransfer`, or `M9_WeilTransfer_All` no longer report "does not depend on any axioms", so the dashboard's "axiom debt = []" claim is self-checking. Requires `lake` on PATH.
+
 **Axiom debt = [] (zero axioms).** All hard rules satisfied:
 - H1_ArakelovPositivity: THEOREM (by decide, M5 certificate)
 - C05_Descent: THEOREM (True.intro, M6 certificate)
