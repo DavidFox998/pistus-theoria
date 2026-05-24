@@ -86,6 +86,24 @@ export interface LeanVerification {
   ageDays?: number;
 }
 
+export interface LeanRebuildResult {
+  /** True iff the rebuild script exited 0 and VERIFY.txt was refreshed */
+  ok: boolean;
+  /** Exit code of the rebuild script (or -1 if it could not be spawned) */
+  exitCode: number;
+  stdout: string;
+  stderr: string;
+  /** Wall-clock duration of the rebuild in milliseconds */
+  durationMs: number;
+  /**
+     * High-level error message when the script could not be launched or completed (e.g. `lake` not installed, timeout)
+     * @nullable
+     */
+  error?: string | null;
+  /** Re-parsed verification log after a successful rebuild */
+  verification?: LeanVerification | null;
+}
+
 export interface UploadUrlRequest {
   name: string;
   size: number;

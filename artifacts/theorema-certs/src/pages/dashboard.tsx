@@ -2,13 +2,28 @@ import {
   useGetCertificateSummary,
   useListCertificates,
   useGetLeanVerification,
+  useRebuildLeanVerification,
+  getGetLeanVerificationQueryKey,
 } from "@workspace/api-client-react";
 import { ShaChip } from "@/components/sha-chip";
 import { StatusBadge } from "@/components/status-badge";
 import { VerifyTxtDialog } from "@/components/verify-txt-dialog";
 import { Card } from "@/components/ui/card";
 import { Link } from "wouter";
-import { CheckCircle2, ArrowRight, FileText, ShieldCheck, AlertTriangle, Clock } from "lucide-react";
+import {
+  CheckCircle2,
+  ArrowRight,
+  FileText,
+  ShieldCheck,
+  AlertTriangle,
+  Clock,
+  RefreshCw,
+  XCircle,
+} from "lucide-react";
+import { useQueryClient } from "@tanstack/react-query";
+import { useEffect, useState } from "react";
+
+const REBUILD_TOKEN_STORAGE_KEY = "lean-rebuild-token";
 
 const STALE_THRESHOLD_DAYS = 30;
 
@@ -30,10 +45,78 @@ function formatTimestamp(iso: string | undefined): string {
   return d.toISOString().replace("T", " ").replace(/\.\d+Z$/, "Z");
 }
 
+interface RebuildOutcome {
+  ok: boolean;
+  message: string;
+  stdout: string;
+  stderr: string;
+  durationMs: number;
+  exitCode: number;
+}
+
 export default function DashboardPage() {
   const { data: summary, isLoading: isSummaryLoading } = useGetCertificateSummary();
   const { data: certificates, isLoading: isCertsLoading } = useListCertificates();
   const { data: leanVerify } = useGetLeanVerification();
+  const queryClient = useQueryClient();
+  const [rebuildOutcome, setRebuildOutcome] = useState<RebuildOutcome | null>(null);
+  const [rebuildToken, setRebuildToken] = useState<string>("");
+  const [showTokenInput, setShowTokenInput] = useState(false);
+
+  useEffect(() => {
+    try {
+      const stored = window.localStorage.getItem(REBUILD_TOKEN_STORAGE_KEY);
+      if (stored) setRebuildToken(stored);
+    } catch {
+      // ignore (private mode, etc.)
+    }
+  }, []);
+
+  const rebuildMutation = useRebuildLeanVerification({
+    request: rebuildToken
+      ? { headers: { Authorization: `Bearer ${rebuildToken}` } }
+      : undefined,
+    mutation: {
+      onSuccess: async (result) => {
+        const message = result.ok
+          ? `Rebuild succeeded in ${(result.durationMs / 1000).toFixed(1)}s. VERIFY.txt refreshed.`
+          : result.error ?? `Rebuild failed (exit code ${result.exitCode}).`;
+        setRebuildOutcome({
+          ok: result.ok,
+          message,
+          stdout: result.stdout,
+          stderr: result.stderr,
+          durationMs: result.durationMs,
+          exitCode: result.exitCode,
+        });
+        await queryClient.invalidateQueries({ queryKey: getGetLeanVerificationQueryKey() });
+      },
+      onError: (err: unknown) => {
+        let message = "Rebuild request failed";
+        if (err && typeof err === "object") {
+          const data = (err as { data?: unknown }).data;
+          if (data && typeof data === "object") {
+            const errField = (data as { error?: unknown }).error;
+            if (typeof errField === "string" && errField.length > 0) {
+              message = errField;
+            }
+          }
+          if (message === "Rebuild request failed" && err instanceof Error) {
+            message = err.message;
+          }
+        }
+        setRebuildOutcome({
+          ok: false,
+          message,
+          stdout: "",
+          stderr: "",
+          durationMs: 0,
+          exitCode: -1,
+        });
+      },
+    },
+  });
+  const isRebuilding = rebuildMutation.isPending;
 
   const isLoading = isSummaryLoading || isCertsLoading;
 
@@ -203,17 +286,152 @@ export default function DashboardPage() {
                 )}
               </div>
 
-              <VerifyTxtDialog
-                trigger={
+              <div className="flex flex-wrap items-center gap-4">
+                <VerifyTxtDialog
+                  trigger={
+                    <button
+                      type="button"
+                      className="inline-flex items-center gap-2 font-mono text-xs uppercase tracking-wider text-primary hover:underline"
+                      data-testid="button-view-verify-txt"
+                    >
+                      <FileText className="w-3 h-3" /> View VERIFY.txt
+                    </button>
+                  }
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (!rebuildToken) {
+                      setShowTokenInput(true);
+                      setRebuildOutcome({
+                        ok: false,
+                        message:
+                          "A referee rebuild token is required. Enter it below and try again.",
+                        stdout: "",
+                        stderr: "",
+                        durationMs: 0,
+                        exitCode: -1,
+                      });
+                      return;
+                    }
+                    setRebuildOutcome(null);
+                    rebuildMutation.mutate();
+                  }}
+                  disabled={isRebuilding}
+                  className="inline-flex items-center gap-2 px-3 py-1.5 border border-green-500/50 bg-green-500/10 font-mono text-xs uppercase tracking-wider text-green-700 dark:text-green-400 hover:bg-green-500/20 disabled:opacity-60 disabled:cursor-not-allowed"
+                  data-testid="button-rebuild-lean-log"
+                >
+                  <RefreshCw
+                    className={`w-3 h-3 ${isRebuilding ? "animate-spin" : ""}`}
+                  />
+                  {isRebuilding ? "Rebuilding…" : "Rebuild Lean log"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowTokenInput((v) => !v)}
+                  className="font-mono text-[11px] uppercase tracking-wider text-muted-foreground hover:text-foreground underline-offset-2 hover:underline"
+                  data-testid="button-toggle-rebuild-token"
+                >
+                  {rebuildToken ? "Change token" : "Set token"}
+                </button>
+                {isRebuilding ? (
+                  <span
+                    className="font-mono text-xs text-muted-foreground"
+                    data-testid="text-rebuild-progress"
+                  >
+                    Running lean-proof/regenerate.sh — this may take a few minutes.
+                  </span>
+                ) : null}
+              </div>
+
+              {showTokenInput ? (
+                <div
+                  className="flex flex-wrap items-end gap-2 border border-border bg-muted/30 p-3"
+                  data-testid="panel-rebuild-token"
+                >
+                  <label className="flex flex-col gap-1 flex-1 min-w-[16rem]">
+                    <span className="font-mono text-[11px] uppercase tracking-wider text-muted-foreground">
+                      Referee rebuild token
+                    </span>
+                    <input
+                      type="password"
+                      value={rebuildToken}
+                      onChange={(e) => setRebuildToken(e.target.value)}
+                      placeholder="Bearer token (LEAN_REBUILD_TOKEN)"
+                      className="font-mono text-xs px-2 py-1 bg-background border border-border focus:outline-none focus:border-primary"
+                      data-testid="input-rebuild-token"
+                      autoComplete="off"
+                    />
+                  </label>
                   <button
                     type="button"
-                    className="self-start inline-flex items-center gap-2 font-mono text-xs uppercase tracking-wider text-primary hover:underline"
-                    data-testid="button-view-verify-txt"
+                    onClick={() => {
+                      try {
+                        if (rebuildToken) {
+                          window.localStorage.setItem(
+                            REBUILD_TOKEN_STORAGE_KEY,
+                            rebuildToken,
+                          );
+                        } else {
+                          window.localStorage.removeItem(REBUILD_TOKEN_STORAGE_KEY);
+                        }
+                      } catch {
+                        // ignore
+                      }
+                      setShowTokenInput(false);
+                    }}
+                    className="px-3 py-1 border border-border bg-background font-mono text-[11px] uppercase tracking-wider hover:bg-muted"
+                    data-testid="button-save-rebuild-token"
                   >
-                    <FileText className="w-3 h-3" /> View VERIFY.txt
+                    Save
                   </button>
-                }
-              />
+                  <p className="basis-full font-mono text-[11px] text-muted-foreground">
+                    Stored in your browser only. The server must have
+                    <code className="mx-1">LEAN_REBUILD_TOKEN</code>
+                    set for rebuilds to be accepted.
+                  </p>
+                </div>
+              ) : null}
+
+              {rebuildOutcome ? (
+                <div
+                  className={`border p-3 font-mono text-xs space-y-2 ${
+                    rebuildOutcome.ok
+                      ? "border-green-500/50 bg-green-500/10 text-green-700 dark:text-green-400"
+                      : "border-red-500/50 bg-red-500/10 text-red-700 dark:text-red-400"
+                  }`}
+                  data-testid="panel-rebuild-result"
+                >
+                  <div className="flex items-center gap-2">
+                    {rebuildOutcome.ok ? (
+                      <CheckCircle2 className="w-3 h-3" />
+                    ) : (
+                      <XCircle className="w-3 h-3" />
+                    )}
+                    <span
+                      className="font-bold"
+                      data-testid="text-rebuild-message"
+                    >
+                      {rebuildOutcome.message}
+                    </span>
+                  </div>
+                  {rebuildOutcome.stdout || rebuildOutcome.stderr ? (
+                    <details className="text-foreground/80">
+                      <summary className="cursor-pointer text-muted-foreground hover:text-foreground">
+                        Show script output (exit {rebuildOutcome.exitCode},{" "}
+                        {(rebuildOutcome.durationMs / 1000).toFixed(1)}s)
+                      </summary>
+                      <pre
+                        className="mt-2 max-h-64 overflow-auto whitespace-pre-wrap bg-muted/40 p-2 text-foreground"
+                        data-testid="text-rebuild-output"
+                      >
+                        {rebuildOutcome.stdout}
+                        {rebuildOutcome.stderr ? `\n${rebuildOutcome.stderr}` : ""}
+                      </pre>
+                    </details>
+                  ) : null}
+                </div>
+              ) : null}
             </>
           ) : (
             <p className="text-xs font-mono text-muted-foreground">

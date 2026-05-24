@@ -118,6 +118,23 @@ paths:
               schema:
                 $ref: "#/components/schemas/LeanVerification"
 
+  /lean/verify/rebuild:
+    post:
+      operationId: rebuildLeanVerification
+      tags: [lean]
+      summary: Re-run lean-proof/regenerate.sh and refresh VERIFY.txt
+      description: |
+        Shells out to `lean-proof/regenerate.sh` to rebuild the Lean proof and
+        rewrite VERIFY.txt. Returns the script's stdout / stderr along with the
+        re-parsed verification log on success.
+      responses:
+        "200":
+          description: Rebuild attempted (check `ok` for success)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LeanRebuildResult"
+
   /storage/uploads/request-url:
     post:
       operationId: requestUploadUrl
@@ -270,6 +287,32 @@ components:
         ageDays:
           type: number
           description: Age in days between the file's mtime and the time the response was generated
+
+    LeanRebuildResult:
+      type: object
+      required: [ok, exitCode, stdout, stderr, durationMs]
+      properties:
+        ok:
+          type: boolean
+          description: True iff the rebuild script exited 0 and VERIFY.txt was refreshed
+        exitCode:
+          type: integer
+          description: Exit code of the rebuild script (or -1 if it could not be spawned)
+        stdout:
+          type: string
+        stderr:
+          type: string
+        durationMs:
+          type: integer
+          description: Wall-clock duration of the rebuild in milliseconds
+        error:
+          type: ["string", "null"]
+          description: High-level error message when the script could not be launched or completed (e.g. `lake` not installed, timeout)
+        verification:
+          oneOf:
+            - $ref: "#/components/schemas/LeanVerification"
+            - type: "null"
+          description: Re-parsed verification log after a successful rebuild
 
     UploadUrlRequest:
       type: object

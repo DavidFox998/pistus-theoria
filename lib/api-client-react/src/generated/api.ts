@@ -24,6 +24,7 @@ import type {
   CertificateSummary,
   CertificateUpdate,
   HealthStatus,
+  LeanRebuildResult,
   LeanVerification,
   UploadUrlRequest,
   UploadUrlResponse
@@ -498,6 +499,80 @@ export function useGetLeanVerification<TData = Awaited<ReturnType<typeof getLean
 
 
 
+
+export const getRebuildLeanVerificationUrl = () => {
+
+
+
+
+  return `/api/lean/verify/rebuild`
+}
+
+/**
+ * Shells out to `lean-proof/regenerate.sh` to rebuild the Lean proof and
+rewrite VERIFY.txt. Returns the script's stdout / stderr along with the
+re-parsed verification log on success.
+
+ * @summary Re-run lean-proof/regenerate.sh and refresh VERIFY.txt
+ */
+export const rebuildLeanVerification = async ( options?: RequestInit): Promise<LeanRebuildResult> => {
+
+  return customFetch<LeanRebuildResult>(getRebuildLeanVerificationUrl(),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+export const getRebuildLeanVerificationMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof rebuildLeanVerification>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof rebuildLeanVerification>>, TError,void, TContext> => {
+
+const mutationKey = ['rebuildLeanVerification'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof rebuildLeanVerification>>, void> = () => {
+
+
+          return  rebuildLeanVerification(requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type RebuildLeanVerificationMutationResult = NonNullable<Awaited<ReturnType<typeof rebuildLeanVerification>>>
+
+    export type RebuildLeanVerificationMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Re-run lean-proof/regenerate.sh and refresh VERIFY.txt
+ */
+export const useRebuildLeanVerification = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof rebuildLeanVerification>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof rebuildLeanVerification>>,
+        TError,
+        void,
+        TContext
+      > => {
+      return useMutation(getRebuildLeanVerificationMutationOptions(options));
+    }
 
 export const getRequestUploadUrlUrl = () => {
 

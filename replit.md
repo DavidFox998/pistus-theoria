@@ -11,6 +11,7 @@ Volume I: **Theorema Aureum 143 — Certificate Ledger.** A machine-proof certif
 - `pnpm --filter @workspace/db run push` — push DB schema changes (dev only)
 - Required env: `DATABASE_URL` — Postgres connection string
 - Required env: `DEFAULT_OBJECT_STORAGE_BUCKET_ID`, `PUBLIC_OBJECT_SEARCH_PATHS`, `PRIVATE_OBJECT_DIR` — object storage (auto-set by Replit)
+- Optional env: `LEAN_REBUILD_TOKEN` — shared secret enabling the dashboard's "Rebuild Lean log" button. When unset, `POST /api/lean/verify/rebuild` returns 503 (rebuilds disabled). When set, callers must send `Authorization: Bearer <token>`; only one rebuild runs at a time (others get 409). Referees paste the token into the dashboard's "Set token" panel (stored in their browser's localStorage only).
 
 ## Stack
 

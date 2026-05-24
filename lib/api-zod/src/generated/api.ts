@@ -121,6 +121,32 @@ export const GetLeanVerificationResponse = zod.object({
 
 
 /**
+ * Shells out to `lean-proof/regenerate.sh` to rebuild the Lean proof and
+rewrite VERIFY.txt. Returns the script's stdout / stderr along with the
+re-parsed verification log on success.
+
+ * @summary Re-run lean-proof/regenerate.sh and refresh VERIFY.txt
+ */
+export const RebuildLeanVerificationResponse = zod.object({
+  "ok": zod.boolean().describe('True iff the rebuild script exited 0 and VERIFY.txt was refreshed'),
+  "exitCode": zod.number().describe('Exit code of the rebuild script (or -1 if it could not be spawned)'),
+  "stdout": zod.string(),
+  "stderr": zod.string(),
+  "durationMs": zod.number().describe('Wall-clock duration of the rebuild in milliseconds'),
+  "error": zod.string().nullish().describe('High-level error message when the script could not be launched or completed (e.g. `lake` not installed, timeout)'),
+  "verification": zod.union([zod.object({
+  "toolchain": zod.string().describe('Lean toolchain version string'),
+  "dateVerified": zod.string().describe('Date the verification log was produced'),
+  "axiomDebt": zod.array(zod.string()).describe('List of remaining axioms (empty when fully discharged)'),
+  "axiomLines": zod.array(zod.string()).describe('Raw \"does not depend on any axioms\" lines from `lake env lean Verify.lean`'),
+  "content": zod.string().describe('Full raw contents of lean-proof\/VERIFY.txt'),
+  "lastModified": zod.coerce.date().optional().describe('ISO-8601 timestamp of the VERIFY.txt file\'s last modification (mtime)'),
+  "ageDays": zod.number().optional().describe('Age in days between the file\'s mtime and the time the response was generated')
+}),zod.null()]).optional().describe('Re-parsed verification log after a successful rebuild')
+})
+
+
+/**
  * @summary Request a presigned upload URL for a PDF
  */
 export const RequestUploadUrlBody = zod.object({
