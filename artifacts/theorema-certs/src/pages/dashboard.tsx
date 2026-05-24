@@ -5,14 +5,8 @@ import {
 } from "@workspace/api-client-react";
 import { ShaChip } from "@/components/sha-chip";
 import { StatusBadge } from "@/components/status-badge";
+import { VerifyTxtDialog } from "@/components/verify-txt-dialog";
 import { Card } from "@/components/ui/card";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
 import { Link } from "wouter";
 import { CheckCircle2, ArrowRight, FileText, ShieldCheck, AlertTriangle, Clock } from "lucide-react";
 
@@ -209,8 +203,8 @@ export default function DashboardPage() {
                 )}
               </div>
 
-              <Dialog>
-                <DialogTrigger asChild>
+              <VerifyTxtDialog
+                trigger={
                   <button
                     type="button"
                     className="self-start inline-flex items-center gap-2 font-mono text-xs uppercase tracking-wider text-primary hover:underline"
@@ -218,21 +212,8 @@ export default function DashboardPage() {
                   >
                     <FileText className="w-3 h-3" /> View VERIFY.txt
                   </button>
-                </DialogTrigger>
-                <DialogContent className="max-w-3xl">
-                  <DialogHeader>
-                    <DialogTitle className="font-mono text-sm uppercase">
-                      lean-proof/VERIFY.txt
-                    </DialogTitle>
-                  </DialogHeader>
-                  <pre
-                    className="bg-muted border border-border p-4 font-mono text-xs whitespace-pre-wrap overflow-auto max-h-[70vh]"
-                    data-testid="text-verify-content"
-                  >
-                    {leanVerify.content}
-                  </pre>
-                </DialogContent>
-              </Dialog>
+                }
+              />
             </>
           ) : (
             <p className="text-xs font-mono text-muted-foreground">
