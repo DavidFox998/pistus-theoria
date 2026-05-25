@@ -21,7 +21,7 @@ Status legend:
 
 ## 1. Riemann Hypothesis (RH)
 
-**Status: Open.**
+**Status: Open — first brick formalized (N-monotonicity in Lean, axioms = []).**
 
 - Computational evidence in this repo: 20,954 nontrivial ζ zeros
   located on the critical line via `kernel.sieve_zeros` /
@@ -33,6 +33,17 @@ Status legend:
   Prop-stub `H2_WeilTransfer` and on the structure of the
   declaration in `Certificates.lean`, not on a Lean formalization
   of the analytic statement.
+- First honest formal brick: `lean-proof/Towers/RH/ZeroDensity.lean`
+  defines `N σ T` (the count of nontrivial `riemannZeta` zeros in
+  `[σ, 1] × [0, T]`) on top of mathlib's real `riemannZeta`, proves
+  the trivial monotonicity lemma `N_monotone_in_sigma` with axiom
+  debt `[]`, and pins `RiemannVonMangoldt_statement : Prop` as a
+  named target for a future plan. The lemma is conditional on
+  finiteness of the larger box (the Riemann–von Mangoldt-adjacent
+  fact that is itself not yet in mathlib v4.12.0) — discharging
+  that finiteness is the next step. Built by `scripts/check-towers.sh`
+  / the `towers-build` workflow, not by the fast `lean-proof`
+  workflow.
 - Honest note: a computational verification window does not imply
   RH. A formal proof would require, at minimum, formalizing a
   zero-density estimate strong enough to rule out off-line zeros,
