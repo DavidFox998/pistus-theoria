@@ -66,3 +66,15 @@ id = "jzuCrL0deAvyjsNGVUP7D"
 uri = "file://data/MorningStar_RH_Cert.pdf"
 type = "pdf"
 title = "MorningStar-Lab v1.0 — Riemann Hypothesis Reconnaissance Certificate (100 zeros, axiom debt [])"
+
+[[outputs]]
+id = "nOQONQ-4FcIiS3DbkJXyQ"
+uri = "file://docs/MorningStar_Architecture.pdf"
+type = "pdf"
+title = "MorningStar Architecture — v1.9 master manifesto"
+
+[[outputs]]
+id = "-lwBT9H2DXmGerXdKLXip"
+uri = "file://MorningStar_v1.9_master_manifesto.zip"
+type = "unspecified"
+title = "MorningStar v1.9 — full reproducibility bundle (PDF + sources + Lean + ledger)"
