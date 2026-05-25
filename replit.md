@@ -178,6 +178,10 @@ README Appendix A; their *statements* claim nothing about number theory.
 so the stubbed `L_nonvanish=True` cannot be mistaken for a real
 L-function evaluation.
 
+## MorningStar-Lab tests
+
+- `python -m pytest tests/test_morningstar.py -q` runs the Genesis-seal tamper-evidence suite. It asserts that `scripts/check-genesis-seal.py` exits non-zero on byte-flips, line-swaps, and pre-marker insertions in `data/hits.txt`; that the unmodified file still passes; that `lean_bridge._guard` refuses rendered Lean containing `axiom `, `sorry`, or `admit `; that `_genesis_integers` never lifts non-numeric lines like `axiom foo` into emitted Lean; and that `kernel.probe()` raises before appending when the Genesis preamble is tampered. A pytest fixture backs up and restores `data/hits.txt` so a mid-test crash cannot leave the ledger corrupted.
+
 ## Pointers
 
 - See the `pnpm-workspace` skill for workspace structure, TypeScript setup, and package details

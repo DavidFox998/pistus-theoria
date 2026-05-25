@@ -9,4 +9,5 @@ dependencies = [
     "opencv-python-headless>=4.13.0.92",
     "pillow>=12.2.0",
     "pytesseract>=0.3.13",
+    "pytest>=9.0.3",
 ]
