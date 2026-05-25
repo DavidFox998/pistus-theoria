@@ -29,6 +29,7 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import re as _re
 import subprocess
 import sys
 import time
@@ -36,6 +37,8 @@ from pathlib import Path
 from typing import Any
 
 import mpmath
+
+ELLIPTIC_LABEL_RE = _re.compile(r"^[A-Za-z0-9._-]{1,32}$")
 
 REPO_ROOT = Path(__file__).resolve().parent
 HITS = REPO_ROOT / "data" / "hits.txt"
@@ -302,6 +305,65 @@ def hunt_zeros(n_start: int = 1, n_end: int = 10) -> list[dict[str, Any]]:
             f"RH_ok={r['RH_ok']} sha={r['sha'][:16]}"
         )
     return hits
+
+
+def elliptic_stub(label: str, re_s: float, im_s: float) -> dict[str, Any]:
+    """Reserve the elliptic-curve namespace without computing L(E, s).
+
+    The mpmath backend cannot evaluate elliptic L-functions. Rather than
+    silently route to `probe(1, conductor, ...)` (which would compute a
+    Dirichlet L, not an elliptic L), this writes a SHA-stamped *intent*
+    line tagged `ELLIPTIC_STUB` with `reason=elliptic_L_requires_sage`.
+
+    When SageMath is wired in later, the hash chain proves we asked for
+    this label at this s before the real backend existed.
+
+    `label` is validated against `ELLIPTIC_LABEL_RE` (Cremona-style
+    labels like `37a1`, `143b2`). The seal is verified before the
+    append, exactly as in `probe()`.
+    """
+    if not isinstance(label, str) or not ELLIPTIC_LABEL_RE.match(label):
+        raise ValueError(
+            f"elliptic_stub: label must match {ELLIPTIC_LABEL_RE.pattern}"
+        )
+    _verify_seal()
+
+    ts = time.time_ns()
+    re_f = float(re_s)
+    im_f = float(im_s)
+
+    digest_payload = {
+        "ts": ts,
+        "kind": "elliptic_stub",
+        "label": label,
+        "re_s": re_f,
+        "im_s": im_f,
+        "tag": "ELLIPTIC_STUB",
+        "reason": "elliptic_L_requires_sage",
+    }
+    body = json.dumps(digest_payload, sort_keys=True, separators=(",", ":"))
+    sha = hashlib.sha256(body.encode("utf-8")).hexdigest()
+
+    ledger_line = (
+        f"elliptic_stub ts={ts} label={label} re={re_f} im={im_f} "
+        f"tag=ELLIPTIC_STUB axioms=[] RH_ok=NA kms_beta=NA "
+        f"reason=elliptic_L_requires_sage sha={sha}"
+    )
+    _append_line(ledger_line)
+
+    return {
+        "label": label,
+        "re_s": re_f,
+        "im_s": im_f,
+        "tag": "ELLIPTIC_STUB",
+        "backend": "none",
+        "reason": "elliptic_L_requires_sage",
+        "axioms": [],
+        "RH_ok": None,
+        "kms_beta": None,
+        "sha": sha,
+        "ledger_line": ledger_line,
+    }
 
 
 def bracket_zero(n: int, window: float = 1e-6) -> dict[str, Any]:

@@ -1,23 +1,33 @@
-"""Layer 7 (Application) — MorningStar-Lab REPL/CLI.
+"""Layer 7 (Application) — MorningStar-Lab v1.9 "Three Guns" REPL/CLI.
+
+Three explicitly-typed entry points so a probe's *intent* is visible on
+the command line, not inferred from `(h, N)`:
+
+  Gun 1 — Zeta sniper    (mpmath.zetazero exact zero, axioms=[])
+    zeta_sniper(n)          alias of kernel.zero(n)
+    zeta_burst(n_start,n_end)   alias of kernel.hunt_zeros
+    bracket_riemann_zero(n,eps) alias of kernel.bracket_zero
+
+  Gun 2 — Dirichlet radar (principal χ₀ via mpmath Euler-factor strip)
+    dirichlet_probe(N,re,im[,char])
+      char=0 (principal) routes to kernel.probe(1,N,re,im).
+      char!=0 returns NEEDS_SAGE without writing a ledger line.
+
+  Gun 3 — Elliptic stub   (no evaluation; SHA-stamped intent only)
+    elliptic_probe(label,re,im)   alias of kernel.elliptic_stub.
+      Writes a tag=ELLIPTIC_STUB line so a later Sage-backed run can
+      prove we asked first.
+
+The legacy single-gun commands (`probe`, `zero`, `hunt_zeros`,
+`bracket_zero`, `scan_critical_line`, `scan_line`, `scan_plane`) all
+still work unchanged — Three-Guns is additive.
 
 Usage:
-  python lab.py                                          # banner + interactive REPL
-  python lab.py -c "probe(1,19,0.5,0)"                   # one-shot probe
-  python lab.py -c "zero(1)"                             # log the 1st Riemann zero
-  python lab.py -c "hunt_zeros(1,3)"                     # log zeros 1..3
-  python lab.py -c "bracket_zero(1,1e-4)"                # tight bracket sweep
-  python lab.py -c "scan_critical_line(1,14,22,0.01)"    # sweep critical line
-  python lab.py -c "scan_line(1,14,22,0.01,1)"           # sweep with explicit h
-  python lab.py -c "scan_plane(1,1,0.4,0.6,14,22,0.1)"   # 2D plane sweep
-
-REPL forms (interactive):
-  probe h N re_s im_s
-  zero n
-  hunt_zeros n_start n_end
-  bracket_zero n window
-  scan_critical_line N im_start im_end [step]
-  scan_line N im_start im_end step h
-  scan_plane h N re_min re_max im_min im_max grid
+  python lab.py                                          # banner + REPL
+  python lab.py -c "zeta_sniper(6709)"
+  python lab.py -c "dirichlet_probe(1094, 0.5, 0)"
+  python lab.py -c "elliptic_probe(37a1, 1, 0)"
+  python lab.py -c "bracket_riemann_zero(1, 1e-4)"
 """
 
 from __future__ import annotations
@@ -30,8 +40,11 @@ import sys
 import kernel
 
 BANNER = (
-    "MorningStar-Lab 4D Ready. Axes: W=h Z=N X=Re Y=Im\n"
-    "commands: probe | zero | hunt_zeros | bracket_zero | "
+    "MorningStar-Lab v1.9 Three Guns. 4D Ready. Axes: W=h Z=N X=Re Y=Im\n"
+    "  Gun 1 (Zeta sniper):    zeta_sniper | zeta_burst | bracket_riemann_zero\n"
+    "  Gun 2 (Dirichlet radar): dirichlet_probe\n"
+    "  Gun 3 (Elliptic stub):   elliptic_probe\n"
+    "  Legacy:                  probe | zero | hunt_zeros | bracket_zero | "
     "scan_critical_line | scan_line | scan_plane"
 )
 
@@ -44,7 +57,6 @@ def _split_args(rest: str) -> list[str]:
 
 
 def _parse_probe(expr: str) -> tuple[int, int, float, float]:
-    """Parse 'probe(h,N,re,im)' or 'probe h N re im'."""
     s = expr.strip()
     if not s.startswith("probe"):
         raise ValueError(f"unknown command: {expr!r}")
@@ -56,7 +68,6 @@ def _parse_probe(expr: str) -> tuple[int, int, float, float]:
 
 
 def _parse_zero(expr: str) -> int:
-    """Parse 'zero(n)' or 'zero n'."""
     parts = _split_args(expr.strip()[len("zero") :])
     if len(parts) != 1:
         raise ValueError(f"zero needs 1 arg (n); got {len(parts)}")
@@ -67,6 +78,15 @@ def _parse_args(expr: str, head: str, n: int) -> list[str]:
     parts = _split_args(expr.strip()[len(head) :])
     if len(parts) != n:
         raise ValueError(f"{head} needs {n} args; got {len(parts)}")
+    return parts
+
+
+def _parse_args_range(expr: str, head: str, lo: int, hi: int) -> list[str]:
+    parts = _split_args(expr.strip()[len(head) :])
+    if not (lo <= len(parts) <= hi):
+        raise ValueError(
+            f"{head} needs {lo}..{hi} args; got {len(parts)}"
+        )
     return parts
 
 
@@ -85,7 +105,7 @@ def _parse_scan(expr: str) -> tuple[int, float, float, float]:
 
 def _format_result(out: dict) -> str:
     pretty = {k: v for k, v in out.items() if k != "ledger_line"}
-    rendered = json.dumps(pretty, sort_keys=True, indent=2)
+    rendered = json.dumps(pretty, sort_keys=True, indent=2, default=str)
     if "ledger_line" in out:
         return rendered + "\n  ledger: " + out["ledger_line"]
     return rendered
@@ -95,11 +115,74 @@ def _short_sha(sha: str) -> str:
     return sha[:8] if sha else "?"
 
 
+def _run_zeta_sniper(n: int) -> dict:
+    """Gun 1: exact n-th Riemann zero via mpmath.zetazero. axioms=[]."""
+    out = kernel.zero(int(n))
+    l_abs = out.get("L_abs") or "NA"
+    print(
+        f"ZETA SNIPER n={out['n']}: t={out['gamma']} "
+        f"|L|={l_abs} RH_ok={out['RH_ok']} sha={_short_sha(out['sha'])}"
+    )
+    return out
+
+
+def _run_zeta_burst(n_start: int, n_end: int) -> list[dict]:
+    """Gun 1 (burst): zeros n_start..n_end via kernel.hunt_zeros."""
+    return kernel.hunt_zeros(int(n_start), int(n_end))
+
+
+def _run_bracket_riemann_zero(n: int, eps: float) -> dict:
+    """Gun 1 (proof of work): sweep |ζ| dipping at the n-th zero."""
+    out = kernel.bracket_zero(int(n), float(eps))
+    print(
+        f"BRACKETED n={out['n']} t0={out['t0']} window={out['window']} "
+        f"step={out['step']} zeros_found={out['zeros_count']}"
+    )
+    return out
+
+
+def _run_dirichlet_probe(
+    N: int, re_s: float, im_s: float, char: int = 0
+) -> dict:
+    """Gun 2: explicit Dirichlet routing. Non-principal char rejected."""
+    if int(char) != 0:
+        result = {
+            "N": int(N),
+            "re_s": float(re_s),
+            "im_s": float(im_s),
+            "char": int(char),
+            "tag": "NEEDS_SAGE",
+            "reason": "non_principal_dirichlet_requires_sage",
+            "backend": "none",
+            "ledger_written": False,
+        }
+        print(
+            f"DIRICHLET RADAR REJECT: N={N} char={char} → "
+            f"NEEDS_SAGE (no ledger line; only principal chars supported)"
+        )
+        return result
+    out = kernel.probe(1, int(N), float(re_s), float(im_s))
+    l_abs = out.get("L_abs") or "NA"
+    print(
+        f"DIRICHLET RADAR: N={N} s={re_s}+{im_s}i tag={out['tag']} "
+        f"|L|={l_abs} sha={_short_sha(out['sha'])}"
+    )
+    return out
+
+
+def _run_elliptic_probe(label: str, re_s: float, im_s: float) -> dict:
+    """Gun 3: SHA-stamped intent to compute L(E,s). No evaluation."""
+    out = kernel.elliptic_stub(str(label), float(re_s), float(im_s))
+    print(
+        f"ELLIPTIC STUB: {out['label']} s={out['re_s']}+{out['im_s']}i "
+        f"tag={out['tag']} reason={out['reason']} sha={_short_sha(out['sha'])}"
+    )
+    return out
+
+
 def run_one(expr: str) -> int:
     s = expr.strip()
-    # Order matters: longer prefixes first so e.g. 'scan_critical_line'
-    # is matched before 'scan_line', and 'scan_line' before 'scan_plane'
-    # never collides with anything else.
+    # Order matters: longer prefixes first.
     if s.startswith("scan_critical_line"):
         N, im_start, im_end, step = _parse_scan(s)
         hits = kernel.scan_critical_line(N, im_start, im_end, step)
@@ -130,6 +213,32 @@ def run_one(expr: str) -> int:
             float(grid),
         )
         print(json.dumps(summary, indent=2))
+        return 0
+    if s.startswith("bracket_riemann_zero"):
+        n, eps = _parse_args(s, "bracket_riemann_zero", 2)
+        _run_bracket_riemann_zero(int(n), float(eps))
+        return 0
+    if s.startswith("zeta_sniper"):
+        (n,) = _parse_args(s, "zeta_sniper", 1)
+        out = _run_zeta_sniper(int(n))
+        print(_format_result(out))
+        return 0
+    if s.startswith("zeta_burst"):
+        n_start, n_end = _parse_args(s, "zeta_burst", 2)
+        hits = _run_zeta_burst(int(n_start), int(n_end))
+        print(json.dumps({"count": len(hits)}, indent=2))
+        return 0
+    if s.startswith("dirichlet_probe"):
+        parts = _parse_args_range(s, "dirichlet_probe", 3, 4)
+        N, re_s, im_s = parts[0], parts[1], parts[2]
+        char = int(parts[3]) if len(parts) == 4 else 0
+        out = _run_dirichlet_probe(int(N), float(re_s), float(im_s), char)
+        print(_format_result(out))
+        return 0
+    if s.startswith("elliptic_probe"):
+        label, re_s, im_s = _parse_args(s, "elliptic_probe", 3)
+        out = _run_elliptic_probe(label, float(re_s), float(im_s))
+        print(_format_result(out))
         return 0
     if s.startswith("hunt_zeros"):
         n_start, n_end = _parse_args(s, "hunt_zeros", 2)
@@ -180,8 +289,9 @@ def main() -> int:
         "-c",
         "--command",
         help=(
-            "one-shot command (probe / zero / hunt_zeros / bracket_zero / "
-            "scan_critical_line / scan_line / scan_plane)"
+            "one-shot command (zeta_sniper / zeta_burst / bracket_riemann_zero / "
+            "dirichlet_probe / elliptic_probe / probe / zero / hunt_zeros / "
+            "bracket_zero / scan_critical_line / scan_line / scan_plane)"
         ),
     )
     args = ap.parse_args()

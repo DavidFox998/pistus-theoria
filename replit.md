@@ -178,9 +178,49 @@ README Appendix A; their *statements* claim nothing about number theory.
 so the stubbed `L_nonvanish=True` cannot be mistaken for a real
 L-function evaluation.
 
+## MorningStar-Lab v1.9 — "Three Guns" surface (lab.py)
+
+The single `probe(h, N, re, im)` entry point conflated three different
+intents — Riemann sniping, Dirichlet evaluation, and "I want an
+elliptic L but the kernel can't compute it". v1.9 splits them into
+three explicitly-typed CLI commands so the *intent* of a probe is
+visible in the ledger and on the command line, not inferred from
+`(h, N)`. All three still write through the same seal-verify-then-
+append discipline as `probe()`.
+
+- **Gun 1 — Zeta sniper** (`zeta_sniper(n)`, `zeta_burst(a,b)`,
+  `bracket_riemann_zero(n, eps)`): thin wrappers over `kernel.zero` /
+  `hunt_zeros` / `bracket_zero`. Uses `mpmath.zetazero(n)` directly,
+  so we hit the exact n-th nontrivial ζ zero (no sweep). axiom debt
+  []. Verified on the Lehmer pair: `zeta_sniper(6709)` →
+  t=7005.0628661749…, |L|=7.85×10⁻¹⁵, RH_ok=True;
+  `zeta_sniper(6710)` → t=7005.1005646726…, |L|=1.72×10⁻¹³,
+  RH_ok=True (Δt ≈ 0.0377, the famous near-collision).
+- **Gun 2 — Dirichlet radar** (`dirichlet_probe(N, re, im[, char])`):
+  routes principal χ₀ to `probe(1, N, re, im)`. Non-principal `char`
+  is rejected with `NEEDS_SAGE` **without** writing a ledger line —
+  same contract as `hunt_zeros(37, 1, 5)` failing before
+  `_append_line`: failures don't append.
+- **Gun 3 — Elliptic stub** (`elliptic_probe(label, re, im)` →
+  `kernel.elliptic_stub`): does **not** evaluate. Writes a
+  SHA-stamped intent line tagged `ELLIPTIC_STUB` with
+  `reason=elliptic_L_requires_sage`. Label is validated against
+  `ELLIPTIC_LABEL_RE` (`^[A-Za-z0-9._-]{1,32}$`) before any seal
+  check, so a malformed label can never reach the ledger. When
+  SageMath is wired in, the hash chain proves we asked for this
+  label at this `s` first. Critically, `elliptic_stub` does **not**
+  route through `probe(1, conductor, ...)` — that would compute a
+  Dirichlet L, not an elliptic L. The returned dict has no
+  `L_real`/`L_imag`/`L_abs` keys at all, and `test_kernel.py` pins
+  that invariant so a future refactor can't silently start lying.
+
+The legacy commands (`probe`, `zero`, `hunt_zeros`, `bracket_zero`,
+`scan_critical_line`, `scan_line`, `scan_plane`) all still work
+unchanged — Three-Guns is additive.
+
 ## MorningStar-Lab tests
 
-- `python -m pytest tests/test_kernel.py -q` (registered as the `kernel-numerics` validation) pins the mpmath L-function backend numerics for `kernel.probe()`: tag `MPMATH_ZETA` with `|L|<1e-6` at the first nontrivial ζ zero, `|ζ(2) - π²/6| < 1e-10`, tag `MPMATH_DIRICHLET_TRIVIAL` for `(h=1, N=19, s=0.5)` matching `ζ(0.5)·(1 - 19^{-0.5})`, and tag `NEEDS_SAGE` with `reason=h>=2_out_of_scope_for_mpmath_backend` for `h=2`. Each test monkeypatches `kernel.HITS` to a `tmp_path` file so the real append-only ledger is untouched.
+- `python -m pytest tests/test_kernel.py -q` (registered as the `kernel-numerics` validation) pins the mpmath L-function backend numerics for `kernel.probe()`: tag `MPMATH_ZETA` with `|L|<1e-6` at the first nontrivial ζ zero, `|ζ(2) - π²/6| < 1e-10`, tag `MPMATH_DIRICHLET_TRIVIAL` for `(h=1, N=19, s=0.5)` matching `ζ(0.5)·(1 - 19^{-0.5})`, and tag `NEEDS_SAGE` with `reason=h>=2_out_of_scope_for_mpmath_backend` for `h=2`. Each test monkeypatches `kernel.HITS` to a `tmp_path` file so the real append-only ledger is untouched. v1.9 adds three `elliptic_stub` tests: (1) one ELLIPTIC_STUB line is written with the right tag/reason/sha and *no* L value; (2) a malformed label raises `ValueError` before any seal check or append (no partial state); (3) even with a real-looking label and a well-defined `s`, no `L_real`/`L_imag`/`L_abs` key is ever populated — the stub can't be silently rerouted to the mpmath backend.
 - `python -m pytest tests/test_morningstar.py -q` (registered as the `morningstar-tamper` validation, and also invoked from `scripts/post-merge.sh` so every merge re-verifies the tamper-evidence guarantees) runs the Genesis-seal tamper-evidence suite. It asserts that `scripts/check-genesis-seal.py` exits non-zero on byte-flips, line-swaps, and pre-marker insertions in `data/hits.txt`; that the unmodified file still passes; that `lean_bridge._guard` refuses rendered Lean containing `axiom `, `sorry`, or `admit `; that `_genesis_integers` never lifts non-numeric lines like `axiom foo` into emitted Lean; and that `kernel.probe()` raises before appending when the Genesis preamble is tampered. A pytest fixture backs up and restores `data/hits.txt` so a mid-test crash cannot leave the ledger corrupted.
 
 ## Pointers

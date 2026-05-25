@@ -76,3 +76,44 @@ def test_probe_h_ge_2_needs_sage(tmp_hits):
     assert out["L_abs"] is None
     assert out["reason"] == "h>=2_out_of_scope_for_mpmath_backend"
     assert "NEEDS_SAGE" in tmp_hits.read_text(encoding="utf-8")
+
+
+def test_elliptic_stub_appends_one_line_with_intent_tag(tmp_hits):
+    """Gun 3: elliptic_stub writes one ELLIPTIC_STUB line, no L value,
+    no claim of RH_ok, and includes the elliptic_L_requires_sage reason.
+    """
+    out = kernel.elliptic_stub("37a1", 1.0, 0.0)
+    assert out["tag"] == "ELLIPTIC_STUB"
+    assert out["backend"] == "none"
+    assert out["reason"] == "elliptic_L_requires_sage"
+    assert out["RH_ok"] is None
+    assert out["kms_beta"] is None
+    assert out["axioms"] == []
+    assert len(out["sha"]) == 64
+    body = tmp_hits.read_text(encoding="utf-8")
+    assert body.count("\n") == 1
+    line = body.strip()
+    assert line.startswith("elliptic_stub ts=")
+    assert "label=37a1" in line
+    assert "tag=ELLIPTIC_STUB" in line
+    assert "reason=elliptic_L_requires_sage" in line
+    assert f"sha={out['sha']}" in line
+
+
+def test_elliptic_stub_rejects_bad_label_without_writing(tmp_hits):
+    """A label that violates ELLIPTIC_LABEL_RE must raise before any
+    seal check or append — no ledger line, no partial state."""
+    with pytest.raises(ValueError, match="elliptic_stub: label"):
+        kernel.elliptic_stub("37a1; rm -rf /", 1.0, 0.0)
+    assert not tmp_hits.exists() or tmp_hits.read_text(encoding="utf-8") == ""
+
+
+def test_elliptic_stub_does_not_call_mpmath_backend(tmp_hits):
+    """Gun 3 is a stub: even when label looks like a real curve and s is
+    well-defined, no L value is ever filled in. Catches a future refactor
+    that accidentally routes elliptic_stub through probe()."""
+    out = kernel.elliptic_stub("143b2", 0.5, 14.134725)
+    assert "L_abs" not in out  # no numeric field at all
+    assert "L_real" not in out
+    assert "L_imag" not in out
+    assert out["tag"] == "ELLIPTIC_STUB"
