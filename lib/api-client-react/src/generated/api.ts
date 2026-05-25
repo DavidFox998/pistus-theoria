@@ -23,6 +23,7 @@ import type {
   Certificate,
   CertificateSummary,
   CertificateUpdate,
+  GetMorningstarHitsParams,
   HealthStatus,
   LeanLockoutClearRequest,
   LeanLockoutClearResult,
@@ -31,6 +32,7 @@ import type {
   LeanRebuildHistory,
   LeanRebuildResult,
   LeanVerification,
+  MorningstarHits,
   UploadUrlRequest,
   UploadUrlResponse
 } from './api.schemas';
@@ -977,6 +979,97 @@ export const useClearLeanLockout = <TError = ErrorType<void>,
       > => {
       return useMutation(getClearLeanLockoutMutationOptions(options));
     }
+
+export const getGetMorningstarHitsUrl = (params?: GetMorningstarHitsParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : value.toString())
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/morningstar/hits?${stringifiedParams}` : `/api/morningstar/hits`
+}
+
+/**
+ * Returns the parsed contents of `data/hits.txt`: the header comment
+lines, the five frozen Genesis lines (including the
+`--- GENESIS SEAL ---` marker), the SHA-256 of the immutable
+preamble together with the expected baked-in seal hash and a
+match/mismatch flag, plus the most recent N probe lines parsed
+into structured fields. This endpoint never writes to `hits.txt`.
+
+ * @summary Read the MorningStar-Lab probe ledger (read-only)
+ */
+export const getMorningstarHits = async (params?: GetMorningstarHitsParams, options?: RequestInit): Promise<MorningstarHits> => {
+
+  return customFetch<MorningstarHits>(getGetMorningstarHitsUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetMorningstarHitsQueryKey = (params?: GetMorningstarHitsParams,) => {
+    return [
+    `/api/morningstar/hits`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getGetMorningstarHitsQueryOptions = <TData = Awaited<ReturnType<typeof getMorningstarHits>>, TError = ErrorType<void>>(params?: GetMorningstarHitsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getMorningstarHits>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetMorningstarHitsQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getMorningstarHits>>> = ({ signal }) => getMorningstarHits(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getMorningstarHits>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetMorningstarHitsQueryResult = NonNullable<Awaited<ReturnType<typeof getMorningstarHits>>>
+export type GetMorningstarHitsQueryError = ErrorType<void>
+
+
+/**
+ * @summary Read the MorningStar-Lab probe ledger (read-only)
+ */
+
+export function useGetMorningstarHits<TData = Awaited<ReturnType<typeof getMorningstarHits>>, TError = ErrorType<void>>(
+ params?: GetMorningstarHitsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getMorningstarHits>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetMorningstarHitsQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
 
 export const getRequestUploadUrlUrl = () => {
 

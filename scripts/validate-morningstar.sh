@@ -2,6 +2,10 @@
 # MorningStar-Lab v1.0 validation harness.
 # Runs (in order):
 #   1. python lab.py -c "probe(1,19,0.5,0)"   — Layer 7 + Layer 4 + Genesis seal
+#   1a. assert kms_beta=2.0 in the latest ledger line
+#   1b. python lab.py -c "zero(1)"            — honest-scope RH_ok witness
+#                                                (tag=MPMATH_ZETA, kms_beta=2.0,
+#                                                 RH_ok=True)
 #   2. python lab.py -c "hunt_zeros(1,3)"     — zeta zero reconnaissance
 #   3. python lab.py -c "bracket_zero(1,1e-4)" — tight bracket sweep
 #   4. assert data/MorningStar_RH_Cert.tex exists
@@ -24,6 +28,35 @@ cd "$REPO_ROOT"
 
 echo ">> [1/7] python lab.py -c \"probe(1,19,0.5,0)\""
 python lab.py -c "probe(1,19,0.5,0)"
+
+echo
+echo ">> [1a/7] verify kms_beta wired into latest ledger line"
+TAIL_LINE="$(tail -1 data/hits.txt)"
+if ! grep -qE ' kms_beta=' <<<"$TAIL_LINE"; then
+  echo "FATAL: kms_beta field missing from latest ledger line:" >&2
+  echo "  $TAIL_LINE" >&2
+  exit 1
+fi
+# Re(s)=0.5 → β = 1/0.5 = 2.0
+if ! grep -qE ' kms_beta=2\.0 ' <<<"$TAIL_LINE"; then
+  echo "FATAL: expected kms_beta=2.0 at Re(s)=0.5; latest line was:" >&2
+  echo "  $TAIL_LINE" >&2
+  exit 1
+fi
+
+echo
+echo ">> [1b/7] python lab.py -c \"zero(1)\"  (honest-scope RH_ok witness)"
+python lab.py -c "zero(1)"
+ZERO_LINE="$(tail -1 data/hits.txt)"
+# Must be the real Riemann-ζ backend, on the critical line, with the
+# witness firing — i.e. tag=MPMATH_ZETA, kms_beta=2.0, RH_ok=True.
+for needle in "MPMATH_ZETA" "kms_beta=2.0" "RH_ok=True"; do
+  if ! grep -qF "$needle" <<<"$ZERO_LINE"; then
+    echo "FATAL: zero(1) ledger line missing '$needle':" >&2
+    echo "  $ZERO_LINE" >&2
+    exit 1
+  fi
+done
 
 echo
 echo ">> [2/7] python lab.py -c \"hunt_zeros(1,3)\""

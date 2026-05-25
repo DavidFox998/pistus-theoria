@@ -235,6 +235,56 @@ export const ClearLeanLockoutResponse = zod.object({
 
 
 /**
+ * Returns the parsed contents of `data/hits.txt`: the header comment
+lines, the five frozen Genesis lines (including the
+`--- GENESIS SEAL ---` marker), the SHA-256 of the immutable
+preamble together with the expected baked-in seal hash and a
+match/mismatch flag, plus the most recent N probe lines parsed
+into structured fields. This endpoint never writes to `hits.txt`.
+
+ * @summary Read the MorningStar-Lab probe ledger (read-only)
+ */
+export const getMorningstarHitsQueryLimitDefault = 50;
+export const getMorningstarHitsQueryLimitMax = 500;
+
+
+
+export const GetMorningstarHitsQueryParams = zod.object({
+  "limit": zod.coerce.number().min(1).max(getMorningstarHitsQueryLimitMax).default(getMorningstarHitsQueryLimitDefault).describe('Maximum number of recent probes to return (default 50, max 500).')
+})
+
+export const GetMorningstarHitsResponse = zod.object({
+  "headerLines": zod.array(zod.string()).describe('Comment lines (typically lines 1–4) preceding the Genesis block'),
+  "genesisLines": zod.array(zod.string()).describe('The five frozen Genesis lines through and including the\n`--- GENESIS SEAL ---` marker (e.g. `437`, `1094`,\n`axioms=[] 2026-05-24`, `M13_CERT_SHA256=...`,\n`--- GENESIS SEAL ---`).\n'),
+  "sealSha": zod.string().describe('SHA-256 of the immutable preamble (header + Genesis lines through marker, each terminated by `\\n`)'),
+  "expectedSealSha": zod.string().describe('Baked-in expected seal hash from `scripts\/check-genesis-seal.py`'),
+  "sealOk": zod.boolean().describe('True iff `sealSha === expectedSealSha`'),
+  "probes": zod.array(zod.object({
+  "lineNumber": zod.number().describe('1-indexed line number in `data\/hits.txt`'),
+  "raw": zod.string().describe('The original line, verbatim'),
+  "ts": zod.string().nullish().describe('Raw `ts=` value (nanoseconds since the Unix epoch, as recorded)'),
+  "timestamp": zod.coerce.date().nullish().describe('ISO-8601 conversion of `ts` (UTC) when parseable'),
+  "h": zod.number().nullish(),
+  "n": zod.number().nullish(),
+  "re": zod.number().nullish(),
+  "im": zod.number().nullish(),
+  "lNonvanish": zod.boolean().nullish(),
+  "rhOk": zod.boolean().nullish(),
+  "kmsBeta": zod.number().nullish().describe('Bost–Connes inverse-temperature β = 1\/Re(s) at the probe\npoint. `null` when the ledger line predates the kms_beta\nfield or recorded `NA` (e.g. Re(s)=0).\n'),
+  "tag": zod.string().nullish().describe('Backend tag (e.g. MPMATH_ZETA, MPMATH_DIRICHLET_TRIVIAL, NEEDS_SAGE)'),
+  "lAbs": zod.string().nullish().describe('Raw `L_abs=` value when present (kept as a string to preserve precision and `NA`)'),
+  "reason": zod.string().nullish(),
+  "sha": zod.string().nullish().describe('SHA-256 the kernel recorded for this probe line')
+})).describe('Most-recent-first slice of probe lines, length capped by `limit`'),
+  "totalProbes": zod.number().describe('Total number of probe lines in the ledger (lines after the Genesis marker)'),
+  "returnedProbes": zod.number().describe('Number of probes included in `probes`'),
+  "limit": zod.number().describe('Effective limit applied to the response'),
+  "ledgerPath": zod.string().describe('Filesystem path to the ledger that was read (for operator clarity)'),
+  "lastModified": zod.coerce.date().describe('ISO-8601 mtime of the ledger file')
+})
+
+
+/**
  * @summary Request a presigned upload URL for a PDF
  */
 export const RequestUploadUrlBody = zod.object({

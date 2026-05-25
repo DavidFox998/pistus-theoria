@@ -5,6 +5,8 @@ import {
   useGetLeanRebuildHistory,
   useGetLeanLockouts,
   useClearLeanLockout,
+  useGetMorningstarHits,
+  getGetMorningstarHitsQueryKey,
   getGetLeanVerificationQueryKey,
   getGetLeanRebuildHistoryQueryKey,
   getGetLeanLockoutsQueryKey,
@@ -25,6 +27,7 @@ import {
   XCircle,
   ShieldAlert,
   Ban,
+  Activity,
 } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
@@ -180,6 +183,17 @@ export default function DashboardPage() {
   const { data: certificates, isLoading: isCertsLoading } = useListCertificates();
   const { data: leanVerify } = useGetLeanVerification();
   const { data: rebuildHistory } = useGetLeanRebuildHistory();
+  const { data: morningstarHits, error: morningstarError } = useGetMorningstarHits(
+    { limit: 20 },
+    {
+      query: {
+        queryKey: getGetMorningstarHitsQueryKey({ limit: 20 }),
+        refetchInterval: 15000,
+        refetchIntervalInBackground: false,
+        retry: false,
+      },
+    },
+  );
   const queryClient = useQueryClient();
   const [rebuildToken, setRebuildToken] = useState<string>("");
   const [refereeName, setRefereeName] = useState<string>("");
@@ -1072,6 +1086,189 @@ export default function DashboardPage() {
             <p className="text-xs font-mono text-muted-foreground">
               Verification log unavailable.
             </p>
+          )}
+        </div>
+      </Card>
+
+      <Card
+        className="p-6 border-border bg-card"
+        data-testid="card-morningstar-hits"
+      >
+        <div className="flex flex-col gap-4">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+            <h3 className="text-sm font-mono font-bold uppercase text-muted-foreground flex items-center gap-2">
+              <Activity className="w-4 h-4" /> MorningStar-Lab activity
+            </h3>
+            {morningstarHits ? (
+              <span
+                className={`inline-flex items-center gap-2 px-3 py-1 border font-mono text-xs font-bold ${
+                  morningstarHits.sealOk
+                    ? "border-green-500/50 bg-green-500/10 text-green-700 dark:text-green-400"
+                    : "border-red-500/50 bg-red-500/10 text-red-700 dark:text-red-400"
+                }`}
+                data-testid="badge-morningstar-seal"
+              >
+                {morningstarHits.sealOk ? (
+                  <CheckCircle2 className="w-3 h-3" />
+                ) : (
+                  <ShieldAlert className="w-3 h-3" />
+                )}
+                {morningstarHits.sealOk
+                  ? "Genesis seal verified"
+                  : "Genesis seal MISMATCH"}
+              </span>
+            ) : null}
+          </div>
+
+          {morningstarError ? (
+            <p
+              className="font-mono text-xs text-red-700 dark:text-red-400"
+              data-testid="text-morningstar-error"
+            >
+              Failed to load probe ledger:{" "}
+              {morningstarError instanceof Error
+                ? morningstarError.message
+                : "unknown error"}
+            </p>
+          ) : !morningstarHits ? (
+            <p className="font-mono text-xs text-muted-foreground">
+              Loading probe ledger…
+            </p>
+          ) : (
+            <>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs font-mono">
+                <div className="flex flex-col gap-1">
+                  <span className="text-muted-foreground uppercase">
+                    Seal SHA-256 (computed)
+                  </span>
+                  <ShaChip sha={morningstarHits.sealSha} />
+                </div>
+                <div className="flex flex-col gap-1">
+                  <span className="text-muted-foreground uppercase">
+                    Seal SHA-256 (expected)
+                  </span>
+                  <ShaChip sha={morningstarHits.expectedSealSha} />
+                </div>
+              </div>
+
+              <div className="bg-muted/50 border border-border p-3 font-mono text-xs space-y-1">
+                <div className="text-muted-foreground uppercase text-[10px] tracking-wider mb-1">
+                  Genesis lines (lines{" "}
+                  {morningstarHits.headerLines.length + 1}–
+                  {morningstarHits.headerLines.length +
+                    morningstarHits.genesisLines.length}
+                  )
+                </div>
+                {morningstarHits.genesisLines.map((line, i) => (
+                  <div
+                    key={i}
+                    className="text-foreground/90 break-all"
+                    data-testid={`text-morningstar-genesis-${i}`}
+                  >
+                    {line}
+                  </div>
+                ))}
+              </div>
+
+              <div className="border border-border">
+                <div className="flex items-center justify-between px-3 py-2 border-b border-border bg-muted/30 font-mono text-[11px] uppercase tracking-wider text-muted-foreground">
+                  <span>
+                    Recent probes ({morningstarHits.returnedProbes} of{" "}
+                    {morningstarHits.totalProbes})
+                  </span>
+                  <span title={morningstarHits.lastModified}>
+                    ledger {formatTimestamp(morningstarHits.lastModified)}
+                  </span>
+                </div>
+                {morningstarHits.probes.length === 0 ? (
+                  <p className="px-3 py-2 font-mono text-xs text-muted-foreground">
+                    No probes recorded yet.
+                  </p>
+                ) : (
+                  <ul
+                    className="divide-y divide-border"
+                    data-testid="list-morningstar-probes"
+                  >
+                    {morningstarHits.probes.map((probe) => (
+                      <li
+                        key={probe.lineNumber}
+                        className="px-3 py-2 font-mono text-[11px] flex flex-col gap-1"
+                        data-testid={`row-morningstar-probe-${probe.lineNumber}`}
+                      >
+                        <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                          <span className="text-muted-foreground">
+                            #{probe.lineNumber}
+                          </span>
+                          <span
+                            className="text-foreground"
+                            title={probe.ts ?? ""}
+                          >
+                            {probe.timestamp
+                              ? formatTimestamp(probe.timestamp)
+                              : probe.ts ?? "no-ts"}
+                          </span>
+                          {probe.tag ? (
+                            <span
+                              className={`px-1.5 py-0.5 border text-[10px] uppercase tracking-wider ${
+                                probe.tag === "NEEDS_SAGE"
+                                  ? "border-amber-500/50 bg-amber-500/10 text-amber-700 dark:text-amber-400"
+                                  : "border-blue-500/50 bg-blue-500/10 text-blue-700 dark:text-blue-400"
+                              }`}
+                            >
+                              {probe.tag}
+                            </span>
+                          ) : null}
+                          <span className="text-muted-foreground">
+                            h={probe.h ?? "?"} N={probe.n ?? "?"} s=
+                            {probe.re ?? "?"}
+                            {probe.im !== null && probe.im !== undefined
+                              ? `${probe.im >= 0 ? "+" : ""}${probe.im}i`
+                              : ""}
+                          </span>
+                          <span
+                            className={
+                              probe.rhOk
+                                ? "text-green-700 dark:text-green-400"
+                                : "text-amber-700 dark:text-amber-400"
+                            }
+                          >
+                            RH_ok={probe.rhOk === null ? "?" : String(probe.rhOk)}
+                          </span>
+                          {probe.lAbs ? (
+                            <span className="text-muted-foreground">
+                              |L|={probe.lAbs}
+                            </span>
+                          ) : null}
+                          {probe.kmsBeta !== null &&
+                          probe.kmsBeta !== undefined ? (
+                            <span
+                              className="text-muted-foreground"
+                              title="Bost–Connes inverse temperature β = 1/Re(s)"
+                              data-testid={`text-morningstar-kms-beta-${probe.lineNumber}`}
+                            >
+                              β={probe.kmsBeta}
+                            </span>
+                          ) : null}
+                          {probe.sha ? (
+                            <span className="ml-auto">
+                              <ShaChip sha={probe.sha} />
+                            </span>
+                          ) : null}
+                        </div>
+                        {probe.reason ? (
+                          <span className="text-amber-700 dark:text-amber-400">
+                            reason: {probe.reason}
+                          </span>
+                        ) : null}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+              <p className="text-[11px] font-mono text-muted-foreground">
+                Read-only view of <code>data/hits.txt</code>. Polled every 15s.
+              </p>
+            </>
           )}
         </div>
       </Card>

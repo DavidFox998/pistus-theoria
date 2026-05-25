@@ -16,6 +16,8 @@ tags:
     description: Object storage operations
   - name: lean
     description: Lean 4 verification log
+  - name: morningstar
+    description: MorningStar-Lab probe ledger
 paths:
   /healthz:
     get:
@@ -255,6 +257,38 @@ paths:
           description: Missing or invalid referee rebuild token
         "503":
           description: Rebuilds are disabled (LEAN_REBUILD_TOKEN not configured)
+
+  /morningstar/hits:
+    get:
+      operationId: getMorningstarHits
+      tags: [morningstar]
+      summary: Read the MorningStar-Lab probe ledger (read-only)
+      description: |
+        Returns the parsed contents of `data/hits.txt`: the header comment
+        lines, the five frozen Genesis lines (including the
+        `--- GENESIS SEAL ---` marker), the SHA-256 of the immutable
+        preamble together with the expected baked-in seal hash and a
+        match/mismatch flag, plus the most recent N probe lines parsed
+        into structured fields. This endpoint never writes to `hits.txt`.
+      parameters:
+        - name: limit
+          in: query
+          required: false
+          description: Maximum number of recent probes to return (default 50, max 500).
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 500
+            default: 50
+      responses:
+        "200":
+          description: Parsed ledger snapshot
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MorningstarHits"
+        "500":
+          description: Ledger file unavailable or malformed
 
   /storage/uploads/request-url:
     post:
@@ -573,6 +607,113 @@ components:
           type: string
         error:
           type: string
+
+    MorningstarProbe:
+      type: object
+      required: [lineNumber, raw]
+      properties:
+        lineNumber:
+          type: integer
+          description: 1-indexed line number in `data/hits.txt`
+        raw:
+          type: string
+          description: The original line, verbatim
+        ts:
+          type: ["string", "null"]
+          description: Raw `ts=` value (nanoseconds since the Unix epoch, as recorded)
+        timestamp:
+          type: ["string", "null"]
+          format: date-time
+          description: ISO-8601 conversion of `ts` (UTC) when parseable
+        h:
+          type: ["integer", "null"]
+        n:
+          type: ["integer", "null"]
+        re:
+          type: ["number", "null"]
+        im:
+          type: ["number", "null"]
+        lNonvanish:
+          type: ["boolean", "null"]
+        rhOk:
+          type: ["boolean", "null"]
+        kmsBeta:
+          type: ["number", "null"]
+          description: |
+            Bost–Connes inverse-temperature β = 1/Re(s) at the probe
+            point. `null` when the ledger line predates the kms_beta
+            field or recorded `NA` (e.g. Re(s)=0).
+        tag:
+          type: ["string", "null"]
+          description: Backend tag (e.g. MPMATH_ZETA, MPMATH_DIRICHLET_TRIVIAL, NEEDS_SAGE)
+        lAbs:
+          type: ["string", "null"]
+          description: Raw `L_abs=` value when present (kept as a string to preserve precision and `NA`)
+        reason:
+          type: ["string", "null"]
+        sha:
+          type: ["string", "null"]
+          description: SHA-256 the kernel recorded for this probe line
+
+    MorningstarHits:
+      type: object
+      required:
+        - headerLines
+        - genesisLines
+        - sealSha
+        - expectedSealSha
+        - sealOk
+        - probes
+        - totalProbes
+        - returnedProbes
+        - limit
+        - ledgerPath
+        - lastModified
+      properties:
+        headerLines:
+          type: array
+          items:
+            type: string
+          description: Comment lines (typically lines 1–4) preceding the Genesis block
+        genesisLines:
+          type: array
+          items:
+            type: string
+          description: |
+            The five frozen Genesis lines through and including the
+            `--- GENESIS SEAL ---` marker (e.g. `437`, `1094`,
+            `axioms=[] 2026-05-24`, `M13_CERT_SHA256=...`,
+            `--- GENESIS SEAL ---`).
+        sealSha:
+          type: string
+          description: SHA-256 of the immutable preamble (header + Genesis lines through marker, each terminated by `\n`)
+        expectedSealSha:
+          type: string
+          description: Baked-in expected seal hash from `scripts/check-genesis-seal.py`
+        sealOk:
+          type: boolean
+          description: True iff `sealSha === expectedSealSha`
+        probes:
+          type: array
+          items:
+            $ref: "#/components/schemas/MorningstarProbe"
+          description: Most-recent-first slice of probe lines, length capped by `limit`
+        totalProbes:
+          type: integer
+          description: Total number of probe lines in the ledger (lines after the Genesis marker)
+        returnedProbes:
+          type: integer
+          description: Number of probes included in `probes`
+        limit:
+          type: integer
+          description: Effective limit applied to the response
+        ledgerPath:
+          type: string
+          description: Filesystem path to the ledger that was read (for operator clarity)
+        lastModified:
+          type: string
+          format: date-time
+          description: ISO-8601 mtime of the ledger file
 
     UploadUrlRequest:
       type: object

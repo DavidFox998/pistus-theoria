@@ -191,6 +191,89 @@ export interface LeanLockoutClearResult {
   error?: string;
 }
 
+export interface MorningstarProbe {
+  /** 1-indexed line number in `data/hits.txt` */
+  lineNumber: number;
+  /** The original line, verbatim */
+  raw: string;
+  /**
+     * Raw `ts=` value (nanoseconds since the Unix epoch, as recorded)
+     * @nullable
+     */
+  ts?: string | null;
+  /**
+     * ISO-8601 conversion of `ts` (UTC) when parseable
+     * @nullable
+     */
+  timestamp?: string | null;
+  /** @nullable */
+  h?: number | null;
+  /** @nullable */
+  n?: number | null;
+  /** @nullable */
+  re?: number | null;
+  /** @nullable */
+  im?: number | null;
+  /** @nullable */
+  lNonvanish?: boolean | null;
+  /** @nullable */
+  rhOk?: boolean | null;
+  /**
+     * Bost–Connes inverse-temperature β = 1/Re(s) at the probe
+  point. `null` when the ledger line predates the kms_beta
+  field or recorded `NA` (e.g. Re(s)=0).
+
+     * @nullable
+     */
+  kmsBeta?: number | null;
+  /**
+     * Backend tag (e.g. MPMATH_ZETA, MPMATH_DIRICHLET_TRIVIAL, NEEDS_SAGE)
+     * @nullable
+     */
+  tag?: string | null;
+  /**
+     * Raw `L_abs=` value when present (kept as a string to preserve precision and `NA`)
+     * @nullable
+     */
+  lAbs?: string | null;
+  /** @nullable */
+  reason?: string | null;
+  /**
+     * SHA-256 the kernel recorded for this probe line
+     * @nullable
+     */
+  sha?: string | null;
+}
+
+export interface MorningstarHits {
+  /** Comment lines (typically lines 1–4) preceding the Genesis block */
+  headerLines: string[];
+  /** The five frozen Genesis lines through and including the
+  `--- GENESIS SEAL ---` marker (e.g. `437`, `1094`,
+  `axioms=[] 2026-05-24`, `M13_CERT_SHA256=...`,
+  `--- GENESIS SEAL ---`).
+   */
+  genesisLines: string[];
+  /** SHA-256 of the immutable preamble (header + Genesis lines through marker, each terminated by `\n`) */
+  sealSha: string;
+  /** Baked-in expected seal hash from `scripts/check-genesis-seal.py` */
+  expectedSealSha: string;
+  /** True iff `sealSha === expectedSealSha` */
+  sealOk: boolean;
+  /** Most-recent-first slice of probe lines, length capped by `limit` */
+  probes: MorningstarProbe[];
+  /** Total number of probe lines in the ledger (lines after the Genesis marker) */
+  totalProbes: number;
+  /** Number of probes included in `probes` */
+  returnedProbes: number;
+  /** Effective limit applied to the response */
+  limit: number;
+  /** Filesystem path to the ledger that was read (for operator clarity) */
+  ledgerPath: string;
+  /** ISO-8601 mtime of the ledger file */
+  lastModified: string;
+}
+
 export interface UploadUrlRequest {
   name: string;
   size: number;
@@ -201,4 +284,13 @@ export interface UploadUrlResponse {
   uploadURL: string;
   objectPath: string;
 }
+
+export type GetMorningstarHitsParams = {
+/**
+ * Maximum number of recent probes to return (default 50, max 500).
+ * @minimum 1
+ * @maximum 500
+ */
+limit?: number;
+};
 
