@@ -959,4 +959,12 @@ export const __testing = {
     failuresByIp.clear();
     namedTokensCache = { raw: undefined, tokens: [] };
   },
+  resetRebuildState(): void {
+    rebuildInFlight = false;
+    currentChild = null;
+    cancelRequested = false;
+    lastRebuildFinishedAt = 0;
+    cached = null;
+    cachedError = null;
+  },
 };
