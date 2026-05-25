@@ -11,3 +11,4 @@ probe ts=1779666744174782867 h=1 N=19 re=0.5 im=0.0 L_nonvanish=True RH_ok=True 
 probe ts=1779666790907612083 h=1 N=19 re=0.5 im=0.0 L_nonvanish=True RH_ok=True NEEDS_SAGE sha=4b15b4050c9d52df670a5354f44466b3b698ab67883437b3f1097861f8b62fc3
 probe ts=1779667209212741345 h=1 N=19 re=0.5 im=0.0 L_nonvanish=True RH_ok=True NEEDS_SAGE sha=2e532d2942b79aa35aeb013bddc16578c4faf028297b43fbb7ad6bc3ab43fd77
 probe ts=1779667391262097333 h=2 N=547 re=0.0 im=0.0 L_nonvanish=True RH_ok=False NEEDS_SAGE sha=4998e84dc3ce45257d51eadb770d0a423eaabc70edff480e933fd5054e9aeebb
+probe ts=1779667648035159703 h=1 N=37 re=1.0 im=0.0 L_nonvanish=True RH_ok=False NEEDS_SAGE sha=0665f9e03d837108b34f9363d93e21c92c347083a2358dbab0bacdd11ea0266f
