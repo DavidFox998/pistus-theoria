@@ -49,6 +49,7 @@ tower stays Open.** This file does not change that.
 import Mathlib.LinearAlgebra.UnitaryGroup
 import Mathlib.LinearAlgebra.Matrix.Trace
 import Mathlib.Data.Complex.Basic
+import Mathlib.Data.Complex.Module
 
 namespace TheoremaAureum
 namespace Towers
@@ -147,6 +148,104 @@ theorem su3_zero_mem : (0 : Matrix (Fin 3) (Fin 3) ℂ) ∈ su3 := by
   refine ⟨?_, ?_⟩
   · simp
   · simp
+
+/-! ### Branch C Step 2 — closure of `su(3)` under `+`, `-`, and ℝ-scalars
+
+The four bricks below prove that the carrier set `su3` is closed
+under the operations of a real vector space: `+`, `-` (both binary
+subtraction and unary negation), and scalar multiplication by `ℝ`.
+
+Together they pin down `su(3)` as a genuine real subspace of
+`Matrix (Fin 3) (Fin 3) ℂ`. A subsequent (separate) brick can
+bundle them into a `Submodule ℝ` instance, at which point all of
+mathlib's `Submodule` API (free `AddCommGroup`, free `Module ℝ`,
+`Submodule.span`, etc.) becomes available on the subtype `↥su3`.
+
+Each proof is a 2–3 line rewrite chain:
+
+* `su3_add_mem` — `star_add` + `Matrix.trace_add`.
+* `su3_neg_mem` — `star_neg` + `Matrix.trace_neg`.
+* `su3_sub_mem` — derived from `add_mem` and `neg_mem`.
+* `su3_smul_mem` — `star_smul` + `star_trivial` (for `r : ℝ`,
+  `star r = r`) + `Matrix.trace_smul`.
+
+**Honest scoping reminder.** These are algebra closure facts on
+the *carrier set* `su3`. They make no claim about Yang-Mills
+dynamics, the YM Hamiltonian, the mass-gap conjecture, or any QFT
+statement. Tower status remains **Open** in `docs/ROADMAP.md` § 2.
+-/
+
+/-- **Closure of `su(3)` under addition (Branch C Step 2 brick 1).**
+
+    If `A` and `B` lie in `su(3)`, so does `A + B`.
+
+    Anti-Hermitian: `star (A + B) = star A + star B = (-A) + (-B)
+    = -(A + B)` (via `star_add`, the hypotheses, and `neg_add`).
+    Traceless:      `trace (A + B) = trace A + trace B = 0 + 0 = 0`
+    (via `Matrix.trace_add` and the hypotheses).
+
+    Axiom footprint: subset of mathlib's classical core
+    `{propext, Classical.choice, Quot.sound}`. No new axioms. -/
+theorem su3_add_mem {A B : Matrix (Fin 3) (Fin 3) ℂ}
+    (hA : A ∈ su3) (hB : B ∈ su3) : A + B ∈ su3 := by
+  refine ⟨?_, ?_⟩
+  · rw [star_add, hA.1, hB.1, neg_add]
+  · rw [Matrix.trace_add, hA.2, hB.2, add_zero]
+
+/-- **Closure of `su(3)` under negation (Branch C Step 2 brick 2).**
+
+    If `A` lies in `su(3)`, so does `-A`.
+
+    Anti-Hermitian: `star (-A) = -star A = -(-A)` (via `star_neg`
+    and the hypothesis).
+    Traceless:      `trace (-A) = -trace A = -0 = 0` (via
+    `Matrix.trace_neg` and the hypothesis).
+
+    Axiom footprint: subset of mathlib's classical core
+    `{propext, Classical.choice, Quot.sound}`. No new axioms. -/
+theorem su3_neg_mem {A : Matrix (Fin 3) (Fin 3) ℂ}
+    (hA : A ∈ su3) : -A ∈ su3 := by
+  refine ⟨?_, ?_⟩
+  · rw [star_neg, hA.1]
+  · rw [Matrix.trace_neg, hA.2, neg_zero]
+
+/-- **Closure of `su(3)` under subtraction (Branch C Step 2 brick 3).**
+
+    If `A` and `B` lie in `su(3)`, so does `A - B`. Direct corollary
+    of `su3_add_mem` and `su3_neg_mem` via `sub_eq_add_neg`.
+
+    Axiom footprint: subset of mathlib's classical core
+    `{propext, Classical.choice, Quot.sound}`. No new axioms. -/
+theorem su3_sub_mem {A B : Matrix (Fin 3) (Fin 3) ℂ}
+    (hA : A ∈ su3) (hB : B ∈ su3) : A - B ∈ su3 := by
+  rw [sub_eq_add_neg]
+  exact su3_add_mem hA (su3_neg_mem hB)
+
+/-- **Closure of `su(3)` under ℝ-scalar multiplication
+    (Branch C Step 2 brick 4).**
+
+    For any `r : ℝ` and `A ∈ su(3)`, the real-scalar multiple
+    `r • A` is again in `su(3)`. The ℝ-module structure on
+    `Matrix (Fin 3) (Fin 3) ℂ` comes from `ℂ` being an `ℝ`-algebra
+    (via `Mathlib.Data.Complex.Module`), so `r • A` is well-typed.
+
+    Anti-Hermitian: `star (r • A) = star r • star A = r • star A
+    = r • (-A) = -(r • A)` (via `star_smul`, `star_trivial` on `ℝ`,
+    the hypothesis, and `smul_neg`).
+    Traceless:      `trace (r • A) = r • trace A = r • 0 = 0` (via
+    `Matrix.trace_smul`, the hypothesis, and `smul_zero`).
+
+    Together with the additive closure bricks, this is the last
+    fact needed to upgrade `su3` to a `Submodule ℝ` in a later
+    (separate) brick.
+
+    Axiom footprint: subset of mathlib's classical core
+    `{propext, Classical.choice, Quot.sound}`. No new axioms. -/
+theorem su3_smul_mem (r : ℝ) {A : Matrix (Fin 3) (Fin 3) ℂ}
+    (hA : A ∈ su3) : r • A ∈ su3 := by
+  refine ⟨?_, ?_⟩
+  · rw [star_smul, star_trivial, hA.1, smul_neg]
+  · rw [Matrix.trace_smul, hA.2, smul_zero]
 
 end YM
 end Towers

@@ -132,6 +132,16 @@ BRICKS=(
   "Towers.YM.SU3|TheoremaAureum.Towers.YM.su3_lie_algebra_def"
   "Towers.YM.SU3|TheoremaAureum.Towers.YM.su3_mem_iff_anti_hermitian_traceless"
   "Towers.YM.SU3|TheoremaAureum.Towers.YM.su3_zero_mem"
+  # 2026-05-26 Branch C Step 2 (Task #55 continuation): closure of
+  # `su(3)` under +, -, and ℝ-scalars. Together with `su3_zero_mem`
+  # from Step 1, these four are the algebra-closure facts needed
+  # to upgrade `su3` to a `Submodule ℝ` in a later (separate)
+  # brick. Wall: 29 → 33. None advance YM past Status: Open — see
+  # the `### Branch C Step 2` section header in `Towers/YM/SU3.lean`.
+  "Towers.YM.SU3|TheoremaAureum.Towers.YM.su3_add_mem"
+  "Towers.YM.SU3|TheoremaAureum.Towers.YM.su3_neg_mem"
+  "Towers.YM.SU3|TheoremaAureum.Towers.YM.su3_sub_mem"
+  "Towers.YM.SU3|TheoremaAureum.Towers.YM.su3_smul_mem"
   # Task #55 (2026-05-26): four load-bearing bricks on the now-real
   # YM schema concretized by Task #51 (`HilbertSpace`,
   # `YMHamiltonian`, `IsEigenstate`). Three of them reference at
