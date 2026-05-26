@@ -596,6 +596,145 @@ theorem SU3Connection_component_star_det_one
   show (Matrix.conjTranspose (A i).1).det = 1
   rw [Matrix.det_conjTranspose, SU3Connection_component_det_one, star_one]
 
+/-! ### Task #55: load-bearing bricks on the concretized YM schema
+
+    The four bricks below each reference at least one of the
+    Task #51 + Task #55 concretized schema defs (`HilbertSpace`,
+    `YMHamiltonian`, `IsEigenstate`) — and three of them reference
+    at least two — proving the schema is genuinely load-bearing
+    rather than window dressing. None of them advances the YM
+    tower past `Status: Open` (see `docs/ROADMAP.md` § 2); they
+    are foundation bricks under the placeholder schema. -/
+
+/-- **The all-ones SU(3) connection has Hamiltonian value 12
+    (Task #55, brick on `YMHamiltonian`).**
+
+    For the constant SU(3) connection `A = fun _ => 1` (the identity
+    matrix in every spacetime direction):
+
+      `YMHamiltonian A = 12`.
+
+    Proof: each component contributes `((1 : SU(3)).1).trace.re`.
+    The coercion `(1 : SU(3)).1` is the `3×3` identity matrix
+    (`Submonoid.coe_one`), whose trace equals `Fintype.card (Fin 3) = (3 : ℂ)`
+    via `Matrix.trace_one`, whose real part is `3`. Summing over the
+    four spacetime directions gives `4 * 3 = 12`.
+
+    This brick exercises the *value* of `YMHamiltonian` on a concrete
+    input — proving the def is not just a typed shell but actually
+    computes against the genuine `Matrix.trace` API. It is the first
+    brick in `MassGap.lean` to extract a numerical answer from the
+    Task #51 concretization.
+
+    Axiom footprint: subset of mathlib's classical core
+    `{propext, Classical.choice, Quot.sound}`.
+
+    **Honest scoping reminder.** This is a trace-of-identity
+    calculation, not a Yang-Mills field-energy computation. The
+    answer `12 = 4 * 3` is `(# spacetime dimensions) * (dim SU(3)
+    fundamental rep)`, an artefact of the placeholder schema, NOT
+    the YM ground-state energy. Tower status unchanged: **Open**. -/
+theorem YMHamiltonian_one_eq_twelve :
+    YMHamiltonian (fun _ : Fin 4 => (1 : Matrix.specialUnitaryGroup (Fin 3) ℂ))
+      = 12 := by
+  simp [YMHamiltonian, Submonoid.coe_one, Matrix.trace_one]
+  norm_num
+
+/-- **The constant-zero Hamiltonian has every Hilbert-space vector
+    as an eigenstate (Task #55, brick on `HilbertSpace` +
+    `IsEigenstate`).**
+
+    For any `ψ : HilbertSpace` (= `lp (fun _ : ℕ => ℂ) 2`):
+
+      `IsEigenstate (fun _ : SU3Connection => (0 : ℝ)) ψ`.
+
+    Witnessed by `μ = 0`, since `0 = 0 * (‖ψ‖ * ‖ψ‖)` by `zero_mul`,
+    for every connection `A`.
+
+    This generalises `IsEigenstate_zero_zero` (which fixed `ψ = 0`)
+    to *every* vector in the placeholder Hilbert space — i.e. the
+    zero Hamiltonian is degenerate on all of ℓ²(ℕ,ℂ). The brick
+    exercises both concretized types (`HilbertSpace` and
+    `IsEigenstate`) on an arbitrary `ψ`, proving the schema's
+    `ψ`-slot is not vacuously specialised to `0`.
+
+    Axiom footprint: subset of mathlib's classical core
+    `{propext, Classical.choice, Quot.sound}`.
+
+    **Honest scoping reminder.** This says only that the trivial
+    "always 0" map satisfies the placeholder scaling-form
+    eigenstate predicate against every ℓ²(ℕ,ℂ) vector — vacuous
+    as Yang-Mills physics. Tower status unchanged: **Open**. -/
+theorem IsEigenstate_zero_const (ψ : HilbertSpace) :
+    IsEigenstate (fun _ : SU3Connection => (0 : ℝ)) ψ :=
+  ⟨0, fun _ => (zero_mul _).symm⟩
+
+/-- **Any Hamiltonian that is identically zero satisfies the
+    eigenstate predicate against every Hilbert-space vector
+    (Task #55, brick on `HilbertSpace` + `IsEigenstate`).**
+
+    For any `H : SU3Connection → ℝ` with `∀ A, H A = 0` and any
+    `ψ : HilbertSpace`:
+
+      `IsEigenstate H ψ`.
+
+    Witnessed by `μ = 0`: `H A = 0 = 0 * (‖ψ‖ * ‖ψ‖)`. Generalises
+    `IsEigenstate_zero_const` (above) from the literal `fun _ => 0`
+    to *any* extensionally-zero Hamiltonian. Useful as a rewrite
+    target downstream: if a proof reduces some Hamiltonian to the
+    zero function pointwise, this brick discharges the eigenstate
+    goal in one step.
+
+    Axiom footprint: subset of mathlib's classical core
+    `{propext, Classical.choice, Quot.sound}`.
+
+    **Honest scoping reminder.** A statement about the placeholder
+    eigenstate predicate, not the Yang-Mills spectrum. Tower
+    status unchanged: **Open**. -/
+theorem IsEigenstate_of_forall_zero
+    (H : SU3Connection → ℝ) (hH : ∀ A, H A = 0) (ψ : HilbertSpace) :
+    IsEigenstate H ψ :=
+  ⟨0, fun A => by rw [hH A, zero_mul]⟩
+
+/-- **The Yang-Mills Hamiltonian is NOT an eigenstate at the zero
+    Hilbert-space vector (Task #55, brick combining all three
+    concretized defs: `HilbertSpace`, `YMHamiltonian`,
+    `IsEigenstate`).**
+
+      `¬ IsEigenstate YMHamiltonian (0 : HilbertSpace)`.
+
+    Proof: if `IsEigenstate YMHamiltonian 0` held, there would be a
+    `μ : ℝ` with `∀ A, YMHamiltonian A = μ * (‖(0 : HilbertSpace)‖ *
+    ‖0‖) = μ * 0 = 0`. Instantiating at `A = fun _ => 1` and
+    invoking `YMHamiltonian_one_eq_twelve` (just above) gives
+    `(12 : ℝ) = 0`, a contradiction via `norm_num`.
+
+    This is the most substantive brick in `MassGap.lean` so far on
+    the post-Task-#51 schema: it references **all three** concretized
+    defs (`HilbertSpace`, `YMHamiltonian`, `IsEigenstate`) and the
+    previous brick (`YMHamiltonian_one_eq_twelve`), and derives a
+    genuine `False` from the conjunction. Concretely it says the
+    placeholder Hamiltonian is non-trivial: it does NOT satisfy the
+    placeholder eigenstate predicate at the zero vector, because the
+    Hamiltonian itself is non-zero (at the all-ones connection).
+
+    Axiom footprint: subset of mathlib's classical core
+    `{propext, Classical.choice, Quot.sound}`.
+
+    **Honest scoping reminder.** This is a statement about the
+    placeholder schema, not the YM physical Hamiltonian on the YM
+    physical Hilbert space. The "Hamiltonian" is a sum of matrix
+    traces, the "Hilbert space" is ℓ²(ℕ,ℂ), and the "eigenstate"
+    predicate is the scaling-form `Prop`. The brick is honest
+    about the schema being non-trivial; it makes no Yang-Mills
+    physics claim. Tower status unchanged: **Open**. -/
+theorem YMHamiltonian_not_isEigenstate_zero :
+    ¬ IsEigenstate YMHamiltonian (0 : HilbertSpace) := by
+  rintro ⟨μ, h⟩
+  have h1 := h (fun _ : Fin 4 => (1 : Matrix.specialUnitaryGroup (Fin 3) ℂ))
+  rw [YMHamiltonian_one_eq_twelve, norm_zero, mul_zero, mul_zero] at h1
+  norm_num at h1
+
 end YM
 end Towers
 end TheoremaAureum

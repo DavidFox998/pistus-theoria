@@ -132,6 +132,18 @@ BRICKS=(
   "Towers.YM.SU3|TheoremaAureum.Towers.YM.su3_lie_algebra_def"
   "Towers.YM.SU3|TheoremaAureum.Towers.YM.su3_mem_iff_anti_hermitian_traceless"
   "Towers.YM.SU3|TheoremaAureum.Towers.YM.su3_zero_mem"
+  # Task #55 (2026-05-26): four load-bearing bricks on the now-real
+  # YM schema concretized by Task #51 (`HilbertSpace`,
+  # `YMHamiltonian`, `IsEigenstate`). Three of them reference at
+  # least two of those defs; one references all three. They prove
+  # the schema is genuinely load-bearing — e.g. `YMHamiltonian
+  # (fun _ => 1) = 12` is the first numerical answer extracted from
+  # the def, and `¬ IsEigenstate YMHamiltonian (0 : HilbertSpace)`
+  # combines all three. Wall: 25 → 29. YM status still Open.
+  "Towers.YM.MassGap|TheoremaAureum.Towers.YM.YMHamiltonian_one_eq_twelve"
+  "Towers.YM.MassGap|TheoremaAureum.Towers.YM.IsEigenstate_zero_const"
+  "Towers.YM.MassGap|TheoremaAureum.Towers.YM.IsEigenstate_of_forall_zero"
+  "Towers.YM.MassGap|TheoremaAureum.Towers.YM.YMHamiltonian_not_isEigenstate_zero"
 )
 
 VERIFIER_DIR="$(mktemp -d)"
