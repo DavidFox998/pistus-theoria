@@ -18,4 +18,4 @@ require mathlib from git
 
 @[default_target]
 lean_lib Towers where
-  roots := #[`Towers.RH.ZeroDensity, `Towers.BSD.MordellWeil, `Towers.NS.Divergence, `Towers.NS.EnergyIneq, `Towers.YM.MassGap, `Towers.YM.SU3, `Towers.YM.SU3Basis, `Towers.YM.GaugeField, `Towers.YM.RealCurvature, `Towers.YM.RealCurvatureV2, `Towers.YM.Geometry, `Towers.NS.Energy, `Towers.Spectral.Operator, `Towers.Spectral.OperatorV2, `Towers.NS.EnergyV2, `Towers.YM.Spectrum, `Towers.YM.Wilson, `Towers.YM.CloverF, `Towers.NS.RealH1Norm]
+  roots := #[`Towers.RH.ZeroDensity, `Towers.BSD.MordellWeil, `Towers.NS.Divergence, `Towers.NS.EnergyIneq, `Towers.YM.MassGap, `Towers.YM.SU3, `Towers.YM.SU3Basis, `Towers.YM.GaugeField, `Towers.YM.RealCurvature, `Towers.YM.RealCurvatureV2, `Towers.YM.Geometry, `Towers.YM.PlaquetteAction, `Towers.NS.Energy, `Towers.Spectral.Operator, `Towers.Spectral.OperatorV2, `Towers.NS.EnergyV2, `Towers.YM.Spectrum, `Towers.YM.Wilson, `Towers.YM.CloverF, `Towers.NS.RealH1Norm]

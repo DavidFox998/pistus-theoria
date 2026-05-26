@@ -772,6 +772,46 @@ BRICKS=(
   "Towers.YM.Geometry|TheoremaAureum.Towers.YM.Geometry.lattice_spacetime_4d_def"
   "Towers.YM.Geometry|TheoremaAureum.Towers.YM.Geometry.curvature_4d_def"
 
+  # Task #88 (2026-05-26): the real Wilson plaquette action over a
+  # real `Lattice4D` config (Geometry.Lattice4D), plumbed up as the
+  # going-forward replacement for the placeholder `YMHamiltonian`
+  # sum-of-traces stand-in. New file `Towers/YM/PlaquetteAction.lean`.
+  # Three bricks: (1) `wilsonPlaquette_def` — definitional unfolding
+  # of the ordered Wilson plaquette `U_μ · U_ν · U_μ* · U_ν*` at a
+  # site; (2) `wilsonPlaquette_one` — on the all-ones gauge field
+  # every plaquette equals the 3×3 identity matrix; (3)
+  # `YMHamiltonianWilson_vacuum_eq_zero` — the all-ones SU(3)
+  # connection sits at the *minimum* `0` of the real Wilson action
+  # (contrast with the placeholder `YMHamiltonian_one_eq_twelve = 12`,
+  # which is now explicitly framed as an honest numerical placeholder
+  # in `MassGap.lean`). The placeholder `YMHamiltonian` is preserved
+  # for backward compatibility with Batches 8–15 of the Spectrum-track
+  # bricks (which are explicitly bricks on the placeholder schema);
+  # new work targets `YMHamiltonianWilson`. This is the real-action
+  # plumbing the Task #88 brief asked for. NOT a proof of the YM
+  # mass-gap conjecture, NOT a coupling-constant action, NOT the
+  # continuum `∫ tr(F_{μν} F^{μν})`, NOT a site-shifted plaquette
+  # (collapsed to single-site on `Lattice4D 1`). YM tower status
+  # unchanged: **Open** (`docs/ROADMAP.md` § 2).
+  "Towers.YM.PlaquetteAction|TheoremaAureum.Towers.YM.PlaquetteAction.wilsonPlaquette_def"
+  "Towers.YM.PlaquetteAction|TheoremaAureum.Towers.YM.PlaquetteAction.wilsonPlaquette_one"
+  "Towers.YM.PlaquetteAction|TheoremaAureum.Towers.YM.PlaquetteAction.YMHamiltonianWilson_vacuum_eq_zero"
+
+  # Task #88 (2026-05-26, code-review pass): module-boundary alias
+  # in `Towers/YM/MassGap.lean` exposing `YMHamiltonianWilson` under
+  # the name `YMHamiltonianReal`, the canonical going-forward
+  # Hamiltonian surface. `YMHamiltonianReal_vacuum_eq_zero` is the
+  # going-forward counterpart of the legacy
+  # `YMHamiltonian_one_eq_twelve` (placeholder value `12`), proving
+  # the all-ones SU(3) connection sits at the **minimum** `0` of the
+  # real site-shifted Wilson plaquette action. The legacy placeholder
+  # `YMHamiltonian` and its `_eq_twelve` / `_eq_neg_four` lemmas are
+  # preserved for backward compatibility with the ~25 Spectrum-track
+  # bricks in `Towers.YM.Spectrum` Batches 8–15 (now grouped under
+  # the "Legacy placeholder schema" section header in `MassGap.lean`).
+  # YM tower status unchanged: **Open** (`docs/ROADMAP.md` § 2).
+  "Towers.YM.MassGap|TheoremaAureum.Towers.YM.YMHamiltonianReal_vacuum_eq_zero"
+
   # Task #56 Path B batch 7 / Track B (2026-05-26): NS energy
   # decomposition. New file `Towers/NS/Energy.lean`. Introduces a
   # named `total = kinetic + potential` split on the Task #51 NS

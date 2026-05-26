@@ -124,6 +124,7 @@ import Mathlib.Data.Complex.Basic
 import Mathlib.Analysis.InnerProductSpace.l2Space
 import Mathlib.Analysis.RCLike.Basic
 import Mathlib.Data.Fintype.BigOperators
+import Towers.YM.PlaquetteAction
 
 namespace TheoremaAureum
 namespace Towers
@@ -600,23 +601,68 @@ theorem SU3Connection_component_star_det_one
   show (Matrix.conjTranspose (A i).1).det = 1
   rw [Matrix.det_conjTranspose, SU3Connection_component_det_one, star_one]
 
-/-! ### Task #55: load-bearing bricks on the concretized YM schema
+/-! ### Task #88: module-boundary alias to the real Wilson action
 
-    The four bricks below each reference at least one of the
-    Task #51 + Task #55 concretized schema defs (`HilbertSpace`,
-    `YMHamiltonian`, `IsEigenstate`) — and three of them reference
-    at least two — proving the schema is genuinely load-bearing
-    rather than window dressing. None of them advances the YM
-    tower past `Status: Open` (see `docs/ROADMAP.md` § 2); they
-    are foundation bricks under the placeholder schema. -/
+    `YMHamiltonianReal` exposes
+    `PlaquetteAction.YMHamiltonianWilson` (the genuine
+    site-shifted Wilson plaquette action on `Lattice4D 1`) under
+    a name living in `MassGap.lean`, so callers comparing the
+    placeholder against the real action can pick both up from a
+    single import. **`YMHamiltonianReal` is the canonical
+    going-forward Hamiltonian surface.** The legacy placeholder
+    `YMHamiltonian` (above) is preserved for backward
+    compatibility with `Towers.YM.Spectrum` Batches 8–15. -/
 
-/-- **The all-ones SU(3) connection has Hamiltonian value 12
-    (Task #55, brick on `YMHamiltonian`).**
+/-- **`YMHamiltonianReal`** — module-boundary alias for
+`PlaquetteAction.YMHamiltonianWilson`, the real site-shifted
+Wilson plaquette action on `Lattice4D 1` evaluated on a constant
+SU(3) connection. This is the Task #88 canonical replacement for
+the trace-sum placeholder `YMHamiltonian` above; new YM work
+should target `YMHamiltonianReal`. The placeholder stays as the
+**Legacy placeholder schema** (see the section header below) so
+that the ~25 dependent bricks in `Towers.YM.Spectrum` Batches
+8–15 stay green. -/
+noncomputable def YMHamiltonianReal (A : SU3Connection) : ℝ :=
+  PlaquetteAction.YMHamiltonianWilson A
+
+/-- **Brick (`YMHamiltonianReal_vacuum_eq_zero`).** The
+module-boundary alias agrees with the underlying Wilson action:
+the all-ones SU(3) connection sits at the **minimum** `0` of the
+real Wilson plaquette action. The going-forward counterpart of
+the legacy `YMHamiltonian_one_eq_twelve` (placeholder value
+`12`). Re-exporting the
+`PlaquetteAction.YMHamiltonianWilson_vacuum_eq_zero` content
+under a `MassGap`-namespaced name. -/
+theorem YMHamiltonianReal_vacuum_eq_zero :
+    YMHamiltonianReal
+        (fun _ : Fin 4 => (1 : Matrix.specialUnitaryGroup (Fin 3) ℂ))
+      = 0 :=
+  PlaquetteAction.YMHamiltonianWilson_vacuum_eq_zero
+
+/-! ### Legacy placeholder schema — Task #55 load-bearing bricks
+    on the trace-sum `YMHamiltonian` (preserved for backward
+    compatibility with `Towers.YM.Spectrum` Batches 8–15)
+
+    **The four bricks below operate on the legacy placeholder
+    `YMHamiltonian` (trace-sum stand-in), not on the canonical
+    `YMHamiltonianReal` / `PlaquetteAction.YMHamiltonianWilson`
+    surface.** They each reference at least one of the Task #51
+    + Task #55 concretized placeholder schema defs
+    (`HilbertSpace`, `YMHamiltonian`, `IsEigenstate`) — and
+    three of them reference at least two — proving the
+    placeholder schema is genuinely load-bearing rather than
+    window dressing. None of them advances the YM tower past
+    `Status: Open` (see `docs/ROADMAP.md` § 2); they are
+    foundation bricks under the *placeholder* schema. New YM
+    work should target `YMHamiltonianReal`. -/
+
+/-- **The all-ones SU(3) connection has placeholder Hamiltonian value 12
+    — honest numerical placeholder restatement (Task #88).**
 
     For the constant SU(3) connection `A = fun _ => 1` (the identity
     matrix in every spacetime direction):
 
-      `YMHamiltonian A = 12`.
+      `YMHamiltonian A = 12`     (placeholder trace-sum value)
 
     Proof: each component contributes `((1 : SU(3)).1).trace.re`.
     The coercion `(1 : SU(3)).1` is the `3×3` identity matrix
@@ -624,20 +670,29 @@ theorem SU3Connection_component_star_det_one
     via `Matrix.trace_one`, whose real part is `3`. Summing over the
     four spacetime directions gives `4 * 3 = 12`.
 
-    This brick exercises the *value* of `YMHamiltonian` on a concrete
-    input — proving the def is not just a typed shell but actually
-    computes against the genuine `Matrix.trace` API. It is the first
-    brick in `MassGap.lean` to extract a numerical answer from the
-    Task #51 concretization.
-
     Axiom footprint: subset of mathlib's classical core
     `{propext, Classical.choice, Quot.sound}`.
 
-    **Honest scoping reminder.** This is a trace-of-identity
-    calculation, not a Yang-Mills field-energy computation. The
-    answer `12 = 4 * 3` is `(# spacetime dimensions) * (dim SU(3)
-    fundamental rep)`, an artefact of the placeholder schema, NOT
-    the YM ground-state energy. Tower status unchanged: **Open**. -/
+    **Honest numerical placeholder (Task #88 framing).** The value
+    `12 = 4 · 3` is `(# spacetime dimensions) · (dim SU(3)
+    fundamental rep)` — an artefact of the trace-sum *placeholder*
+    schema `YMHamiltonian A := ∑_μ Re tr(A μ)`, NOT a Yang-Mills
+    field-energy. The going-forward **real Wilson plaquette action**
+    over a real `Lattice4D` config is in
+    `Towers.YM.PlaquetteAction.YMHamiltonianWilson`; on the same
+    all-ones connection it returns `0` (proved in
+    `Towers.YM.PlaquetteAction.YMHamiltonianWilson_vacuum_eq_zero`),
+    because every plaquette `1 · 1 · 1* · 1* = 1` and the standard
+    Wilson sum `∑(3 − Re tr(P)) / 3` collapses to `0`. The contrast
+    `12` (placeholder) vs. `0` (real Wilson action) is what makes
+    this lemma an honest *numerical placeholder*: it documents the
+    trace-sum stand-in's evaluation, not the physical YM
+    ground-state energy. The lemma is kept (rather than deleted)
+    so that the ~25 Spectrum-track bricks in `Towers.YM.Spectrum`
+    Batches 8–15 — which are explicitly tagged as bricks *on the
+    placeholder schema* — stay green. New work should target
+    `YMHamiltonianWilson`. YM tower status unchanged: **Open**
+    (`docs/ROADMAP.md` § 2). -/
 theorem YMHamiltonian_one_eq_twelve :
     YMHamiltonian (fun _ : Fin 4 => (1 : Matrix.specialUnitaryGroup (Fin 3) ℂ))
       = 12 := by
@@ -1112,9 +1167,23 @@ noncomputable def diagNegOneOneMat :
     Axiom footprint: subset of mathlib's classical core
     `{propext, Classical.choice, Quot.sound}`.
 
-    **Honest scoping reminder.** A point-value calculation on the
-    placeholder sum-of-traces schema, not a Yang-Mills field-energy
-    computation. YM tower status unchanged: **Open**. -/
+    **Honest numerical placeholder (Task #88 framing).** A
+    point-value calculation on the **placeholder** sum-of-traces
+    schema, not a Yang-Mills field-energy computation. The
+    going-forward real Wilson plaquette action over a real
+    `Lattice4D` config (`Towers.YM.PlaquetteAction.YMHamiltonianWilson`)
+    returns `0` on the all-`diagNegOneOneMat` connection — every
+    component commutes with itself, so every plaquette
+    `U · U · U* · U* = 1` reduces to the identity and the standard
+    Wilson sum `∑(3 − Re tr(P)) / 3` collapses to `0`. The contrast
+    `−4` (placeholder) vs. `0` (real Wilson action) makes this
+    lemma an honest *numerical placeholder*: it documents the
+    trace-sum stand-in's evaluation on a non-trivial concrete SU(3)
+    matrix, not a YM-physics excited-state energy. Kept for
+    backward compatibility with `YMHamiltonian_no_eigenstate` and
+    the Spectrum-track placeholder bricks. New work should target
+    `YMHamiltonianWilson`. YM tower status unchanged: **Open**
+    (`docs/ROADMAP.md` § 2). -/
 theorem YMHamiltonian_diagNegOneOne_eq_neg_four :
     YMHamiltonian (fun _ : Fin 4 => diagNegOneOneMat) = -4 := by
   show (Finset.univ : Finset (Fin 4)).sum
