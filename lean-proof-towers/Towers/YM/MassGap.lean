@@ -909,6 +909,130 @@ theorem YMHamiltonian_abs_le_twelve_tight :
   rw [YMHamiltonian_one_eq_twelve]
   norm_num
 
+/-! ### Task #68: a real "mass gap" predicate inside the placeholder schema
+
+    `YMHamiltonian_abs_le_twelve` (Task #61) gives a real *uniform
+    upper* bound `∀ A, |YMHamiltonian A| ≤ 12`. The next move is to
+    define a Lean predicate `MassGap (Δ : ℝ)` inside the placeholder
+    schema that resembles the *shape* of the Clay Yang-Mills mass-gap
+    conjecture: a strictly positive `Δ` plus a uniform lower bound
+    on `YMHamiltonian A` across all non-zero eigenstates of the
+    placeholder Hamiltonian.
+
+    The shape used below is
+
+      `0 < Δ ∧ ∀ (ψ : HilbertSpace) (A : SU3Connection),
+         IsEigenstate YMHamiltonian ψ → ψ ≠ 0 → Δ ≤ YMHamiltonian A`
+
+    — directly following the task description, with the eigenstate
+    quantifier mirroring "lowest excitation above the vacuum".
+
+    Two trio-clean bricks exercise the new predicate:
+
+    * `MassGap_pos` — projection: any `MassGap Δ` forces `0 < Δ`.
+      Trivial as logic; non-trivial as documentation, since it pins
+      the positivity clause of the Clay-flavoured shape.
+
+    * `MassGap_le_twelve_of_witness` — the honest conditional
+      version of "MassGap Δ → Δ ≤ 12": *given any non-zero
+      eigenstate witness `ψ`*, `MassGap Δ` forces `Δ ≤ 12`. The
+      proof instantiates the universal quantifier at the all-ones
+      SU(3) connection and rewrites via `YMHamiltonian_one_eq_twelve`.
+      The conditional shape is honest: in the current placeholder
+      schema no non-zero eigenstate is known to exist (and Task #61's
+      `YMHamiltonian_not_isEigenstate_zero` already rules out
+      `ψ = 0`), so unconditionally proving `MassGap Δ → Δ ≤ 12`
+      would require either constructing such a witness or proving
+      none exists — neither of which is in scope for this brick.
+
+    **Honest scoping reminder.** The new predicate is defined on the
+    placeholder schema (`HilbertSpace = ℓ²(ℕ,ℂ)`,
+    `YMHamiltonian = ∑ trace.re`, scaling-form `IsEigenstate`), NOT
+    on the YM physical surface. `MassGap Δ` here is NOT the Clay
+    mass-gap predicate — that requires the OS-reconstructed YM
+    Hilbert space, the gauge-invariant field-energy Hamiltonian
+    `∫ tr(F ∧ ★F)`, and the spectral-eigenvector property of a
+    self-adjoint operator on the physical Hilbert space, none of
+    which exist in mathlib v4.12.0. YM tower status unchanged:
+    **Open** (`docs/ROADMAP.md` § 2). -/
+
+/-- **Mass-gap predicate (placeholder schema).**
+
+    `MassGap Δ` holds iff `Δ > 0` and for every non-zero placeholder
+    eigenstate `ψ` of `YMHamiltonian`, the Hamiltonian is uniformly
+    bounded below by `Δ` over the entire `SU3Connection` input space.
+
+    This is the placeholder-schema analogue of the Clay Yang-Mills
+    mass-gap statement; it is **NOT** the Clay statement itself
+    (which is about the YM physical-state Hilbert space and the
+    gauge-invariant field-energy Hamiltonian). See the file header
+    and the Task #68 section header above for the full honest-scope
+    argument. -/
+def MassGap (Δ : ℝ) : Prop :=
+  0 < Δ ∧ ∀ (ψ : HilbertSpace) (A : SU3Connection),
+    IsEigenstate YMHamiltonian ψ → ψ ≠ 0 → Δ ≤ YMHamiltonian A
+
+/-- **Positivity projection of the mass-gap predicate
+    (first Task #68 brick).**
+
+    `MassGap Δ → 0 < Δ`. The positivity clause of the Clay-flavoured
+    shape, projected out as a stand-alone fact. Witness:
+    `And.left` on the `MassGap` definition.
+
+    Axiom footprint: subset of mathlib's classical core
+    `{propext, Classical.choice, Quot.sound}`.
+
+    **Honest scoping reminder.** Statement about the placeholder
+    `MassGap` predicate on the placeholder YM schema, NOT about the
+    Clay Yang-Mills mass gap. Tower status unchanged: **Open**. -/
+theorem MassGap_pos {Δ : ℝ} (h : MassGap Δ) : 0 < Δ := h.1
+
+/-- **Conditional upper bound on any mass gap (second Task #68 brick,
+    combining `MassGap`, `IsEigenstate`, `YMHamiltonian`, and
+    `YMHamiltonian_one_eq_twelve`).**
+
+    Given any non-zero eigenstate `ψ` of `YMHamiltonian`,
+    `MassGap Δ → Δ ≤ 12`.
+
+    Proof: `MassGap Δ` instantiated at this `ψ` and the all-ones
+    SU(3) connection gives `Δ ≤ YMHamiltonian (fun _ => 1)`;
+    `YMHamiltonian_one_eq_twelve` rewrites the right-hand side to
+    `12`.
+
+    The conditional `IsEigenstate YMHamiltonian ψ → ψ ≠ 0` shape is
+    deliberate. In the current placeholder schema:
+
+    * `YMHamiltonian_not_isEigenstate_zero` (Task #55) rules out
+      `ψ = 0` as an eigenstate of `YMHamiltonian`, AND
+    * no non-zero eigenstate of `YMHamiltonian` has been constructed
+      (the schema's `IsEigenstate` predicate is the uniform-scaling
+      form `∃ μ, ∀ A, H A = μ * ‖ψ‖²`, which would force
+      `YMHamiltonian` to be constant on `SU3Connection` — and the
+      all-ones-vs-other-SU(3)-connection distinction is not yet
+      formalised in this file).
+
+    So unconditionally proving `MassGap Δ → Δ ≤ 12` would require
+    either (a) constructing a non-zero placeholder eigenstate, or
+    (b) proving none exists, neither of which is in scope for this
+    brick. The conditional version above is the honest landing
+    point.
+
+    Axiom footprint: subset of mathlib's classical core
+    `{propext, Classical.choice, Quot.sound}`.
+
+    **Honest scoping reminder.** Statement about the placeholder
+    schema, NOT the Clay Yang-Mills mass gap. The constant `12` is
+    `(# spacetime directions) · (dim SU(3) fundamental rep) = 4·3`,
+    an artefact of the placeholder sum-of-traces Hamiltonian, NOT a
+    physical energy scale. Tower status unchanged: **Open**
+    (`docs/ROADMAP.md` § 2). -/
+theorem MassGap_le_twelve_of_witness {Δ : ℝ} (h : MassGap Δ)
+    {ψ : HilbertSpace} (hψ : IsEigenstate YMHamiltonian ψ)
+    (hne : ψ ≠ 0) : Δ ≤ 12 := by
+  have h1 := h.2 ψ (fun _ : Fin 4 => (1 : Matrix.specialUnitaryGroup (Fin 3) ℂ))
+    hψ hne
+  rwa [YMHamiltonian_one_eq_twelve] at h1
+
 end YM
 end Towers
 end TheoremaAureum

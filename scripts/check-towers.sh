@@ -354,6 +354,24 @@ BRICKS=(
   # (`docs/ROADMAP.md` § 2). Still a tightness witness for the
   # placeholder sum-of-traces schema, NOT the YM field energy.
   "Towers.YM.MassGap|TheoremaAureum.Towers.YM.YMHamiltonian_abs_le_twelve_tight"
+  # Task #68 (2026-05-26): state a real "mass gap" predicate inside
+  # the placeholder YM schema. `MassGap (Δ : ℝ) : Prop` packages the
+  # Clay-flavoured shape `0 < Δ ∧ ∀ ψ A, IsEigenstate YMHamiltonian ψ
+  # → ψ ≠ 0 → Δ ≤ YMHamiltonian A`. Two trio-clean bricks: `MassGap_pos`
+  # projects out positivity; `MassGap_le_twelve_of_witness` is the
+  # honest conditional version of "MassGap Δ → Δ ≤ 12" — given any
+  # non-zero placeholder eigenstate, `MassGap Δ → Δ ≤ 12` follows by
+  # instantiating at the all-ones SU(3) connection and rewriting via
+  # `YMHamiltonian_one_eq_twelve`. The conditional shape is honest:
+  # no non-zero placeholder eigenstate is known to exist (Task #55's
+  # `YMHamiltonian_not_isEigenstate_zero` already rules out `ψ = 0`).
+  # YM tower status unchanged: Open (`docs/ROADMAP.md` § 2). The
+  # predicate is on the placeholder schema (`HilbertSpace = ℓ²(ℕ,ℂ)`,
+  # sum-of-traces `YMHamiltonian`, scaling-form `IsEigenstate`), NOT
+  # the YM physical surface.
+  "Towers.YM.MassGap|TheoremaAureum.Towers.YM.MassGap"
+  "Towers.YM.MassGap|TheoremaAureum.Towers.YM.MassGap_pos"
+  "Towers.YM.MassGap|TheoremaAureum.Towers.YM.MassGap_le_twelve_of_witness"
   # Task #56 Path B batch 2 v2 (2026-05-26): the explicit
   # `↥su3_submodule ≃ₗ[ℝ] (Fin 8 → ℝ)` equiv, the Gell-Mann basis
   # packaging via `Basis.ofEquivFun`, plus the linear-independence
