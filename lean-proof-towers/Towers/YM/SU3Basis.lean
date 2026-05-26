@@ -44,6 +44,7 @@ import Mathlib.Algebra.Module.LinearMap.End
 import Mathlib.Algebra.Module.Equiv.Basic
 import Mathlib.LinearAlgebra.Basis.Defs
 import Mathlib.LinearAlgebra.Pi
+import Mathlib.Analysis.InnerProductSpace.Basic
 import Towers.YM.SU3
 
 namespace TheoremaAureum
@@ -392,6 +393,121 @@ theorem su3_basis_linearIndependent :
 theorem su3_basis_spans :
     Submodule.span ℝ (Set.range (su3_basis_def : Fin 8 → ↥su3_submodule)) = ⊤ :=
   su3_basis_def.span_eq
+
+/-! ### Path B batch 3 — the `InnerProductSpace.Core ℝ ↥su3_submodule`
+
+The Euclidean inner product on `Fin 8 → ℝ` pulled back through
+`su3_equiv_fin8_def`. Because `InnerProductSpace.induced` does not
+exist in mathlib v4.12.0, this batch builds the structure by hand
+via the 5 explicit fields of `InnerProductSpace.Core` and feeds them
+to `InnerProductSpace.ofCore`.
+
+### Honest scope
+
+This is the Euclidean inner product in the *unnormalised* Gell-Mann
+coordinates (no `1/√3` on `λ₈`, no `1/2` overall, no `tr(A* B)`
+formulation). It is `⟨A, B⟩ := ∑ᵢ cᵢ(A) cᵢ(B)` where the `cᵢ` are
+the 8 coordinates extracted by `su3_equiv_fin8_def`. It is *a* real
+inner product on the 8-dimensional ℝ-vector space
+`↥su3_submodule`, but it is NOT the physics-normalised Killing form
+`-tr(ad X ∘ ad Y) / N` and it is NOT the Frobenius inner product
+`Re tr(X* Y)`. The downstream lattice-YM bricks (whenever those
+land) declare the inner product they need; this is just the most
+direct, basis-aligned construction that mathlib v4.12.0 can
+accept without `induced`. YM tower status unchanged: **Open**
+(`docs/ROADMAP.md` § 2).
+-/
+
+/-- **The Euclidean inner product on `↥su3_submodule` (Path B
+    batch 3 brick 1).** Pulled back from `Fin 8 → ℝ` through
+    `su3_equiv_fin8_def`. -/
+noncomputable def inner_su3 (x y : ↥su3_submodule) : ℝ :=
+  ∑ i, su3_equiv_fin8_def x i * su3_equiv_fin8_def y i
+
+/-- **The Euclidean norm on `↥su3_submodule` (Path B batch 3
+    brick 2).** Square root of `inner_su3 x x`. -/
+noncomputable def norm_su3 (x : ↥su3_submodule) : ℝ :=
+  Real.sqrt (inner_su3 x x)
+
+/-- **Symmetry of `inner_su3` (Path B batch 3 brick 3).**
+    `inner_su3 x y = inner_su3 y x`. Reduces to `mul_comm` on ℝ
+    inside the sum. -/
+theorem inner_su3_conj_symm (x y : ↥su3_submodule) :
+    inner_su3 x y = inner_su3 y x := by
+  unfold inner_su3
+  exact Finset.sum_congr rfl (fun i _ => mul_comm _ _)
+
+/-- **Additivity of `inner_su3` in the left slot (Path B batch 3
+    brick 4).** Reduces to `add_mul` + `Finset.sum_add_distrib` after
+    rewriting via the `LinearEquiv` `map_add` of `su3_equiv_fin8_def`. -/
+theorem inner_su3_add_left (x y z : ↥su3_submodule) :
+    inner_su3 (x + y) z = inner_su3 x z + inner_su3 y z := by
+  unfold inner_su3
+  have hadd : su3_equiv_fin8_def (x + y) = su3_equiv_fin8_def x + su3_equiv_fin8_def y :=
+    su3_equiv_fin8_def.map_add x y
+  simp only [hadd, Pi.add_apply, add_mul]
+  exact Finset.sum_add_distrib
+
+/-- **Scalar-multiplication compatibility of `inner_su3` in the
+    left slot (Path B batch 3 brick 5).** Reduces to `mul_assoc`
+    + `Finset.mul_sum` after rewriting via the `LinearEquiv`
+    `map_smul`. -/
+theorem inner_su3_smul_left (r : ℝ) (x y : ↥su3_submodule) :
+    inner_su3 (r • x) y = r * inner_su3 x y := by
+  unfold inner_su3
+  have hsmul : su3_equiv_fin8_def (r • x) = r • su3_equiv_fin8_def x :=
+    su3_equiv_fin8_def.map_smul r x
+  simp only [hsmul, Pi.smul_apply, smul_eq_mul, mul_assoc]
+  exact (Finset.mul_sum _ _ _).symm
+
+/-- **The `InnerProductSpace.Core ℝ ↥su3_submodule` (Path B batch 3
+    brick 6).** Packages the 5 bricks above into mathlib's
+    `InnerProductSpace.Core` record. `nonneg_re` reduces to
+    sum-of-squares ≥ 0; `definite` uses
+    `Finset.sum_eq_zero_iff_of_nonneg` + `mul_self_eq_zero` +
+    injectivity of `su3_equiv_fin8_def` to conclude `x = 0`.
+
+    NOT registered as a global `instance` — that would shadow any
+    pre-existing inner-product structure mathlib may have inferred
+    on subtypes via other paths, and would constrain downstream
+    lattice-YM bricks that may want a different normalisation. This
+    is the explicit Core record any downstream user can feed to
+    `InnerProductSpace.ofCore` when they want THIS construction.
+
+    Axiom footprint target: subset of mathlib's classical trio
+    `{propext, Classical.choice, Quot.sound}`. -/
+noncomputable def instance_inner_product_space_su3_core :
+    InnerProductSpace.Core ℝ ↥su3_submodule where
+  inner x y := inner_su3 x y
+  conj_symm x y := by
+    -- On ℝ, `conj = id`, so the goal reduces to `inner_su3 y x = inner_su3 x y`.
+    simp [inner_su3_conj_symm]
+  nonneg_re x := by
+    -- `inner_su3 x x = ∑ i, (cᵢ x)^2`, which is ≥ 0 termwise.
+    show 0 ≤ inner_su3 x x
+    unfold inner_su3
+    exact Finset.sum_nonneg (fun i _ => mul_self_nonneg _)
+  definite x hx := by
+    -- `∑ (cᵢ x)^2 = 0` ⇒ each `cᵢ x = 0` ⇒ `equiv x = 0` ⇒ `x = 0`.
+    have hsum : ∀ i ∈ Finset.univ,
+        su3_equiv_fin8_def x i * su3_equiv_fin8_def x i = 0 := by
+      refine (Finset.sum_eq_zero_iff_of_nonneg
+        (fun i _ => mul_self_nonneg _)).mp ?_
+      simpa [inner_su3] using hx
+    have hzero : ∀ i, su3_equiv_fin8_def x i = 0 := by
+      intro i
+      have h := hsum i (Finset.mem_univ i)
+      exact (mul_self_eq_zero.mp h)
+    have heq : su3_equiv_fin8_def x = 0 := funext hzero
+    -- Apply the inverse to recover `x = 0`.
+    have : su3_equiv_fin8_def.symm (su3_equiv_fin8_def x)
+         = su3_equiv_fin8_def.symm 0 := by rw [heq]
+    simpa using this
+  add_left x y z := inner_su3_add_left x y z
+  smul_left x y r := by
+    -- Goal: `inner_su3 (r • x) y = (starRingEnd ℝ) r * inner_su3 x y`.
+    -- `starRingEnd ℝ` reduces to `id` on ℝ.
+    simp [inner_su3_smul_left]
 
 end YM
 end Towers

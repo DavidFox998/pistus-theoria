@@ -240,6 +240,40 @@ the box.
   the Killing form, the inner product structure on `su(3)`, or the
   mass-gap conjecture. YM tower status unchanged: **Open**
   (`docs/ROADMAP.md` § 2).
+- **Path B batch 3 landed (2026-05-26, Task #56 follow-up).**
+  `Towers/YM/SU3Basis.lean` now ships six new bricks that pull an
+  `InnerProductSpace ℝ ↥su3_submodule` structure back through
+  `su3_equiv_fin8_def` from the Euclidean inner product on `Fin 8 → ℝ`:
+  `inner_su3_def` (the underlying real inner product as the sum over
+  the 8 Gell-Mann coordinates of the equiv-image), `norm_su3_def`
+  (`√⟪x,x⟫`), `inner_su3_conj_symm` (real symmetry), `inner_su3_add_left`
+  (left-additivity via `su3_equiv_fin8_def.map_add`), `inner_su3_smul_left`
+  (left-`ℝ`-scaling via `su3_equiv_fin8_def.map_smul`), and
+  `instance_inner_product_space_su3_core` (the `InnerProductSpace.Core`
+  instance assembled from the five). Strategy: avoid the
+  ambiguous-`map_add`/`map_smul` simp-set in `InnerProductSpace.Core`
+  field proofs by using the equiv's own named lemmas
+  (`su3_equiv_fin8_def.map_add` etc.) directly — `simp [map_add,
+  map_smul]` hits multiple instance candidates and fails to close. All
+  six bricks pass the axiom-footprint check with `{propext,
+  Classical.choice, Quot.sound}`. Total tower brick wall: **65**
+  classical-trio clean (was 59 after batch 2 v2; +6 from batch 3 = 65).
+  The earlier deferral of `instance_normedSpace_su3_euclidean` is
+  resolved transitively — the `InnerProductSpace.Core` instance gives
+  `NormedSpace ℝ ↥su3_submodule` for free via `.toNormedSpace` (no
+  separate brick needed, kept off the count to avoid double-billing
+  the same construction). These six bricks claim ONLY: the 8-dim real
+  vector space `↥su3_submodule` carries a real inner product
+  isomorphic to the Euclidean structure on `Fin 8 → ℝ`. No statement
+  about the Killing form, the `tr(XY)` trace form on `su(3)`, the YM
+  Hamiltonian, the SU(3) Lie algebra structure constants `f^{abc}`,
+  or the mass-gap conjecture. YM tower status unchanged: **Open**
+  (`docs/ROADMAP.md` § 2). Hardening: `scripts/check-towers.sh` now
+  uses an existence-probe for one well-known mathlib olean to decide
+  whether to skip `lake exe cache get`, instead of a piped
+  `find … | head | wc -l` (the SIGPIPE under `set -o pipefail`
+  silently killed the script after the lake-update SKIPPED message,
+  making the workflow appear to "succeed" with zero bricks checked).
 - **Trivial-bundle Gauge bricks retired (2026-05-26, Task #50, Option A).** The six `gauge_action_*` lemmas (`one_smul`, `mul_smul`, `inv_smul`, `smul_inv`, `inv_inv`, `pow_zero`) that lived on `TrivialConfiguration G` in `Towers/YM/Gauge.lean` were removed: the action was `· • A := A`, so every lemma reduced definitionally on both sides to `A`, exercising neither group multiplication nor the action — hollow even by trivial-brick standards. The YM wall is now **18 bricks**, not 24, and YM bricks live exclusively in `Towers.YM.MassGap` against `Matrix.specialUnitaryGroup`. Rule going forward: no `gauge_action_*` on `TrivialConfiguration` — only real SU(3). See `docs/ROADMAP.md` for the retirement note and `scripts/check-towers.sh` for the comment block.
 
 ## User preferences

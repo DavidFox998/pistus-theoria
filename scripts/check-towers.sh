@@ -72,8 +72,30 @@ else
   lake update
 fi
 
-echo ">> lake exe cache get (fetch ~2 GB prebuilt mathlib oleans)" >&2
-lake exe cache get
+# `lake exe cache get` does a `git fetch` inside every dep package
+# (batteries, aesop, importGraph, …). On this sandbox those package
+# .git directories have repeatedly been observed to lose their object
+# packs while the working tree + .lake/build oleans remain intact,
+# causing `cache get` to fail with "could not resolve 'HEAD'" even
+# though no fetch is actually needed. If the mathlib olean tree is
+# already populated locally, skip the fetch entirely; otherwise run
+# `cache get` as before. Either way, `lake build` below reads the
+# manifest directly and uses the on-disk oleans.
+# NB: avoid `find … | head -N | wc -l` here — under `set -o pipefail`
+# the SIGPIPE from `head` closing early makes `find` exit non-zero and
+# kills the whole script. We just need a "are there many oleans?" probe,
+# not an exact count; check for one well-known olean path instead.
+MATHLIB_OLEAN_PRESENT=0
+if [ -f ".lake/packages/mathlib/.lake/build/lib/Mathlib.olean" ] \
+   || [ -f ".lake/packages/mathlib/.lake/build/lib/Mathlib/Init.olean" ]; then
+  MATHLIB_OLEAN_PRESENT=1
+fi
+if [ "$MATHLIB_OLEAN_PRESENT" = "1" ]; then
+  echo ">> lake exe cache get: SKIPPED (mathlib oleans already on disk)" >&2
+else
+  echo ">> lake exe cache get (fetch ~2 GB prebuilt mathlib oleans)" >&2
+  lake exe cache get
+fi
 
 echo ">> lake build Towers" >&2
 lake build Towers
@@ -285,6 +307,29 @@ BRICKS=(
   "Towers.YM.SU3Basis|TheoremaAureum.Towers.YM.su3_basis_def"
   "Towers.YM.SU3Basis|TheoremaAureum.Towers.YM.su3_basis_linearIndependent"
   "Towers.YM.SU3Basis|TheoremaAureum.Towers.YM.su3_basis_spans"
+  # Task #56 Path B batch 3 (2026-05-26): the `InnerProductSpace.Core
+  # ℝ ↥su3_submodule`, built by hand because mathlib v4.12.0 has no
+  # `InnerProductSpace.induced` (only `InnerProductSpace.ofCore`).
+  # Six bricks: (1) `inner_su3` — the Euclidean inner product on
+  # `↥su3_submodule` pulled back through `su3_equiv_fin8_def`;
+  # (2) `norm_su3` — `Real.sqrt (inner_su3 x x)`; (3) `conj_symm`,
+  # (4) `add_left`, (5) `smul_left` — the three algebraic axioms an
+  # `InnerProductSpace.Core` field over ℝ needs; (6)
+  # `instance_inner_product_space_su3_core` — the packaged Core
+  # record (inner + conj_symm + nonneg_re + definite + add_left +
+  # smul_left), NOT registered as a global `instance` to avoid
+  # constraining downstream lattice-YM bricks that may want a
+  # different normalisation. This is the unnormalised Gell-Mann
+  # coordinate inner product (no `1/√3` on λ₈, no `tr(A* B)/2`); it
+  # is *a* real inner product on the 8-dim ℝ-vector space, NOT the
+  # physics-normalised Killing form / Frobenius inner product. YM
+  # tower status unchanged: Open (`docs/ROADMAP.md` § 2).
+  "Towers.YM.SU3Basis|TheoremaAureum.Towers.YM.inner_su3"
+  "Towers.YM.SU3Basis|TheoremaAureum.Towers.YM.norm_su3"
+  "Towers.YM.SU3Basis|TheoremaAureum.Towers.YM.inner_su3_conj_symm"
+  "Towers.YM.SU3Basis|TheoremaAureum.Towers.YM.inner_su3_add_left"
+  "Towers.YM.SU3Basis|TheoremaAureum.Towers.YM.inner_su3_smul_left"
+  "Towers.YM.SU3Basis|TheoremaAureum.Towers.YM.instance_inner_product_space_su3_core"
 )
 
 VERIFIER_DIR="$(mktemp -d)"
