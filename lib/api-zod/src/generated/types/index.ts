@@ -31,6 +31,7 @@ export * from './ledgerAlertEntry';
 export * from './ledgerAlertEntryDelivery';
 export * from './ledgerAlertsResponse';
 export * from './ledgerIntegrityStatus';
+export * from './ledgerIntegrityStatusMonitor';
 export * from './ledgerIntegrityStatusStatus';
 export * from './morningstarHits';
 export * from './morningstarProbe';

@@ -341,11 +341,31 @@ function writePersistedState(
   }
 }
 
+export interface LedgerMonitorInfo {
+  enabled: boolean;
+  intervalSeconds: number | null;
+  lastTickAt: string | null;
+  lastAlertedFailureMode: string | null;
+}
+
+const DISABLED_MONITOR_INFO: LedgerMonitorInfo = {
+  enabled: false,
+  intervalSeconds: null,
+  lastTickAt: null,
+  lastAlertedFailureMode: null,
+};
+
 export interface LedgerChecker {
   router: IRouter;
   buildStatus: () => LedgerIntegrityStatus;
   hitsPath: string;
   checkpointPath: string;
+  /**
+   * Task #97: register a provider for ledger-monitor observability so
+   * GET /api/ledger/integrity can surface `monitor: {...}`. Called
+   * fresh on every request — provider may return live state.
+   */
+  setMonitorInfoProvider: (fn: () => LedgerMonitorInfo) => void;
 }
 
 export function createLedgerChecker(opts: LedgerRouterOptions): LedgerChecker {
@@ -645,11 +665,27 @@ export function createLedgerChecker(opts: LedgerRouterOptions): LedgerChecker {
     };
   }
 
+  let monitorInfoProvider: () => LedgerMonitorInfo = () => DISABLED_MONITOR_INFO;
   const router: IRouter = Router();
   router.get("/ledger/integrity", (_req, res) => {
-    res.status(200).json(buildStatus());
+    const status = buildStatus();
+    let monitor: LedgerMonitorInfo;
+    try {
+      monitor = monitorInfoProvider();
+    } catch {
+      monitor = DISABLED_MONITOR_INFO;
+    }
+    res.status(200).json({ ...status, monitor });
   });
-  return { router, buildStatus, hitsPath: HITS, checkpointPath: CHECKPOINT };
+  return {
+    router,
+    buildStatus,
+    hitsPath: HITS,
+    checkpointPath: CHECKPOINT,
+    setMonitorInfoProvider(fn) {
+      monitorInfoProvider = fn;
+    },
+  };
 }
 
 export function createLedgerRouter(opts: LedgerRouterOptions): IRouter {
@@ -672,6 +708,15 @@ export interface LedgerMonitorOptions {
 export interface LedgerMonitorHandle {
   stop: () => void;
   tick: () => Promise<void>;
+  /**
+   * Task #97: ledger-monitor observability. `enabled` is always true
+   * for a started monitor; `intervalSeconds` reflects the configured
+   * tick cadence; `lastTickAt` is the ISO-8601 timestamp of the most
+   * recent completed tick (null until the first tick finishes);
+   * `lastAlertedFailureMode` is the failureMode of the in-flight
+   * (still-firing, not-yet-recovered) alert, or null when healthy.
+   */
+  getInfo: () => LedgerMonitorInfo;
 }
 
 /**
@@ -696,7 +741,12 @@ export function startLedgerMonitor(
   const log = opts.logger ?? defaultLogger;
   let lastAlerted: "none" | "alerted" = "none";
   let lastFailureMode: string | null = null;
+  let lastTickAt: string | null = null;
   let inFlight = false;
+  const intervalSeconds = Math.max(
+    1,
+    Math.floor(opts.intervalMs / 1000),
+  );
 
   async function tick(): Promise<void> {
     if (inFlight) return;
@@ -788,6 +838,7 @@ export function startLedgerMonitor(
         lastFailureMode = null;
       }
     } finally {
+      lastTickAt = new Date().toISOString();
       inFlight = false;
     }
   }
@@ -802,6 +853,15 @@ export function startLedgerMonitor(
       clearInterval(handle);
     },
     tick,
+    getInfo(): LedgerMonitorInfo {
+      return {
+        enabled: true,
+        intervalSeconds,
+        lastTickAt,
+        lastAlertedFailureMode:
+          lastAlerted === "alerted" ? lastFailureMode : null,
+      };
+    },
   };
 }
 
@@ -831,7 +891,7 @@ const monitorIntervalSeconds = resolveMonitorIntervalSeconds(
   process.env["LEDGER_INTEGRITY_CHECK_INTERVAL_SECONDS"],
 );
 if (monitorIntervalSeconds != null) {
-  startLedgerMonitor({
+  const monitor = startLedgerMonitor({
     buildStatus: defaultChecker.buildStatus,
     sink: createKernelAlertSink({
       repoRoot: REPO_ROOT,
@@ -842,6 +902,7 @@ if (monitorIntervalSeconds != null) {
     checkpointPath: defaultChecker.checkpointPath,
     logger: defaultLogger,
   });
+  defaultChecker.setMonitorInfoProvider(() => monitor.getInfo());
   defaultLogger.info(
     { intervalSeconds: monitorIntervalSeconds },
     "ledger monitor: started (auto integrity check on a timer)",

@@ -1769,6 +1769,108 @@ export default function DashboardPage() {
             );
           })()}
 
+          {(() => {
+            // Task #97: surface the background ledger-integrity
+            // monitor — operators can see at a glance that the
+            // auto-check is running, when it last ticked, and (red)
+            // if the monitor itself looks stalled.
+            if (!ledgerIntegrity) return null;
+            const m = ledgerIntegrity.monitor;
+            const fmt = (sec: number | null): string | null => {
+              if (sec == null) return null;
+              if (sec >= 86400) return `${Math.round(sec / 86400)}d`;
+              if (sec >= 3600) return `${Math.round(sec / 3600)}h`;
+              if (sec >= 60) return `${Math.round(sec / 60)}m`;
+              return `${sec}s`;
+            };
+            if (!m || !m.enabled) {
+              return (
+                <p
+                  className="text-xs font-mono border border-amber-500/50 bg-amber-500/10 text-amber-700 dark:text-amber-400 px-3 py-2"
+                  data-testid="text-ledger-monitor"
+                  data-monitor-enabled="false"
+                >
+                  monitor:{" "}
+                  <span className="font-bold uppercase tracking-wider">
+                    disabled
+                  </span>
+                  <span className="ml-2 text-muted-foreground">
+                    (set LEDGER_INTEGRITY_CHECK_INTERVAL_SECONDS to enable
+                    the background timer)
+                  </span>
+                </p>
+              );
+            }
+            const intervalSec = m.intervalSeconds ?? null;
+            const lastTickMs = m.lastTickAt
+              ? Date.parse(m.lastTickAt)
+              : NaN;
+            const tickAgeSec =
+              Number.isFinite(lastTickMs) && Number.isFinite(nowMs)
+                ? Math.max(0, Math.floor((nowMs - lastTickMs) / 1000))
+                : null;
+            const stalled =
+              m.lastTickAt == null ||
+              (intervalSec != null &&
+                tickAgeSec != null &&
+                tickAgeSec > intervalSec * 2);
+            const tickLabel =
+              m.lastTickAt == null
+                ? "never (waiting for first tick)"
+                : tickAgeSec == null
+                  ? m.lastTickAt
+                  : `${fmt(tickAgeSec) ?? `${tickAgeSec}s`} ago`;
+            const intervalLabel = fmt(intervalSec);
+            return (
+              <p
+                className={`text-xs font-mono ${
+                  stalled
+                    ? "border border-red-500/50 bg-red-500/10 text-red-700 dark:text-red-400 px-3 py-2"
+                    : "text-muted-foreground"
+                }`}
+                data-testid="text-ledger-monitor"
+                data-monitor-enabled="true"
+                data-monitor-stalled={stalled ? "true" : "false"}
+                title={
+                  m.lastTickAt
+                    ? `monitor last completed a tick at ${m.lastTickAt}`
+                    : "monitor enabled, no tick has completed yet"
+                }
+              >
+                monitor:{" "}
+                <span
+                  className={
+                    stalled ? "font-bold uppercase tracking-wider" : "text-foreground"
+                  }
+                >
+                  {stalled ? "stalled" : "running"}
+                </span>
+                <span className="ml-2">
+                  last tick{" "}
+                  <span className={stalled ? "" : "text-foreground"}>
+                    {tickLabel}
+                  </span>
+                </span>
+                {intervalLabel ? (
+                  <span
+                    className="ml-2 text-muted-foreground"
+                    data-testid="text-ledger-monitor-interval"
+                  >
+                    (every {intervalLabel})
+                  </span>
+                ) : null}
+                {m.lastAlertedFailureMode ? (
+                  <span
+                    className="ml-2 font-bold uppercase tracking-wider text-red-700 dark:text-red-400"
+                    data-testid="text-ledger-monitor-alert"
+                  >
+                    alerting: {m.lastAlertedFailureMode}
+                  </span>
+                ) : null}
+              </p>
+            );
+          })()}
+
           {ledgerIntegrity && ledgerIntegrity.status !== "ok" ? (
             <div
               className="border border-red-500/50 bg-red-500/10 p-3 font-mono text-xs space-y-1 text-red-700 dark:text-red-400"

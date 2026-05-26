@@ -5,6 +5,7 @@
  * Theorema Aureum 143 — Certificate Ledger API
  * OpenAPI spec version: 0.1.0
  */
+import type { LedgerIntegrityStatusMonitor } from './ledgerIntegrityStatusMonitor';
 import type { LedgerIntegrityStatusStatus } from './ledgerIntegrityStatusStatus';
 
 export interface LedgerIntegrityStatus {
@@ -177,4 +178,12 @@ export interface LedgerIntegrityStatus {
   is far behind the live file".
    */
   checkpointStale?: boolean;
+  /** Task #97. Observability surface for the server-side
+  ledger-integrity monitor (the background timer added in
+  task #85). Lets the dashboard show operators that the
+  auto-check is actually running and when it last ticked,
+  so a stalled or never-started monitor surfaces visibly
+  instead of silently missing tampers.
+   */
+  monitor?: LedgerIntegrityStatusMonitor;
 }
