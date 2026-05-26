@@ -54,10 +54,13 @@ class _CapturingWebhookHandler(BaseHTTPRequestHandler):
                 "body": body,
             }
         )
-        self.send_response(200)
-        self.send_header("Content-Length", "2")
+        status = getattr(self.server, "reply_status", 200)
+        reason = getattr(self.server, "reply_reason", "OK")
+        body_out = getattr(self.server, "reply_body", b"ok")
+        self.send_response(status, reason)
+        self.send_header("Content-Length", str(len(body_out)))
         self.end_headers()
-        self.wfile.write(b"ok")
+        self.wfile.write(body_out)
 
     def log_message(self, *args, **kwargs):  # silence per-request stderr
         pass
@@ -71,7 +74,7 @@ def webhook_server():
     thread.start()
     try:
         host, port = server.server_address
-        yield f"http://{host}:{port}/alert", server.captured  # type: ignore[attr-defined]
+        yield f"http://{host}:{port}/alert", server  # type: ignore[attr-defined]
     finally:
         server.shutdown()
         server.server_close()
@@ -195,7 +198,8 @@ def test_webhook_wire_format_end_to_end(tmp_hits, monkeypatch, webhook_server):
     a JSON POST with `Content-Type: application/json` and the full
     documented payload shape (workflow/timestamp/failure_mode/
     expected_size/actual_size/expected_sha/recovery)."""
-    url, captured = webhook_server
+    url, server = webhook_server
+    captured = server.captured
     monkeypatch.setenv("MORNINGSTAR_ALERT_WEBHOOK_URL", url)
     monkeypatch.setenv("MORNINGSTAR_WORKFLOW_NAME", "zeta-burst-101-10000")
     monkeypatch.delenv("MORNINGSTAR_ALERT_EMAIL_TO", raising=False)
@@ -284,7 +288,8 @@ def test_webhook_and_smtp_both_fire_end_to_end(
     """Both transports are independent — configuring both must deliver
     to both wires on a single integrity failure. This is the path the
     docs describe ("Set alongside or instead of the webhook")."""
-    url, captured = webhook_server
+    url, server = webhook_server
+    captured = server.captured
     monkeypatch.setenv("MORNINGSTAR_ALERT_WEBHOOK_URL", url)
     monkeypatch.setenv("MORNINGSTAR_ALERT_EMAIL_TO", "ops@example.com")
     monkeypatch.setenv("MORNINGSTAR_ALERT_SMTP_HOST", smtp_server.host)
@@ -304,3 +309,154 @@ def test_webhook_and_smtp_both_fire_end_to_end(
     assert payload["workflow"] == "dual-transport"
     parsed = message_from_bytes(smtp_server.messages[0]["data"])
     assert "dual-transport" in (parsed["Subject"] or "")
+
+
+def _read_alert_history(tmp_hits: Path) -> list[dict]:
+    log = tmp_hits.parent / "ledger-alerts.jsonl"
+    assert log.exists(), f"alerts log missing: {log}"
+    out = []
+    for line in log.read_text(encoding="utf-8").splitlines():
+        line = line.strip()
+        if not line:
+            continue
+        out.append(json.loads(line))
+    return out
+
+
+def test_webhook_http_500_records_failure_and_still_raises(
+    tmp_hits, monkeypatch, webhook_server
+):
+    """Task #81: a reachable webhook that returns HTTP 500 must (a) not
+    mask the underlying `LedgerIntegrityError`, and (b) record
+    `delivery.webhook.status == "failed"` in the ring buffer with the
+    HTTP status surfaced in the error string. This is the realistic
+    failure mode for an expired auth token or a downstream outage."""
+    url, server = webhook_server
+    server.reply_status = 500
+    server.reply_reason = "Internal Server Error"
+    server.reply_body = b"boom"
+    captured = server.captured
+    monkeypatch.setenv("MORNINGSTAR_ALERT_WEBHOOK_URL", url)
+    monkeypatch.setenv("MORNINGSTAR_WORKFLOW_NAME", "flaky-webhook")
+    monkeypatch.delenv("MORNINGSTAR_ALERT_EMAIL_TO", raising=False)
+
+    _seed_and_truncate(tmp_hits)
+
+    with pytest.raises(kernel.LedgerIntegrityError):
+        kernel._append_line("second line")
+
+    # The webhook was reached — the JSON body was POSTed — but the
+    # server responded with 500.
+    assert len(captured) == 1, captured
+
+    history = _read_alert_history(tmp_hits)
+    assert len(history) == 1
+    entry = history[0]
+    assert entry["workflow"] == "flaky-webhook"
+    webhook_delivery = entry["delivery"]["webhook"]
+    assert webhook_delivery["status"] == "failed"
+    assert "500" in webhook_delivery["error"]
+    # Email was not configured for this run.
+    assert entry["delivery"]["email"]["status"] == "not_configured"
+
+
+def test_smtp_550_rcpt_records_failure_and_webhook_still_fires(
+    tmp_hits, monkeypatch, webhook_server, smtp_server
+):
+    """Task #81: when SMTP rejects the recipient with a 5xx code
+    mid-conversation, (a) the integrity exception still propagates,
+    (b) the alert history records `delivery.email.status == "failed"`
+    with the SMTP status in the error, and (c) the webhook transport
+    still fires independently — transports must not share fate."""
+    # Patch the mini SMTP server to refuse RCPT TO with 550.
+    real_run = smtp_server._run
+
+    def _run_with_550_rcpt():
+        # Re-implement just enough to inject the 5xx on RCPT.
+        try:
+            conn, _ = smtp_server._sock.accept()
+        except OSError:
+            return
+        conn.settimeout(10)
+        rfile = conn.makefile("rb")
+        wfile = conn.makefile("wb")
+
+        def send(line: str) -> None:
+            wfile.write(line.encode("ascii") + b"\r\n")
+            wfile.flush()
+
+        send("220 mini.smtp ready")
+        try:
+            while True:
+                raw = rfile.readline()
+                if not raw:
+                    break
+                line = raw.decode("ascii", errors="replace").rstrip("\r\n")
+                upper = line.upper()
+                if upper.startswith(("EHLO", "HELO")):
+                    send("250 hello")
+                elif upper.startswith("MAIL FROM:"):
+                    send("250 ok")
+                elif upper.startswith("RCPT TO:"):
+                    smtp_server.messages.append(
+                        {"rejected_rcpt": line, "code": 550}
+                    )
+                    send("550 mailbox unavailable")
+                elif upper.startswith("RSET"):
+                    send("250 ok")
+                elif upper.startswith("QUIT"):
+                    send("221 bye")
+                    break
+                else:
+                    send("250 ok")
+        except (OSError, socket.timeout):
+            return
+        finally:
+            try:
+                conn.close()
+            except OSError:
+                pass
+
+    # Replace the running thread with the 550-injecting variant.
+    smtp_server._sock.settimeout(10)
+    smtp_server._thread.join(timeout=0.1)
+    new_thread = threading.Thread(target=_run_with_550_rcpt, daemon=True)
+    smtp_server._thread = new_thread
+    new_thread.start()
+    _ = real_run  # silence linter: kept for clarity
+
+    url, server = webhook_server
+    captured = server.captured
+
+    monkeypatch.setenv("MORNINGSTAR_ALERT_WEBHOOK_URL", url)
+    monkeypatch.setenv("MORNINGSTAR_ALERT_EMAIL_TO", "ops@example.com")
+    monkeypatch.setenv("MORNINGSTAR_ALERT_EMAIL_FROM", "ledger@example.com")
+    monkeypatch.setenv("MORNINGSTAR_ALERT_SMTP_HOST", smtp_server.host)
+    monkeypatch.setenv("MORNINGSTAR_ALERT_SMTP_PORT", str(smtp_server.port))
+    monkeypatch.setenv("MORNINGSTAR_WORKFLOW_NAME", "flaky-smtp")
+    monkeypatch.delenv("MORNINGSTAR_ALERT_SMTP_USER", raising=False)
+    monkeypatch.delenv("MORNINGSTAR_ALERT_SMTP_PASSWORD", raising=False)
+
+    _seed_and_truncate(tmp_hits)
+
+    with pytest.raises(kernel.LedgerIntegrityError):
+        kernel._append_line("second line")
+
+    new_thread.join(timeout=5)
+
+    # SMTP saw the RCPT and rejected it.
+    assert any(
+        m.get("code") == 550 for m in smtp_server.messages
+    ), smtp_server.messages
+    # The webhook still fired independently.
+    assert len(captured) == 1, captured
+
+    history = _read_alert_history(tmp_hits)
+    assert len(history) == 1
+    entry = history[0]
+    assert entry["workflow"] == "flaky-smtp"
+    email_delivery = entry["delivery"]["email"]
+    assert email_delivery["status"] == "failed"
+    assert "550" in email_delivery["error"]
+    # Webhook delivery independently succeeded.
+    assert entry["delivery"]["webhook"]["status"] == "ok"
