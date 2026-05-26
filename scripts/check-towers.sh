@@ -122,6 +122,16 @@ BRICKS=(
   "Towers.YM.MassGap|TheoremaAureum.Towers.YM.SU3Connection_mul_assoc"
   "Towers.YM.MassGap|TheoremaAureum.Towers.YM.SU3Connection_component_star_mul_self"
   "Towers.YM.MassGap|TheoremaAureum.Towers.YM.SU3Connection_component_star_det_one"
+  # 2026-05-26 Branch C Step 1 (Task #55 continuation): open the real
+  # `su(3)` Lie algebra surface as a plain `Set` of anti-Hermitian
+  # traceless 3×3 ℂ-matrices in the new file `Towers/YM/SU3.lean`.
+  # Three foundation bricks that every later batch (closure under
+  # `+/-/•`, bracket `[·,·]`, `L²(su(3))` Hilbert space) will depend
+  # on. Wall: 22 → 25. None advance YM past Status: Open — see the
+  # honest-scope block at the top of `Towers/YM/SU3.lean`.
+  "Towers.YM.SU3|TheoremaAureum.Towers.YM.su3_lie_algebra_def"
+  "Towers.YM.SU3|TheoremaAureum.Towers.YM.su3_mem_iff_anti_hermitian_traceless"
+  "Towers.YM.SU3|TheoremaAureum.Towers.YM.su3_zero_mem"
 )
 
 VERIFIER_DIR="$(mktemp -d)"
