@@ -17,6 +17,19 @@ Honest-scope guards:
   - Verifies the Genesis seal AFTER writing. The seal only covers
     lines 1-9 (the preamble), but re-verifying after the append
     proves the helper didn't accidentally touch the preamble.
+
+Concurrency (task #65):
+  - The entire read-verify-append-checkpoint window runs under
+    `kernel.hits_exclusive_lock()` (the sidecar
+    `data/.hits.lock` flock, also held by `kernel._append_line`).
+    This is the only other legitimate appender to `data/hits.txt`
+    besides `_append_line`; routing it through the same lock means
+    a stray re-run of the birth ceremony on a live ledger cannot
+    interleave with a concurrent `kernel.probe()` writer or desync
+    `data/hits.txt.checkpoint`.
+  - The checkpoint refresh delegates to `kernel._update_checkpoint`
+    so the on-disk shape (size + SHA-256, tmp + os.replace) stays
+    in lockstep with the canonical writer.
 """
 from __future__ import annotations
 
@@ -33,6 +46,9 @@ TEX = REPO / "data" / "MorningStar_RH_Cert.tex"
 SEAL_CHECK = REPO / "scripts" / "check-genesis-seal.py"
 
 NOTE = "100-zero MorningStar RH reconnaissance cert; axiom debt []; beta=2.0 uniform"
+
+sys.path.insert(0, str(REPO))
+import kernel  # noqa: E402  — must import after sys.path tweak
 
 
 def _verify_seal(label: str) -> None:
@@ -61,36 +77,37 @@ def main() -> int:
         sys.stderr.write(f"FATAL: {TEX} not found.\n")
         return 1
 
-    _verify_seal("pre-write")
+    # Serialize the entire read-verify-append-checkpoint window against
+    # any concurrent kernel._append_line writer (task #65).
+    with kernel.hits_exclusive_lock():
+        _verify_seal("pre-write")
 
-    pdf_sha = hashlib.sha256(PDF.read_bytes()).hexdigest()
-    tex_sha = hashlib.sha256(TEX.read_bytes()).hexdigest()
-    ledger_lines_before = sum(1 for _ in LEDGER.open("rb"))
-    ts = time.time_ns()
+        pdf_sha = hashlib.sha256(PDF.read_bytes()).hexdigest()
+        tex_sha = hashlib.sha256(TEX.read_bytes()).hexdigest()
+        ledger_lines_before = sum(1 for _ in LEDGER.open("rb"))
+        ts = time.time_ns()
 
-    body = (
-        f"birth ts={ts} tag=BIRTH "
-        f"cert_pdf_sha256={pdf_sha} "
-        f"cert_tex_sha256={tex_sha} "
-        f"ledger_lines_before={ledger_lines_before} "
-        f'note="{NOTE}"'
-    )
-    line_sha = hashlib.sha256(body.encode("utf-8")).hexdigest()
-    line = f"{body} sha={line_sha}\n"
+        body = (
+            f"birth ts={ts} tag=BIRTH "
+            f"cert_pdf_sha256={pdf_sha} "
+            f"cert_tex_sha256={tex_sha} "
+            f"ledger_lines_before={ledger_lines_before} "
+            f'note="{NOTE}"'
+        )
+        line_sha = hashlib.sha256(body.encode("utf-8")).hexdigest()
+        line = f"{body} sha={line_sha}\n"
 
-    with LEDGER.open("ab") as fh:
-        fh.write(line.encode("utf-8"))
+        with LEDGER.open("ab") as fh:
+            fh.write(line.encode("utf-8"))
+            fh.flush()
+            import os as _os
+            _os.fsync(fh.fileno())
 
-    # Refresh the at-rest checkpoint so the integrity guard
-    # (scripts/check-ledger-integrity.py) doesn't see this legitimate
-    # append as a stale prefix. Kept in lockstep with kernel._append_line.
-    data = LEDGER.read_bytes()
-    cp_tmp = (REPO / "data" / "hits.txt.checkpoint.tmp")
-    cp_tmp.write_text(f"{len(data)} {hashlib.sha256(data).hexdigest()}\n", encoding="utf-8")
-    import os as _os
-    _os.replace(cp_tmp, REPO / "data" / "hits.txt.checkpoint")
+        # Refresh the at-rest checkpoint via the canonical writer so the
+        # on-disk shape stays in lockstep with kernel._append_line.
+        kernel._update_checkpoint()
 
-    _verify_seal("post-write")
+        _verify_seal("post-write")
 
     sys.stdout.write(f"birth line appended:\n  {line.rstrip()}\n")
     sys.stdout.write(f"PDF sha256:    {pdf_sha}\n")

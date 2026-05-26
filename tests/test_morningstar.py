@@ -526,7 +526,12 @@ def test_in_place_rewrite_fails_integrity_check(hits_backup, fresh_checkpoint):
 # Anything else matching the forbidden patterns is a regression.
 _LEDGER_WRITE_ALLOWLIST = frozenset({
     "kernel.py",                     # _append_line (mode "a") + _update_checkpoint
-    "scripts/seal-birth.py",         # BIRTH event append (mode "ab")
+    # BIRTH event append (mode "ab"): runs under
+    # `kernel.hits_exclusive_lock()` for its full read-verify-append-
+    # checkpoint window and delegates the checkpoint refresh to
+    # `kernel._update_checkpoint`, so it serializes against
+    # `kernel._append_line` writers (task #65).
+    "scripts/seal-birth.py",
     "scripts/check-ledger-integrity.py",  # reads only, but mentions patterns
     "tests/test_morningstar.py",     # this lint test itself + tamper fixtures
 })
