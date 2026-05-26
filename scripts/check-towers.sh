@@ -73,27 +73,81 @@ else
 fi
 
 # `lake exe cache get` does a `git fetch` inside every dep package
-# (batteries, aesop, importGraph, …). On this sandbox those package
-# .git directories have repeatedly been observed to lose their object
-# packs while the working tree + .lake/build oleans remain intact,
-# causing `cache get` to fail with "could not resolve 'HEAD'" even
-# though no fetch is actually needed. If the mathlib olean tree is
-# already populated locally, skip the fetch entirely; otherwise run
-# `cache get` as before. Either way, `lake build` below reads the
-# manifest directly and uses the on-disk oleans.
+# (batteries, aesop, importGraph, …) AND, when Lake sees that a
+# package's checkout URL differs from the manifest (which it always
+# does for our vendored, .git-less trees — Lake reads "no .git" as
+# "URL changed"), re-clones the package from scratch. That single
+# behaviour is the entire reason the towers-build workflow used to
+# burn 5–15 minutes on every cold start re-downloading ~2 GB of
+# prebuilt mathlib oleans (Task #66).
+#
+# Skip policy, in order of preference:
+#
+#   (1) FAST PATH — mathlib's prebuilt oleans look populated under
+#       .lake/packages/mathlib/.lake/build/lib/. Skip `cache get`;
+#       `lake build Towers` will read the on-disk oleans directly via
+#       the manifest. Typical warm-cache run: 10-30 s.
+#
+#   (2) SAFE PATH — the vendored mathlib working tree exists but is
+#       missing its `.git/` directory (and so are the sibling deps).
+#       Running `cache get` here is *actively destructive*: Lake will
+#       interpret the missing `.git` as a URL change and re-clone the
+#       package, wiping the working tree AND the .lake/build oleans
+#       in the process. Skip with a clear warning. If the oleans are
+#       missing, `lake build Towers` will compile mathlib from source
+#       (slow — 30+ min — but correct), which is strictly better than
+#       silently destroying the vendored trees.
+#
+#   (3) GENUINE FETCH — neither the build dir nor the vendored trees
+#       exist (truly fresh checkout). Run `cache get` normally.
+#
 # NB: avoid `find … | head -N | wc -l` here — under `set -o pipefail`
 # the SIGPIPE from `head` closing early makes `find` exit non-zero and
-# kills the whole script. We just need a "are there many oleans?" probe,
-# not an exact count; check for one well-known olean path instead.
+# kills the whole script (we hit this exact failure in an earlier
+# iteration; the workflow appeared to "succeed" with zero bricks
+# checked because the script silently exited before the BRICKS loop).
+# We just need a "are there many oleans?" probe, not an exact count;
+# check for a small set of well-known olean paths and the build dir
+# itself instead. Use multiple probes because the exact set of
+# top-level oleans depends on which mathlib modules the Towers
+# library has imported so far — `Mathlib.olean` (the all-encompassing
+# umbrella) is only emitted after `import Mathlib`, whereas a leaner
+# import set may only populate `Mathlib/Init.olean`, `Mathlib/Tactic.olean`,
+# etc.
 MATHLIB_OLEAN_PRESENT=0
-if [ -f ".lake/packages/mathlib/.lake/build/lib/Mathlib.olean" ] \
-   || [ -f ".lake/packages/mathlib/.lake/build/lib/Mathlib/Init.olean" ]; then
+if [ -d ".lake/packages/mathlib/.lake/build/lib/Mathlib" ] && {
+     [ -f ".lake/packages/mathlib/.lake/build/lib/Mathlib.olean" ] \
+  || [ -f ".lake/packages/mathlib/.lake/build/lib/Mathlib/Init.olean" ] \
+  || [ -f ".lake/packages/mathlib/.lake/build/lib/Mathlib/Tactic.olean" ] \
+  || [ -f ".lake/packages/mathlib/.lake/build/lib/Mathlib/Logic/Basic.olean" ]; }; then
   MATHLIB_OLEAN_PRESENT=1
 fi
+
+# Vendored-but-.git-less detection. We probe mathlib as the canary;
+# if its working tree exists without a `.git/` directory we assume
+# the same is true of its siblings (which is how Task #60 committed
+# them). The combination "lakefile present" + "no .git" is the
+# signature of the vendored trees that `cache get` would corrupt.
+VENDORED_NO_GIT=0
+if [ -f ".lake/packages/mathlib/lakefile.lean" ] \
+   && [ ! -d ".lake/packages/mathlib/.git" ]; then
+  VENDORED_NO_GIT=1
+fi
+
 if [ "$MATHLIB_OLEAN_PRESENT" = "1" ]; then
-  echo ">> lake exe cache get: SKIPPED (mathlib oleans already on disk)" >&2
+  echo ">> lake exe cache get: SKIPPED (mathlib oleans already on disk;" >&2
+  echo "   .lake/packages/mathlib/.lake/build/lib/ is populated)." >&2
+elif [ "$VENDORED_NO_GIT" = "1" ]; then
+  echo ">> lake exe cache get: SKIPPED (vendored mathlib working tree" >&2
+  echo "   has no .git/ — running \`cache get\` here would re-clone every" >&2
+  echo "   dependency from scratch, wiping the working tree. Falling" >&2
+  echo "   through to \`lake build Towers\`, which will compile mathlib" >&2
+  echo "   from source if the oleans really are missing. See the" >&2
+  echo "   skip-policy comment in scripts/check-towers.sh for the full" >&2
+  echo "   story; this is the Task #66 guard.)" >&2
 else
-  echo ">> lake exe cache get (fetch ~2 GB prebuilt mathlib oleans)" >&2
+  echo ">> lake exe cache get (fetch ~2 GB prebuilt mathlib oleans;" >&2
+  echo "   no vendored mathlib tree and no on-disk oleans found)" >&2
   lake exe cache get
 fi
 
