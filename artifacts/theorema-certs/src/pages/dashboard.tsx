@@ -7,11 +7,13 @@ import {
   useClearLeanLockout,
   useGetMorningstarHits,
   useGetLedgerIntegrity,
+  useGetLedgerAlerts,
   getGetMorningstarHitsQueryKey,
   getGetLeanVerificationQueryKey,
   getGetLeanRebuildHistoryQueryKey,
   getGetLeanLockoutsQueryKey,
   getGetLedgerIntegrityQueryKey,
+  getGetLedgerAlertsQueryKey,
 } from "@workspace/api-client-react";
 import { ShaChip } from "@/components/sha-chip";
 import { StatusBadge } from "@/components/status-badge";
@@ -242,6 +244,20 @@ export default function DashboardPage() {
     },
     request: lockoutsAuthHeader ? { headers: lockoutsAuthHeader } : undefined,
   });
+  const {
+    data: ledgerAlertsData,
+    error: ledgerAlertsError,
+  } = useGetLedgerAlerts(
+    { limit: 20 },
+    {
+      query: {
+        queryKey: getGetLedgerAlertsQueryKey({ limit: 20 }),
+        refetchInterval: 30000,
+        refetchIntervalInBackground: false,
+        retry: false,
+      },
+    },
+  );
   const {
     data: ledgerIntegrity,
     error: ledgerIntegrityError,
@@ -1301,6 +1317,118 @@ export default function DashboardPage() {
                   ) : null}
                 </div>
               ) : null}
+
+              <div
+                className="border border-border bg-muted/20"
+                data-testid="panel-ledger-alerts"
+              >
+                <div className="flex items-center justify-between px-3 py-1.5 border-b border-border bg-muted/30">
+                  <span className="font-mono text-[11px] uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                    <Activity className="w-3 h-3" />
+                    Recent ledger alerts
+                  </span>
+                  <span
+                    className="font-mono text-[11px] text-muted-foreground"
+                    data-testid="text-ledger-alerts-count"
+                  >
+                    {ledgerAlertsError
+                      ? "error"
+                      : ledgerAlertsData
+                        ? `${ledgerAlertsData.totalReturned} entr${ledgerAlertsData.totalReturned === 1 ? "y" : "ies"}`
+                        : "loading…"}
+                  </span>
+                </div>
+                {ledgerAlertsError ? (
+                  <p
+                    className="px-3 py-2 font-mono text-[11px] text-red-700 dark:text-red-400"
+                    data-testid="text-ledger-alerts-error"
+                  >
+                    {ledgerAlertsError instanceof Error
+                      ? ledgerAlertsError.message
+                      : "Failed to load alert log"}
+                  </p>
+                ) : ledgerAlertsData && ledgerAlertsData.alerts.length === 0 ? (
+                  <p
+                    className="px-3 py-2 font-mono text-[11px] text-green-700 dark:text-green-400 flex items-center gap-1.5"
+                    data-testid="text-ledger-alerts-empty"
+                  >
+                    <CheckCircle2 className="w-3 h-3" />
+                    No alerts on record.
+                  </p>
+                ) : ledgerAlertsData ? (
+                  <ul className="divide-y divide-border">
+                    {ledgerAlertsData.alerts.map((alert, i) => {
+                      const transports = [
+                        { name: "webhook", info: alert.delivery.webhook },
+                        { name: "email", info: alert.delivery.email },
+                      ];
+                      const anyFailed = transports.some(
+                        (t) => t.info.status === "failed",
+                      );
+                      return (
+                        <li
+                          key={`alert-${alert.timestamp}-${i}`}
+                          className={`px-3 py-2 font-mono text-[11px] space-y-1 ${
+                            anyFailed
+                              ? "bg-amber-500/10 border-l-2 border-amber-500"
+                              : ""
+                          }`}
+                          data-testid={`row-ledger-alert-${i}`}
+                        >
+                          <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                            <span
+                              className="inline-flex items-center gap-1 font-bold text-red-700 dark:text-red-400"
+                            >
+                              <AlertTriangle className="w-3 h-3" />
+                              {alert.failureMode ?? "alert"}
+                            </span>
+                            <span
+                              className="text-muted-foreground"
+                              title={alert.timestamp}
+                              data-testid={`text-ledger-alert-timestamp-${i}`}
+                            >
+                              {formatTimestamp(alert.timestamp)}
+                            </span>
+                            <span
+                              className="text-foreground truncate"
+                              data-testid={`text-ledger-alert-workflow-${i}`}
+                              title={alert.workflow}
+                            >
+                              workflow={alert.workflow}
+                            </span>
+                            <span className="ml-auto flex items-center gap-1.5">
+                              {transports.map((t) => {
+                                const cls =
+                                  t.info.status === "ok"
+                                    ? "text-green-700 dark:text-green-400 border-green-500/40"
+                                    : t.info.status === "failed"
+                                      ? "text-amber-700 dark:text-amber-400 border-amber-500/50 bg-amber-500/10"
+                                      : "text-muted-foreground border-border";
+                                return (
+                                  <span
+                                    key={t.name}
+                                    className={`inline-block px-1.5 py-0.5 border ${cls}`}
+                                    title={t.info.error ?? undefined}
+                                    data-testid={`text-ledger-alert-${t.name}-${i}`}
+                                  >
+                                    {t.name}: {t.info.status}
+                                  </span>
+                                );
+                              })}
+                            </span>
+                          </div>
+                          <p
+                            className="text-foreground/80 break-words"
+                            data-testid={`text-ledger-alert-message-${i}`}
+                          >
+                            {alert.message}
+                          </p>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                ) : null}
+              </div>
 
               {rebuildOutcome ? (
                 <div

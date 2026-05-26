@@ -23,6 +23,7 @@ import type {
   Certificate,
   CertificateSummary,
   CertificateUpdate,
+  GetLedgerAlertsParams,
   GetMorningstarHitsParams,
   HealthStatus,
   LeanLockoutClearRequest,
@@ -32,6 +33,7 @@ import type {
   LeanRebuildHistory,
   LeanRebuildResult,
   LeanVerification,
+  LedgerAlertsResponse,
   LedgerIntegrityStatus,
   MorningstarHits,
   UploadUrlRequest,
@@ -980,6 +982,96 @@ export const useClearLeanLockout = <TError = ErrorType<void>,
       > => {
       return useMutation(getClearLeanLockoutMutationOptions(options));
     }
+
+export const getGetLedgerAlertsUrl = (params?: GetLedgerAlertsParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : value.toString())
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/lean/ledger-alerts?${stringifiedParams}` : `/api/lean/ledger-alerts`
+}
+
+/**
+ * Returns the most recent entries from the on-disk alert ring buffer
+`data/ledger-alerts.jsonl` (task #71), written by
+`kernel._fire_ledger_alert` every time a ledger integrity check
+fails. Survives server restarts. Returns `{ alerts: [] }` when the
+log is missing or empty — the normal healthy state. Read-only.
+
+ * @summary Recent ledger integrity alerts
+ */
+export const getLedgerAlerts = async (params?: GetLedgerAlertsParams, options?: RequestInit): Promise<LedgerAlertsResponse> => {
+
+  return customFetch<LedgerAlertsResponse>(getGetLedgerAlertsUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetLedgerAlertsQueryKey = (params?: GetLedgerAlertsParams,) => {
+    return [
+    `/api/lean/ledger-alerts`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getGetLedgerAlertsQueryOptions = <TData = Awaited<ReturnType<typeof getLedgerAlerts>>, TError = ErrorType<unknown>>(params?: GetLedgerAlertsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getLedgerAlerts>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetLedgerAlertsQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getLedgerAlerts>>> = ({ signal }) => getLedgerAlerts(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getLedgerAlerts>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetLedgerAlertsQueryResult = NonNullable<Awaited<ReturnType<typeof getLedgerAlerts>>>
+export type GetLedgerAlertsQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Recent ledger integrity alerts
+ */
+
+export function useGetLedgerAlerts<TData = Awaited<ReturnType<typeof getLedgerAlerts>>, TError = ErrorType<unknown>>(
+ params?: GetLedgerAlertsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getLedgerAlerts>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetLedgerAlertsQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
 
 export const getGetMorningstarHitsUrl = (params?: GetMorningstarHitsParams,) => {
   const normalizedParams = new URLSearchParams();

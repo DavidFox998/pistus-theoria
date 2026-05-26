@@ -154,6 +154,142 @@ function invalidateCache(): void {
   cachedError = null;
 }
 
+const ALERTS_LOG_PATH = path.join(REPO_ROOT, "data", "ledger-alerts.jsonl");
+const ALERTS_DEFAULT_LIMIT = 20;
+const ALERTS_MAX_LIMIT = 200;
+
+type AlertDeliveryStatus = "ok" | "failed" | "not_configured";
+
+interface AlertDelivery {
+  status: AlertDeliveryStatus;
+  error: string | null;
+}
+
+interface LedgerAlertView {
+  timestamp: string;
+  workflow: string;
+  message: string;
+  failureMode: string | null;
+  recovery: string | null;
+  hitsPath: string | null;
+  checkpointPath: string | null;
+  expectedSize: number | null;
+  actualSize: number | null;
+  expectedSha: string | null;
+  source: string | null;
+  delivery: {
+    webhook: AlertDelivery;
+    email: AlertDelivery;
+  };
+}
+
+function pickString(v: unknown): string | null {
+  return typeof v === "string" ? v : null;
+}
+
+function pickInt(v: unknown): number | null {
+  return typeof v === "number" && Number.isFinite(v) ? Math.trunc(v) : null;
+}
+
+function normalizeDelivery(raw: unknown): AlertDelivery {
+  if (!raw || typeof raw !== "object") {
+    return { status: "not_configured", error: null };
+  }
+  const r = raw as Record<string, unknown>;
+  const status = r["status"];
+  const allowed: AlertDeliveryStatus[] = ["ok", "failed", "not_configured"];
+  const s: AlertDeliveryStatus =
+    typeof status === "string" && (allowed as string[]).includes(status)
+      ? (status as AlertDeliveryStatus)
+      : "not_configured";
+  const err = typeof r["error"] === "string" ? (r["error"] as string) : null;
+  return { status: s, error: err };
+}
+
+function normalizeAlertEntry(raw: unknown): LedgerAlertView | null {
+  if (!raw || typeof raw !== "object") return null;
+  const r = raw as Record<string, unknown>;
+  const timestamp = pickString(r["timestamp"]);
+  const message = pickString(r["message"]);
+  if (!timestamp || !message) return null;
+  const workflow = pickString(r["workflow"]) ?? "unknown";
+  const delivery = (r["delivery"] ?? {}) as Record<string, unknown>;
+  return {
+    timestamp,
+    workflow,
+    message,
+    failureMode: pickString(r["failure_mode"]),
+    recovery: pickString(r["recovery"]),
+    hitsPath: pickString(r["hits_path"]),
+    checkpointPath: pickString(r["checkpoint_path"]),
+    expectedSize: pickInt(r["expected_size"]),
+    actualSize: pickInt(r["actual_size"]),
+    expectedSha: pickString(r["expected_sha"]),
+    source: pickString(r["source"]),
+    delivery: {
+      webhook: normalizeDelivery(delivery["webhook"]),
+      email: normalizeDelivery(delivery["email"]),
+    },
+  };
+}
+
+router.get("/lean/ledger-alerts", (req, res) => {
+  const rawLimit = req.query["limit"];
+  let limit = ALERTS_DEFAULT_LIMIT;
+  if (typeof rawLimit === "string" && rawLimit.length > 0) {
+    const n = Number.parseInt(rawLimit, 10);
+    if (Number.isFinite(n) && n > 0) {
+      limit = Math.min(ALERTS_MAX_LIMIT, n);
+    }
+  }
+  const logExists = existsSync(ALERTS_LOG_PATH);
+  if (!logExists) {
+    res.json({
+      alerts: [],
+      limit,
+      totalReturned: 0,
+      logPath: ALERTS_LOG_PATH,
+      logExists: false,
+    });
+    return;
+  }
+  let raw: string;
+  try {
+    raw = readFileSync(ALERTS_LOG_PATH, "utf8");
+  } catch (err) {
+    req.log.warn({ err, path: ALERTS_LOG_PATH }, "Failed to read alerts log");
+    res.json({
+      alerts: [],
+      limit,
+      totalReturned: 0,
+      logPath: ALERTS_LOG_PATH,
+      logExists: true,
+    });
+    return;
+  }
+  const lines = raw.split("\n");
+  const alerts: LedgerAlertView[] = [];
+  for (let i = lines.length - 1; i >= 0 && alerts.length < limit; i--) {
+    const line = lines[i].trim();
+    if (!line) continue;
+    try {
+      const parsed = JSON.parse(line) as unknown;
+      const entry = normalizeAlertEntry(parsed);
+      if (entry) alerts.push(entry);
+    } catch {
+      // Malformed JSON line (e.g. partial write) — skip; informational
+      // surface, not a correctness one.
+    }
+  }
+  res.json({
+    alerts,
+    limit,
+    totalReturned: alerts.length,
+    logPath: ALERTS_LOG_PATH,
+    logExists: true,
+  });
+});
+
 router.get("/lean/verify/history", async (req, res) => {
   try {
     const entries = await listRebuildHistory();

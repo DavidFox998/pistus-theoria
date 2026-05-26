@@ -191,6 +191,105 @@ export interface LeanLockoutClearResult {
   error?: string;
 }
 
+/**
+ * Per-transport delivery outcome at the moment the alert fired
+ */
+export type LedgerAlertDeliveryStatusStatus = typeof LedgerAlertDeliveryStatusStatus[keyof typeof LedgerAlertDeliveryStatusStatus];
+
+
+export const LedgerAlertDeliveryStatusStatus = {
+  ok: 'ok',
+  failed: 'failed',
+  not_configured: 'not_configured',
+} as const;
+
+export interface LedgerAlertDeliveryStatus {
+  /** Per-transport delivery outcome at the moment the alert fired */
+  status: LedgerAlertDeliveryStatusStatus;
+  /**
+     * Best-effort delivery error string (present when status=failed)
+     * @nullable
+     */
+  error?: string | null;
+}
+
+/**
+ * Per-transport delivery status at fire time
+ */
+export type LedgerAlertEntryDelivery = {
+  webhook: LedgerAlertDeliveryStatus;
+  email: LedgerAlertDeliveryStatus;
+};
+
+/**
+ * One entry from the on-disk alert ring buffer
+`data/ledger-alerts.jsonl`. Each field other than the four
+required ones is best-effort: older entries (or
+check-ledger-integrity.py hard FATALs) may omit any of them.
+
+ */
+export interface LedgerAlertEntry {
+  /** ISO-8601 timestamp of when the alert fired */
+  timestamp: string;
+  /** Friendly tag of the workflow that fired the alert
+  (e.g. `zeta-burst-101-10000`, `check-ledger-integrity.py`).
+  Falls back to `argv[0]` or hostname when
+  `MORNINGSTAR_WORKFLOW_NAME` is unset.
+   */
+  workflow: string;
+  /** Underlying integrity-error message */
+  message: string;
+  /**
+     * Structured failure code (e.g. `hits_truncated`,
+  `hits_rewritten_in_place`, `integrity_check_failed`).
+  Null on legacy entries that predate the field.
+
+     * @nullable
+     */
+  failureMode?: string | null;
+  /**
+     * Human-readable pointer to recovery docs
+     * @nullable
+     */
+  recovery?: string | null;
+  /**
+     * Filesystem path of the ledger at the time of the alert
+     * @nullable
+     */
+  hitsPath?: string | null;
+  /** @nullable */
+  checkpointPath?: string | null;
+  /** @nullable */
+  expectedSize?: number | null;
+  /** @nullable */
+  actualSize?: number | null;
+  /** @nullable */
+  expectedSha?: string | null;
+  /**
+     * Origin of the alert (e.g. `scripts/check-ledger-integrity.py`).
+  Null when fired from inside kernel.probe.
+
+     * @nullable
+     */
+  source?: string | null;
+  /** Per-transport delivery status at fire time */
+  delivery: LedgerAlertEntryDelivery;
+}
+
+export interface LedgerAlertsResponse {
+  /** Most-recent-first slice of alert entries */
+  alerts: LedgerAlertEntry[];
+  /** Effective limit applied to the response */
+  limit: number;
+  totalReturned: number;
+  /** Filesystem path of the alert log that was read */
+  logPath: string;
+  /** True iff `data/ledger-alerts.jsonl` exists on disk. False is
+  the normal healthy state — no alert has ever fired.
+   */
+  logExists: boolean;
+}
+
 export interface MorningstarProbe {
   /** 1-indexed line number in `data/hits.txt` */
   lineNumber: number;
@@ -382,6 +481,15 @@ export interface UploadUrlResponse {
   uploadURL: string;
   objectPath: string;
 }
+
+export type GetLedgerAlertsParams = {
+/**
+ * Maximum number of most-recent entries to return (default 20, max 200).
+ * @minimum 1
+ * @maximum 200
+ */
+limit?: number;
+};
 
 export type GetMorningstarHitsParams = {
 /**

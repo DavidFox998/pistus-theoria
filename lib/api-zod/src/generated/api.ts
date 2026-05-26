@@ -235,6 +235,55 @@ export const ClearLeanLockoutResponse = zod.object({
 
 
 /**
+ * Returns the most recent entries from the on-disk alert ring buffer
+`data/ledger-alerts.jsonl` (task #71), written by
+`kernel._fire_ledger_alert` every time a ledger integrity check
+fails. Survives server restarts. Returns `{ alerts: [] }` when the
+log is missing or empty — the normal healthy state. Read-only.
+
+ * @summary Recent ledger integrity alerts
+ */
+export const getLedgerAlertsQueryLimitDefault = 20;
+export const getLedgerAlertsQueryLimitMax = 200;
+
+
+
+export const GetLedgerAlertsQueryParams = zod.object({
+  "limit": zod.coerce.number().min(1).max(getLedgerAlertsQueryLimitMax).default(getLedgerAlertsQueryLimitDefault).describe('Maximum number of most-recent entries to return (default 20, max 200).')
+})
+
+export const GetLedgerAlertsResponse = zod.object({
+  "alerts": zod.array(zod.object({
+  "timestamp": zod.string().describe('ISO-8601 timestamp of when the alert fired'),
+  "workflow": zod.string().describe('Friendly tag of the workflow that fired the alert\n(e.g. `zeta-burst-101-10000`, `check-ledger-integrity.py`).\nFalls back to `argv[0]` or hostname when\n`MORNINGSTAR_WORKFLOW_NAME` is unset.\n'),
+  "message": zod.string().describe('Underlying integrity-error message'),
+  "failureMode": zod.string().nullish().describe('Structured failure code (e.g. `hits_truncated`,\n`hits_rewritten_in_place`, `integrity_check_failed`).\nNull on legacy entries that predate the field.\n'),
+  "recovery": zod.string().nullish().describe('Human-readable pointer to recovery docs'),
+  "hitsPath": zod.string().nullish().describe('Filesystem path of the ledger at the time of the alert'),
+  "checkpointPath": zod.string().nullish(),
+  "expectedSize": zod.number().nullish(),
+  "actualSize": zod.number().nullish(),
+  "expectedSha": zod.string().nullish(),
+  "source": zod.string().nullish().describe('Origin of the alert (e.g. `scripts\/check-ledger-integrity.py`).\nNull when fired from inside kernel.probe.\n'),
+  "delivery": zod.object({
+  "webhook": zod.object({
+  "status": zod.enum(['ok', 'failed', 'not_configured']).describe('Per-transport delivery outcome at the moment the alert fired'),
+  "error": zod.string().nullish().describe('Best-effort delivery error string (present when status=failed)')
+}),
+  "email": zod.object({
+  "status": zod.enum(['ok', 'failed', 'not_configured']).describe('Per-transport delivery outcome at the moment the alert fired'),
+  "error": zod.string().nullish().describe('Best-effort delivery error string (present when status=failed)')
+})
+}).describe('Per-transport delivery status at fire time')
+}).describe('One entry from the on-disk alert ring buffer\n`data\/ledger-alerts.jsonl`. Each field other than the four\nrequired ones is best-effort: older entries (or\ncheck-ledger-integrity.py hard FATALs) may omit any of them.\n')).describe('Most-recent-first slice of alert entries'),
+  "limit": zod.number().describe('Effective limit applied to the response'),
+  "totalReturned": zod.number(),
+  "logPath": zod.string().describe('Filesystem path of the alert log that was read'),
+  "logExists": zod.boolean().describe('True iff `data\/ledger-alerts.jsonl` exists on disk. False is\nthe normal healthy state — no alert has ever fired.\n')
+})
+
+
+/**
  * Returns the parsed contents of `data/hits.txt`: the header comment
 lines, the five frozen Genesis lines (including the
 `--- GENESIS SEAL ---` marker), the SHA-256 of the immutable
