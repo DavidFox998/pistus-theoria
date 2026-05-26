@@ -205,6 +205,62 @@ theorem gauge_action_smul_inv {G : Type _} [Group G]
     g • (g⁻¹ • A) = A :=
   smul_inv_smul g A
 
+/-- **Double inverse cancels in gauge action (trivial fifth brick).**
+
+    For any group `G`, any gauge transformation `g : G`, and any
+    configuration `A : TrivialConfiguration G`,
+
+      `g⁻¹⁻¹ • A = g • A`.
+
+    The proof is a one-line rewrite via mathlib's `inv_inv` — the
+    statement that taking the inverse twice in a group returns the
+    original element. This lemma is **not** new mathematics — it is
+    the trivial involution-of-inverse property of any group, lifted
+    through the gauge action in the Yang-Mills context so future YM
+    plans have a stable hook to invoke instead of dropping into the
+    raw group-theoretic API.
+
+    Axiom footprint: subset of mathlib's classical core
+    `{propext, Classical.choice, Quot.sound}` (verified by
+    `scripts/check-towers.sh`). No research-grade axioms.
+
+    **Honest scoping reminder.** This still does **not** advance the
+    YM tower past `Status: Open` (see `docs/ROADMAP.md` § 2). It is
+    the fifth trio-clean gauge-action identity in Lean, nothing
+    more. No claim of any QFT result, mass gap, or energy bound. -/
+theorem gauge_action_inv_inv {G : Type _} [Group G]
+    (g : G) (A : TrivialConfiguration G) :
+    g⁻¹⁻¹ • A = g • A := by
+  rw [inv_inv]
+
+/-- **Zeroth power of a gauge transformation acts trivially (trivial sixth brick).**
+
+    For any group `G`, any gauge transformation `g : G`, and any
+    configuration `A : TrivialConfiguration G`,
+
+      `g^0 • A = A`.
+
+    The proof is a one-line rewrite via mathlib's `pow_zero`
+    (`g^0 = 1` in any monoid) followed by `one_smul` (the identity
+    of the acting monoid fixes every element of the action target).
+    This lemma is **not** new mathematics — it is the trivial
+    base-case of iterated gauge-action exponentiation, in the same
+    family as `gauge_action_one_smul`, named so future YM plans
+    have a stable hook for inductive `g^n`-style proofs.
+
+    Axiom footprint: subset of mathlib's classical core
+    `{propext, Classical.choice, Quot.sound}` (verified by
+    `scripts/check-towers.sh`). No research-grade axioms.
+
+    **Honest scoping reminder.** This still does **not** advance the
+    YM tower past `Status: Open` (see `docs/ROADMAP.md` § 2). It is
+    the sixth trio-clean gauge-action identity in Lean, nothing
+    more. No claim of any QFT result, mass gap, or energy bound. -/
+theorem gauge_action_pow_zero {G : Type _} [Group G]
+    (g : G) (A : TrivialConfiguration G) :
+    g^0 • A = A := by
+  rw [pow_zero, one_smul]
+
 end YM
 end Towers
 end TheoremaAureum

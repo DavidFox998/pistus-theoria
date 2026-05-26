@@ -214,6 +214,36 @@ theorem divergence_neg (v : V → V) (x : V) :
   simp only [ContinuousLinearMap.neg_apply, PiLp.neg_apply]
   exact Finset.sum_neg_distrib
 
+/-- **Divergence distributes over subtraction (trivial fifth brick).**
+
+    For any two `Differentiable ℝ` vector fields `v w : V → V` and
+    any point `x : V`,
+
+      `div (v - w) (x) = div v (x) - div w (x)`.
+
+    The proof is an immediate three-line corollary of the two
+    earlier NS bricks: rewrite `v - w` as `v + (-w)`, apply
+    `divergence_add` (which needs `Differentiable ℝ (-w)`, supplied
+    by `hw.neg`), apply `divergence_neg` to fold the inner minus
+    out, then close with `ring`. This lemma is **not** new
+    mathematics — it is the trivial subtraction case of divergence
+    linearity, derived from the two pieces already on the wall.
+
+    Axiom footprint: subset of mathlib's classical core
+    `{propext, Classical.choice, Quot.sound}` (verified by
+    `scripts/check-towers.sh`). No research-grade axioms.
+
+    **Honest scoping reminder.** This still does **not** advance the
+    NS tower past `Status: Open` (see `docs/ROADMAP.md` § 3). It is
+    the fifth trio-clean divergence identity in Lean, nothing more.
+    No claim of any PDE result, regularity, or energy bound. -/
+theorem divergence_sub (v w : V → V)
+    (hv : Differentiable ℝ v) (hw : Differentiable ℝ w) (x : V) :
+    divergence (v - w) x = divergence v x - divergence w x := by
+  have heq : (v - w) = v + (-w) := sub_eq_add_neg v w
+  rw [heq, divergence_add v (-w) hv hw.neg, divergence_neg]
+  ring
+
 end NS
 end Towers
 end TheoremaAureum
