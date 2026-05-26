@@ -180,6 +180,40 @@ theorem divergence_zero (x : V) : divergence (0 : V → V) x = 0 := by
   rw [h0]
   simp [fderiv_const]
 
+/-- **Divergence is odd under negation (trivial fourth brick).**
+
+    For any vector field `v : V → V` and any point `x : V`,
+
+      `div (-v) (x) = - div v (x)`.
+
+    The proof is a one-line reduction to mathlib's `fderiv_neg`
+    (which is **unconditional** — no `Differentiable` hypothesis
+    needed, because the Fréchet derivative of `-f` is `-fderiv f`
+    even when `f` is not differentiable, with both sides being `0`)
+    plus pulling the minus through finite-sum distribution
+    (`Finset.sum_neg_distrib`). This lemma is **not** new
+    mathematics — it is the trivial sign-flip property of the
+    Fréchet derivative wrapped in a divergence-flavoured name so
+    future NS plans have a stable hook to invoke instead of dropping
+    into the raw `fderiv` API. Together with `divergence_add` it
+    yields `divergence_sub` as an immediate corollary on demand.
+
+    Axiom footprint: subset of mathlib's classical core
+    `{propext, Classical.choice, Quot.sound}` (verified by
+    `scripts/check-towers.sh`). No research-grade axioms.
+
+    **Honest scoping reminder.** This still does **not** advance the
+    NS tower past `Status: Open` (see `docs/ROADMAP.md` § 3). It is
+    the fourth trio-clean divergence identity in Lean, nothing more.
+    No claim of any PDE result, regularity, or energy bound. -/
+theorem divergence_neg (v : V → V) (x : V) :
+    divergence (-v) x = - divergence v x := by
+  simp only [divergence]
+  have hneg : (-v) = (fun y => -(v y)) := rfl
+  rw [hneg, fderiv_neg]
+  simp only [ContinuousLinearMap.neg_apply, PiLp.neg_apply]
+  exact Finset.sum_neg_distrib
+
 end NS
 end Towers
 end TheoremaAureum

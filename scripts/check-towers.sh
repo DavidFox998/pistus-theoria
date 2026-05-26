@@ -76,9 +76,11 @@ BRICKS=(
   "Towers.NS.Divergence|TheoremaAureum.Towers.NS.divergence_add"
   "Towers.NS.Divergence|TheoremaAureum.Towers.NS.divergence_smul"
   "Towers.NS.Divergence|TheoremaAureum.Towers.NS.divergence_zero"
+  "Towers.NS.Divergence|TheoremaAureum.Towers.NS.divergence_neg"
   "Towers.YM.Gauge|TheoremaAureum.Towers.YM.gauge_action_one_smul"
   "Towers.YM.Gauge|TheoremaAureum.Towers.YM.gauge_action_mul_smul"
   "Towers.YM.Gauge|TheoremaAureum.Towers.YM.gauge_action_inv_smul"
+  "Towers.YM.Gauge|TheoremaAureum.Towers.YM.gauge_action_smul_inv"
 )
 
 VERIFIER_DIR="$(mktemp -d)"
