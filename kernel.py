@@ -333,6 +333,18 @@ def _send_email(payload: "dict[str, Any]", message: str) -> None:
 _ALERT_DISPATCH_THREADS: "list[threading.Thread]" = []
 _ALERT_DISPATCH_LOCK = threading.Lock()
 
+# Task #94: hard cap on in-flight background alert-dispatch threads.
+# Task #82 made delivery asynchronous so a hung sink (DNS hang, TLS
+# stall, SMTP greylist) doesn't freeze `_append_line`. The trade-off
+# is that if the sink stays unreachable AND the ledger keeps tripping
+# (e.g. a burst-probe run hitting a wedged integrity check repeatedly),
+# background dispatch threads can accumulate without bound — each
+# holding a socket waiting for its timeout. When this cap is reached,
+# new alerts are dropped with a stderr WARN and a ring-buffer entry
+# tagged `delivery.{webhook,email}.status == "dropped_backpressure"`
+# so the on-call still sees that an alert WAS suppressed.
+_ALERT_DISPATCH_MAX_INFLIGHT = 16
+
 
 def _await_alert_dispatch(timeout: float = 10.0) -> bool:
     """Block until every still-running background alert-dispatch thread
@@ -448,6 +460,36 @@ def _fire_ledger_alert(message: str, context: "dict[str, Any]") -> None:
         _ALERT_DISPATCH_THREADS[:] = [
             t for t in _ALERT_DISPATCH_THREADS if t.is_alive()
         ]
+        # Task #94: bound in-flight dispatch threads. If the cap is
+        # already saturated (hung sink + ledger tripping repeatedly),
+        # drop the new alert with a backpressure marker rather than
+        # spawn yet another socket-holding thread.
+        if len(_ALERT_DISPATCH_THREADS) >= _ALERT_DISPATCH_MAX_INFLIGHT:
+            inflight = len(_ALERT_DISPATCH_THREADS)
+            sys.stderr.write(
+                f"WARN: ledger alert dropped (backpressure: {inflight} "
+                f"in-flight deliveries >= cap {_ALERT_DISPATCH_MAX_INFLIGHT}); "
+                f"sink appears wedged\n"
+            )
+            dropped_delivery = {
+                "webhook": {
+                    "status": "dropped_backpressure",
+                    "inflight": inflight,
+                    "cap": _ALERT_DISPATCH_MAX_INFLIGHT,
+                },
+                "email": {
+                    "status": "dropped_backpressure",
+                    "inflight": inflight,
+                    "cap": _ALERT_DISPATCH_MAX_INFLIGHT,
+                },
+            }
+            try:
+                _record_alert_history(payload, dropped_delivery)
+            except Exception as e:  # noqa: BLE001 - best-effort, never mask
+                sys.stderr.write(
+                    f"WARN: ledger alert history dispatch failed: {e}\n"
+                )
+            return
         _ALERT_DISPATCH_THREADS.append(thread)
     thread.start()
 

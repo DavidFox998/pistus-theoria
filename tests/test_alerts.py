@@ -663,3 +663,69 @@ def test_smtp_connection_refused_records_failure_and_webhook_still_fires(
     assert email_delivery["status"] == "failed"
     assert email_delivery.get("error"), email_delivery
     assert entry["delivery"]["webhook"]["status"] == "ok"
+
+
+def test_inflight_dispatch_threads_are_capped_under_backpressure(
+    tmp_hits, monkeypatch, hanging_webhook_server
+):
+    """Task #94: when the alert sink stays wedged AND the ledger keeps
+    tripping (burst-probe + integrity failure), background dispatch
+    threads must not grow without bound. The N+1th fire while the cap
+    is saturated drops the alert, writes a stderr WARN, and records a
+    `dropped_backpressure` ring-buffer entry — but never spawns a new
+    socket-holding thread."""
+    url, server = hanging_webhook_server
+    monkeypatch.setenv("MORNINGSTAR_ALERT_WEBHOOK_URL", url)
+    monkeypatch.setenv("MORNINGSTAR_ALERT_TIMEOUT_SECONDS", "30")
+    monkeypatch.delenv("MORNINGSTAR_ALERT_EMAIL_TO", raising=False)
+    monkeypatch.setenv("MORNINGSTAR_WORKFLOW_NAME", "backpressure-burst")
+
+    # Drain any leftover threads from earlier tests so the cap math
+    # is measured against an empty baseline.
+    server.hang_event.set()
+    kernel._await_alert_dispatch(timeout=10.0)
+    server.hang_event.clear()
+
+    cap = kernel._ALERT_DISPATCH_MAX_INFLIGHT
+    overflow = 5
+
+    payload_ctx = {"failure_mode": "synthetic_backpressure_test"}
+    try:
+        for _ in range(cap + overflow):
+            kernel._fire_ledger_alert("synthetic burst", dict(payload_ctx))
+
+        with kernel._ALERT_DISPATCH_LOCK:
+            alive = [t for t in kernel._ALERT_DISPATCH_THREADS if t.is_alive()]
+        # The cap is the hard upper bound on live dispatch threads —
+        # the overflow fires must NOT have spawned new threads.
+        assert len(alive) <= cap, (
+            f"in-flight dispatch threads ({len(alive)}) exceeded cap "
+            f"({cap}) under backpressure"
+        )
+
+        # The overflow fires must have written `dropped_backpressure`
+        # entries to the ring buffer so the operator can still see
+        # that an alert WAS suppressed.
+        history = _read_alert_history(tmp_hits)
+        dropped = [
+            e for e in history
+            if e.get("delivery", {}).get("webhook", {}).get("status")
+            == "dropped_backpressure"
+        ]
+        assert len(dropped) >= overflow, (
+            f"expected at least {overflow} dropped_backpressure entries, "
+            f"got {len(dropped)} (total={len(history)})"
+        )
+        # Sanity: the dropped entries carry the same backpressure marker
+        # on both transports (so a webhook-only and an email-only
+        # deployment both see the suppression).
+        for entry in dropped:
+            assert entry["delivery"]["email"]["status"] == "dropped_backpressure"
+            assert entry["delivery"]["webhook"]["cap"] == cap
+            assert entry["delivery"]["webhook"]["inflight"] >= cap
+    finally:
+        # Release the hung handlers so the daemon threads exit before
+        # the next test runs; the test's correctness does not depend
+        # on them terminating before pytest exits (they're daemons).
+        server.hang_event.set()
+        kernel._await_alert_dispatch(timeout=10.0)
