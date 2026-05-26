@@ -108,6 +108,20 @@ BRICKS=(
   # is the first downstream use proving the schema is no longer
   # dead weight. Same Open status for YM (`docs/ROADMAP.md` § 2).
   "Towers.YM.MassGap|TheoremaAureum.Towers.YM.IsEigenstate_zero_zero"
+  # 2026-05-26 brick wave (no associated task #; "Shawlocked" walk):
+  # extend the trivial-bundle SU(3) laws on connection components.
+  # `mul_assoc` completes the standard monoid laws (`one_mul`,
+  # `mul_one`, `mul_assoc`). `_component_star_mul_self` is the
+  # other side of `_component_unitary` (full two-sided unitary
+  # law at the matrix level via `star`). `_component_star_det_one`
+  # shows the conjugate-transpose is also det 1, so `star (A i).1`
+  # is again in SU(3) — recovering "closed under inverse" content
+  # without an `Inv` instance on `specialUnitaryGroup` (which is a
+  # `Submonoid` in mathlib v4.12.0, no `Group` instance). Wall:
+  # 19 → 22. None advance YM past Status: Open.
+  "Towers.YM.MassGap|TheoremaAureum.Towers.YM.SU3Connection_mul_assoc"
+  "Towers.YM.MassGap|TheoremaAureum.Towers.YM.SU3Connection_component_star_mul_self"
+  "Towers.YM.MassGap|TheoremaAureum.Towers.YM.SU3Connection_component_star_det_one"
 )
 
 VERIFIER_DIR="$(mktemp -d)"

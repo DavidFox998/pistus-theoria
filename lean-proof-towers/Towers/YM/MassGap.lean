@@ -506,6 +506,96 @@ theorem SU3Connection_component_mul_det_one
   rw [Matrix.det_mul, SU3Connection_component_det_one,
       SU3Connection_component_det_one, mul_one]
 
+/-- **Associativity of multiplication on SU(3) connection components
+    (eighth real brick in `MassGap.lean`).**
+
+    For any three `SU3Connection`s `A`, `B`, `C` and any spacetime
+    direction `i : Fin 4`, the component-wise product is associative:
+
+      `(A i * B i) * C i = A i * (B i * C i)`.
+
+    This is the associativity law of the
+    `Matrix.specialUnitaryGroup (Fin 3) ℂ` monoid, instantiated at
+    the connection components. It completes the standard set of
+    monoid laws (`one_mul`, `mul_one`, `mul_assoc`) on the
+    trivial-bundle SU(3) schema.
+
+    Axiom footprint: subset of mathlib's classical core
+    `{propext, Classical.choice, Quot.sound}`.
+
+    **Honest scoping reminder.** This does **not** advance the YM
+    tower past `Status: Open`. It is a monoid identity, not a
+    statement about Yang-Mills dynamics. -/
+theorem SU3Connection_mul_assoc (A B C : SU3Connection) (i : Fin 4) :
+    (A i * B i) * C i = A i * (B i * C i) :=
+  mul_assoc (A i) (B i) (C i)
+
+/-- **Left-unitary law on SU(3) connection components
+    (ninth real brick in `MassGap.lean`).**
+
+    For any `SU3Connection` `A` and any spacetime direction
+    `i : Fin 4`, the underlying `3×3` complex matrix satisfies the
+    *other* side of the unitary law:
+
+      `star (A i).1 * (A i).1 = 1`.
+
+    Companion to `SU3Connection_component_unitary`, which proves
+    `(A i).1 * star (A i).1 = 1`. The pair together is the full
+    two-sided unitary law on each component matrix; for unitary
+    matrices, `star` IS the inverse (`A⁻¹ = star A`), so this is
+    the inverse-cancellation law in disguise. We state it directly
+    at the matrix level via `star` rather than via `⁻¹` because
+    `Matrix.specialUnitaryGroup (Fin 3) ℂ` is a `Submonoid` (no
+    `Group` / `Inv` instance) in mathlib v4.12.0 — the closure of
+    the determinant-one constraint under inverse is true but not
+    instantiated. Working through `star` on the underlying matrix
+    sidesteps that and keeps the proof one line.
+
+    Axiom footprint: subset of mathlib's classical core
+    `{propext, Classical.choice, Quot.sound}`.
+
+    **Honest scoping reminder.** A unitary-matrix identity, not a
+    statement about YM dynamics. Tower status unchanged: **Open**. -/
+theorem SU3Connection_component_star_mul_self
+    (A : SU3Connection) (i : Fin 4) :
+    star (A i).1 * (A i).1 = 1 := by
+  have h := Matrix.mem_specialUnitaryGroup_iff.mp (A i).2
+  exact Matrix.mem_unitaryGroup_iff'.mp h.1
+
+/-- **The star of an SU(3) connection component still has
+    determinant 1 (tenth real brick in `MassGap.lean`).**
+
+    For any `SU3Connection` `A` and any spacetime direction
+    `i : Fin 4`:
+
+      `(star (A i).1).det = 1`.
+
+    Concretely, the conjugate-transpose of an SU(3) matrix is
+    again an SU(3) matrix — it is unitary (the companion brick
+    `SU3Connection_component_star_mul_self` is one half of that)
+    and its determinant is `star 1 = 1`. The proof uses
+    `Matrix.det_conjTranspose` (`(star A).det = star A.det`) plus
+    `SU3Connection_component_det_one`.
+
+    This brick + `SU3Connection_component_star_mul_self` together
+    witness in proof-text that `star (A i).1 ∈ SU(3)`, recovering
+    the "closed under inverse" content of an SU(3) group structure
+    without needing an `Inv` instance on `specialUnitaryGroup`.
+
+    Axiom footprint: subset of mathlib's classical core
+    `{propext, Classical.choice, Quot.sound}`.
+
+    **Honest scoping reminder.** A determinant identity, not a
+    statement about YM dynamics. Tower status unchanged: **Open**. -/
+theorem SU3Connection_component_star_det_one
+    (A : SU3Connection) (i : Fin 4) :
+    (star (A i).1).det = 1 := by
+  -- `star` on a complex matrix is definitionally `Matrix.conjTranspose`,
+  -- but `rw` needs the syntactic `·ᴴ.det` shape, so reshape the goal
+  -- first, then apply `Matrix.det_conjTranspose`.
+  show (Matrix.conjTranspose (A i).1).det = 1
+  rw [Matrix.det_conjTranspose, SU3Connection_component_det_one, star_one]
+
 end YM
 end Towers
 end TheoremaAureum
