@@ -1,10 +1,13 @@
 /-
   # Towers.NS.EnergyIneq
 
-  **Statement-only file. Contains no theorems and no proofs.** This
-  file pins the Clay 3D incompressible Navier-Stokes global
+  **Schema file plus three trivial bricks (Task #56, 2026-05-26).**
+  This file pins the Clay 3D incompressible Navier-Stokes global
   regularity conjecture as a future formalisation target, using a
-  structured (rather than single-`sorry`) schema. As of Task #51
+  structured (rather than single-`sorry`) schema. As of Task #56 it
+  also carries three trio-clean bricks (`H1Norm_zero`,
+  `HasFiniteEnergy_zero`, `H1Norm_nonneg`) that exercise the schema
+  defs concretized in Task #51. As of Task #51
   (2026-05-26) the two previously `sorry`-backed schema defs
   (`H1Norm`, `HasFiniteEnergy`) have been replaced by concrete,
   minimal, mathlib-backed stand-ins, so the file is now
@@ -154,6 +157,50 @@ structure LeraySolution (u₀ : VelocityField) where
 def NS_global_regular_statement : Prop :=
   ∀ u₀ : VelocityField, HasFiniteEnergy u₀ →
     ∃! S : LeraySolution u₀, ∀ t : ℝ, ContDiff ℝ ⊤ (S.u t)
+
+/-
+  ## Task #56 (2026-05-26) — first load-bearing bricks on the
+  concretized NS energy schema.
+
+  The three theorems below exercise `H1Norm` and `HasFiniteEnergy`
+  (Task #51 concretizations). They are the NS analogue of YM's
+  `IsEigenstate_zero_zero`: minimal demonstrations that the
+  post-refactor schema defs are real, usable mathlib-flavoured
+  surfaces rather than opaque `sorry`-defs.
+
+  **Honest scoping reminder.** None of these advance the NS tower
+  past `Status: Open` (see `docs/ROADMAP.md` § 3). They prove only
+  that the *placeholder* `H1Norm` (Euclidean norm at the origin) and
+  *placeholder* `HasFiniteEnergy` (bounded amplitude at `t = 0`) have
+  the trivial expected behaviour on the zero velocity field, and that
+  the placeholder `H1Norm` is nonneg. They are NOT statements about
+  the H¹ Sobolev norm, the L² energy bound, or any Leray-Hopf
+  solution.
+
+  Axiom-footprint contract (per `scripts/check-towers.sh`): each
+  theorem must be either axiom-free or use only the classical trio
+  `{propext, Classical.choice, Quot.sound}`.
+-/
+
+/-- **The zero velocity field has zero placeholder H¹-norm at every
+    time.** Unfolds `H1Norm`, applies the `Pi.zero_apply` reduction
+    `(0 : VelocityField) t 0 = 0`, then `norm_zero`. References the
+    Task #51 schema def `H1Norm`. -/
+theorem H1Norm_zero (t : ℝ) : H1Norm (0 : VelocityField) t = 0 := by
+  simp [H1Norm]
+
+/-- **The zero velocity field has finite placeholder energy.**
+    Witness `M = 0`: for every `x`, `‖(0 : VelocityField) 0 x‖ = 0 ≤ 0`.
+    References the Task #51 schema def `HasFiniteEnergy`. -/
+theorem HasFiniteEnergy_zero : HasFiniteEnergy (0 : VelocityField) :=
+  ⟨0, fun _ => by simp⟩
+
+/-- **The placeholder H¹-norm is nonneg.** Delegates to mathlib's
+    `norm_nonneg` on `EuclideanSpace ℝ (Fin 3)`. References the
+    Task #51 schema def `H1Norm`. -/
+theorem H1Norm_nonneg (u : VelocityField) (t : ℝ) : 0 ≤ H1Norm u t := by
+  unfold H1Norm
+  exact norm_nonneg _
 
 end NS
 end Towers

@@ -154,6 +154,17 @@ BRICKS=(
   "Towers.YM.MassGap|TheoremaAureum.Towers.YM.IsEigenstate_zero_const"
   "Towers.YM.MassGap|TheoremaAureum.Towers.YM.IsEigenstate_of_forall_zero"
   "Towers.YM.MassGap|TheoremaAureum.Towers.YM.YMHamiltonian_not_isEigenstate_zero"
+  # Task #56 (2026-05-26): first load-bearing bricks on the NS energy
+  # schema concretized by Task #51 (`H1Norm`, `HasFiniteEnergy` in
+  # `Towers/NS/EnergyIneq.lean`). NS analogue of YM's
+  # `IsEigenstate_zero_zero`: zero velocity field has zero placeholder
+  # H¹-norm, has finite placeholder energy, and the placeholder
+  # H¹-norm is nonneg. NS tower status unchanged: Open
+  # (`docs/ROADMAP.md` § 3). These are NOT statements about the H¹
+  # Sobolev norm, the L² energy bound, or any Leray-Hopf solution.
+  "Towers.NS.EnergyIneq|TheoremaAureum.Towers.NS.H1Norm_zero"
+  "Towers.NS.EnergyIneq|TheoremaAureum.Towers.NS.HasFiniteEnergy_zero"
+  "Towers.NS.EnergyIneq|TheoremaAureum.Towers.NS.H1Norm_nonneg"
 )
 
 VERIFIER_DIR="$(mktemp -d)"

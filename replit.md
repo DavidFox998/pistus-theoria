@@ -148,6 +148,19 @@ the box.
   zero state is a trivial eigenstate of the zero Hamiltonian
   (`0 = 0 * (‖0‖ * ‖0‖)`), demonstrating the concretized schema is
   no longer dead weight. YM brick wall: **19**.
+- **NS energy schema is load-bearing (2026-05-26, Task #56).** Three
+  trio-clean bricks added to `Towers/NS/EnergyIneq.lean` exercising
+  the Task #51 concretizations of `H1Norm` and `HasFiniteEnergy`:
+  `H1Norm_zero` (`H1Norm 0 t = 0`), `HasFiniteEnergy_zero` (witness
+  `M = 0`), and `H1Norm_nonneg` (`0 ≤ H1Norm u t`, delegating to
+  `norm_nonneg`). These are the NS analogue of the YM
+  `IsEigenstate_zero_zero` move — minimal demonstrations that the
+  post-Task-#51 NS schema defs are real, usable, mathlib-flavoured
+  surfaces, not opaque `sorry`-defs. All three pass the axiom-
+  footprint check with `{propext, Classical.choice, Quot.sound}`.
+  Total brick wall: **32**. NS tower status unchanged: **Open**
+  (`docs/ROADMAP.md` § 3). These are NOT statements about the H¹
+  Sobolev norm, the L² energy bound, or any Leray-Hopf solution.
 - **YM Hamiltonian schema is load-bearing (2026-05-26, Task #55).**
   Four additional trio-clean bricks added to `Towers/YM/MassGap.lean`
   that each reference at least one of the Task #51 + Task #55
