@@ -44,12 +44,35 @@ CHECKPOINT = REPO_ROOT / "data" / "hits.txt.checkpoint"
 SEAL_CHECK = REPO_ROOT / "scripts" / "check-genesis-seal.py"
 
 
-def _die(msg: str) -> "int":
+def _fire_alert(msg: str, failure_mode: str) -> None:
+    """Best-effort: route the same alert that kernel._append_line fires
+    when its in-process checkpoint check trips. Opt-in via the same env
+    vars (MORNINGSTAR_ALERT_WEBHOOK_URL / MORNINGSTAR_ALERT_EMAIL_TO +
+    MORNINGSTAR_ALERT_SMTP_HOST); a delivery failure cannot mask the
+    exit code (task #63)."""
+    try:
+        if str(REPO_ROOT) not in sys.path:
+            sys.path.insert(0, str(REPO_ROOT))
+        import kernel  # noqa: PLC0415
+
+        kernel._fire_ledger_alert(
+            msg,
+            {
+                "failure_mode": failure_mode,
+                "source": "scripts/check-ledger-integrity.py",
+            },
+        )
+    except Exception as e:  # noqa: BLE001 - best-effort, never mask exit
+        sys.stderr.write(f"WARN: ledger alert dispatch failed: {e}\n")
+
+
+def _die(msg: str, failure_mode: str = "integrity_check_failed") -> "int":
     sys.stderr.write(f"FATAL: {msg}\n")
     sys.stderr.write(
         "  Recovery: see docs/REPRODUCE.md section "
         '"Recovering data/hits.txt from a tamper or accidental truncation".\n'
     )
+    _fire_alert(msg, failure_mode)
     return 2
 
 

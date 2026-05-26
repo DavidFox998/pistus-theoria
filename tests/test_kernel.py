@@ -256,6 +256,108 @@ def test_append_line_is_concurrency_safe(tmp_path):
     )
 
 
+def _seed_healthy_ledger(tmp_hits):
+    """Bootstrap a tmp ledger + matching checkpoint by writing one
+    legitimate line through `_append_line`. Caller can then mutate the
+    file to simulate corruption."""
+    kernel._append_line("seed line ok")
+
+
+def test_alert_fires_on_truncated_ledger_and_does_not_mask_error(
+    tmp_hits, monkeypatch
+):
+    """Task #63: when `_verify_checkpoint` trips inside `_append_line`,
+    the opt-in alert hook fires AND the `LedgerIntegrityError` still
+    propagates to halt the workflow."""
+    _seed_healthy_ledger(tmp_hits)
+
+    fired = []
+
+    def fake_post(url, payload):
+        fired.append((url, payload))
+
+    monkeypatch.setenv("MORNINGSTAR_ALERT_WEBHOOK_URL", "http://example/alert")
+    monkeypatch.setenv("MORNINGSTAR_WORKFLOW_NAME", "zeta-burst-101-10000")
+    monkeypatch.setattr(kernel, "_post_webhook", fake_post)
+
+    tmp_hits.write_bytes(tmp_hits.read_bytes()[:1])
+
+    with pytest.raises(kernel.LedgerIntegrityError) as ei:
+        kernel._append_line("second line")
+
+    assert "SHRUNK" in str(ei.value) or "rewritten" in str(ei.value)
+    assert len(fired) == 1, "alert webhook fired exactly once"
+    url, payload = fired[0]
+    assert url == "http://example/alert"
+    assert payload["workflow"] == "zeta-burst-101-10000"
+    assert payload["failure_mode"] in {
+        "hits_truncated",
+        "hits_rewritten_in_place",
+    }
+    assert "expected_size" in payload
+    assert "actual_size" in payload
+    assert "REPRODUCE.md" in payload["recovery"]
+    assert len(tmp_hits.read_bytes()) == 1
+
+
+def test_alert_delivery_failure_does_not_mask_integrity_error(
+    tmp_hits, monkeypatch
+):
+    """If the webhook transport raises, the operator still gets the
+    underlying `LedgerIntegrityError` — alerts are best-effort."""
+    _seed_healthy_ledger(tmp_hits)
+
+    def boom(url, payload):
+        raise RuntimeError("simulated webhook outage")
+
+    monkeypatch.setenv("MORNINGSTAR_ALERT_WEBHOOK_URL", "http://example/alert")
+    monkeypatch.setattr(kernel, "_post_webhook", boom)
+
+    tmp_hits.write_bytes(tmp_hits.read_bytes()[:1])
+
+    with pytest.raises(kernel.LedgerIntegrityError):
+        kernel._append_line("second line")
+
+
+def test_no_alert_fires_on_healthy_ledger(tmp_hits, monkeypatch):
+    """A legitimate append must NOT fire the alert hook; that would
+    drown operators in false positives on every probe."""
+    _seed_healthy_ledger(tmp_hits)
+
+    fired = []
+    monkeypatch.setenv("MORNINGSTAR_ALERT_WEBHOOK_URL", "http://example/alert")
+    monkeypatch.setattr(
+        kernel, "_post_webhook", lambda url, payload: fired.append((url, payload))
+    )
+
+    kernel._append_line("another legitimate line")
+
+    assert fired == []
+
+
+def test_alert_is_noop_when_env_unset(tmp_hits, monkeypatch):
+    """No env var means silent no-op; transports must not be invoked at
+    all (the opt-in contract)."""
+    _seed_healthy_ledger(tmp_hits)
+
+    monkeypatch.delenv("MORNINGSTAR_ALERT_WEBHOOK_URL", raising=False)
+    monkeypatch.delenv("MORNINGSTAR_ALERT_EMAIL_TO", raising=False)
+
+    called = []
+    monkeypatch.setattr(
+        kernel, "_post_webhook", lambda *a, **k: called.append("webhook")
+    )
+    monkeypatch.setattr(
+        kernel, "_send_email", lambda *a, **k: called.append("email")
+    )
+
+    tmp_hits.write_bytes(tmp_hits.read_bytes()[:1])
+    with pytest.raises(kernel.LedgerIntegrityError):
+        kernel._append_line("x")
+
+    assert called == []
+
+
 def test_sieve_zeros_dry_run_does_not_write(tmp_hits):
     """Stage 2A-Prime: sieve_zeros(write=False) must NOT touch the
     ledger and must find every nontrivial ζ zero in [0, 100].

@@ -38,10 +38,12 @@ import math
 import multiprocessing
 import os
 import re as _re
+import socket
 import subprocess
 import sys
 import threading
 import time
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -182,6 +184,155 @@ def _verify_seal() -> None:
     raise last_err
 
 
+class LedgerIntegrityError(RuntimeError):
+    """Raised by `_verify_checkpoint` when the at-rest checkpoint detects
+    a corrupted ledger (shrunken, in-place rewritten, missing, or with a
+    malformed/missing checkpoint sidecar).
+
+    Carries a structured `context` dict so the alert layer
+    (`_fire_ledger_alert`) can emit machine-readable fields (expected vs
+    actual size/sha, failure mode) without re-parsing the string message.
+    Subclass of `RuntimeError` so existing callers that `except
+    RuntimeError` (task #57's `_append_line` site, the long-running probe
+    workflows, the tests) continue to catch it unchanged.
+    """
+
+    def __init__(self, message: str, context: "dict[str, Any] | None" = None) -> None:
+        super().__init__(message)
+        self.context: dict[str, Any] = dict(context or {})
+
+
+def _alert_workflow_name() -> str:
+    """Best-effort identifier of the workflow that just hit the alert.
+    Prefers an explicit env var so workflow YAMLs / shell invocations can
+    tag themselves; otherwise falls back to argv0 / hostname so the
+    operator at least sees *something* in the alert body."""
+    name = os.environ.get("MORNINGSTAR_WORKFLOW_NAME", "").strip()
+    if name:
+        return name
+    argv0 = sys.argv[0] if sys.argv else ""
+    if argv0:
+        return os.path.basename(argv0) or argv0
+    try:
+        return socket.gethostname()
+    except OSError:
+        return "unknown"
+
+
+_ALERT_RECOVERY_POINTER = (
+    "Recovery: see docs/REPRODUCE.md section "
+    '"Recovering data/hits.txt from a tamper or accidental truncation".'
+)
+
+
+def _post_webhook(url: str, payload: "dict[str, Any]") -> None:
+    """POST JSON payload to `url` with a short timeout. Raises on any
+    failure (caller wraps in best-effort try/except)."""
+    from urllib import request as _urlreq
+
+    body = json.dumps(payload).encode("utf-8")
+    req = _urlreq.Request(
+        url,
+        data=body,
+        headers={"Content-Type": "application/json"},
+        method="POST",
+    )
+    with _urlreq.urlopen(req, timeout=5) as resp:  # noqa: S310 - opt-in URL
+        resp.read()
+
+
+def _send_email(payload: "dict[str, Any]", message: str) -> None:
+    """Send a plaintext alert email via SMTP using env-var config. Raises
+    on any failure (caller wraps in best-effort try/except)."""
+    import smtplib
+    from email.message import EmailMessage
+
+    to_addr = os.environ.get("MORNINGSTAR_ALERT_EMAIL_TO", "").strip()
+    host = os.environ.get("MORNINGSTAR_ALERT_SMTP_HOST", "").strip()
+    if not to_addr or not host:
+        return
+    port = int(os.environ.get("MORNINGSTAR_ALERT_SMTP_PORT", "25"))
+    from_addr = (
+        os.environ.get("MORNINGSTAR_ALERT_EMAIL_FROM", "").strip() or to_addr
+    )
+    user = os.environ.get("MORNINGSTAR_ALERT_SMTP_USER", "").strip()
+    password = os.environ.get("MORNINGSTAR_ALERT_SMTP_PASSWORD", "")
+
+    msg = EmailMessage()
+    msg["Subject"] = (
+        f"[MorningStar] Ledger integrity alert: {payload.get('workflow', '?')}"
+    )
+    msg["From"] = from_addr
+    msg["To"] = to_addr
+    body = (
+        f"{message}\n\n"
+        f"workflow: {payload.get('workflow')}\n"
+        f"timestamp: {payload.get('timestamp')}\n"
+        f"expected_size: {payload.get('expected_size')}\n"
+        f"actual_size: {payload.get('actual_size')}\n"
+        f"expected_sha: {payload.get('expected_sha')}\n"
+        f"actual_sha: {payload.get('actual_sha')}\n"
+        f"failure_mode: {payload.get('failure_mode')}\n\n"
+        f"{_ALERT_RECOVERY_POINTER}\n"
+    )
+    msg.set_content(body)
+    with smtplib.SMTP(host, port, timeout=5) as smtp:
+        if user:
+            try:
+                smtp.starttls()
+            except smtplib.SMTPException:
+                pass
+            smtp.login(user, password)
+        smtp.send_message(msg)
+
+
+def _fire_ledger_alert(message: str, context: "dict[str, Any]") -> None:
+    """Best-effort notification that a ledger integrity check has failed.
+
+    Opt-in via env var:
+      - `MORNINGSTAR_ALERT_WEBHOOK_URL` — POST JSON payload, or
+      - `MORNINGSTAR_ALERT_EMAIL_TO` + `MORNINGSTAR_ALERT_SMTP_HOST` —
+        plaintext SMTP delivery.
+
+    Both may be set simultaneously; each transport is attempted
+    independently. If neither env var is configured, the function is a
+    silent no-op — that is the "no alert when the ledger is healthy"
+    contract (task #63).
+
+    Failure to deliver MUST NOT mask the underlying integrity exception:
+    every transport is wrapped in try/except, and the worst case is a
+    stderr warning. The caller is expected to re-raise the
+    `LedgerIntegrityError` after this returns.
+    """
+    webhook = os.environ.get("MORNINGSTAR_ALERT_WEBHOOK_URL", "").strip()
+    email_to = os.environ.get("MORNINGSTAR_ALERT_EMAIL_TO", "").strip()
+    if not webhook and not email_to:
+        return
+    payload: dict[str, Any] = {
+        "workflow": _alert_workflow_name(),
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "message": message,
+        "recovery": _ALERT_RECOVERY_POINTER,
+        "hits_path": str(HITS),
+        "checkpoint_path": str(CHECKPOINT),
+        **context,
+    }
+    if webhook:
+        try:
+            _post_webhook(webhook, payload)
+        except Exception as e:  # noqa: BLE001 - best-effort, never mask
+            sys.stderr.write(
+                f"WARN: ledger alert webhook delivery failed: {e}\n"
+            )
+    if email_to:
+        try:
+            _send_email(payload, message)
+        except Exception as e:  # noqa: BLE001 - best-effort, never mask
+            sys.stderr.write(
+                f"WARN: ledger alert email delivery failed: {e}\n"
+            )
+
+
 def _verify_checkpoint() -> None:
     """Verify the at-rest checkpoint against the live ledger BEFORE
     appending. Complements `_verify_seal` (which only covers the 9-line
@@ -217,54 +368,71 @@ def _verify_checkpoint() -> None:
     try:
         raw = CHECKPOINT.read_text(encoding="utf-8").strip()
     except OSError as e:
-        raise RuntimeError(
-            f"Ledger integrity check failed: cannot read {CHECKPOINT}: {e}"
+        raise LedgerIntegrityError(
+            f"Ledger integrity check failed: cannot read {CHECKPOINT}: {e}",
+            {"failure_mode": "checkpoint_unreadable"},
         ) from e
     parts = raw.split()
     if len(parts) != 2:
-        raise RuntimeError(
+        raise LedgerIntegrityError(
             f"Ledger integrity check failed: {CHECKPOINT} malformed "
-            f"(expected '<size> <sha256>', got {raw!r})."
+            f"(expected '<size> <sha256>', got {raw!r}).",
+            {"failure_mode": "checkpoint_malformed"},
         )
     try:
         expected_size = int(parts[0])
     except ValueError as e:
-        raise RuntimeError(
+        raise LedgerIntegrityError(
             f"Ledger integrity check failed: {CHECKPOINT} size field "
-            f"not an integer: {parts[0]!r}."
+            f"not an integer: {parts[0]!r}.",
+            {"failure_mode": "checkpoint_size_not_int"},
         ) from e
     expected_sha = parts[1].lower()
     if len(expected_sha) != 64 or any(c not in "0123456789abcdef" for c in expected_sha):
-        raise RuntimeError(
+        raise LedgerIntegrityError(
             f"Ledger integrity check failed: {CHECKPOINT} sha256 field "
-            f"malformed: {expected_sha!r}."
+            f"malformed: {expected_sha!r}.",
+            {"failure_mode": "checkpoint_sha_malformed",
+             "expected_size": expected_size},
         )
     try:
         with HITS.open("rb") as fh:
             prefix = fh.read(expected_size)
     except FileNotFoundError as e:
-        raise RuntimeError(
+        raise LedgerIntegrityError(
             f"Ledger integrity check failed: {HITS} missing while "
-            f"checkpoint expects {expected_size} bytes."
+            f"checkpoint expects {expected_size} bytes.",
+            {"failure_mode": "hits_missing",
+             "expected_size": expected_size,
+             "expected_sha": expected_sha},
         ) from e
     actual_prefix_size = len(prefix)
     if actual_prefix_size < expected_size:
-        raise RuntimeError(
+        raise LedgerIntegrityError(
             f"Ledger integrity check failed: {HITS} SHRUNK — expected "
             f"at least {expected_size} bytes, got {actual_prefix_size}. "
             "TRUNCATION or in-place rewrite suspected. Refusing to "
             "append; recover the ledger before continuing (see "
-            "docs/REPRODUCE.md)."
+            "docs/REPRODUCE.md).",
+            {"failure_mode": "hits_truncated",
+             "expected_size": expected_size,
+             "actual_size": actual_prefix_size,
+             "expected_sha": expected_sha},
         )
     prefix_sha = hashlib.sha256(prefix).hexdigest()
     if prefix_sha != expected_sha:
-        raise RuntimeError(
+        raise LedgerIntegrityError(
             f"Ledger integrity check failed: {HITS} first "
             f"{expected_size} bytes have been rewritten in place.\n"
             f"  expected sha256: {expected_sha}\n"
             f"  got sha256:      {prefix_sha}\n"
             "The ledger is append-only; in-place edits are not "
-            "permitted. Refusing to append."
+            "permitted. Refusing to append.",
+            {"failure_mode": "hits_rewritten_in_place",
+             "expected_size": expected_size,
+             "actual_size": actual_prefix_size,
+             "expected_sha": expected_sha,
+             "actual_sha": prefix_sha},
         )
 
 
@@ -420,7 +588,15 @@ def _append_line(line: str) -> None:
                 # another line to a corrupted ledger. The Genesis seal
                 # (checked by `_verify_seal` in `probe`) only covers the
                 # 9-line preamble; this catches the rest of the file.
-                _verify_checkpoint()
+                try:
+                    _verify_checkpoint()
+                except LedgerIntegrityError as exc:
+                    # Best-effort: alert operators (opt-in via env var),
+                    # then re-raise so the workflow still halts loudly.
+                    # Alert delivery is wrapped internally; it cannot
+                    # mask `exc` (task #63).
+                    _fire_ledger_alert(str(exc), exc.context)
+                    raise
                 f.write(line + "\n")
                 f.flush()
                 os.fsync(f.fileno())
