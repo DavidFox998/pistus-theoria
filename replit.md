@@ -203,6 +203,26 @@ the box.
   the YM Hamiltonian, the SU(3) Lie algebra structure constants
   `f^{abc}`, or the mass-gap conjecture. YM tower status unchanged:
   **Open** (`docs/ROADMAP.md` § 2).
+- **Path B batch 2 deferred (Task #56 follow-up).** A full prototype
+  of `gellMannSub`, `su3_coords`, `su3_reconstruct`,
+  `su3_equiv_fin8_def`, `su3_basis_def`, `su3_basis_linearIndependent`,
+  `su3_basis_spans` was drafted in `Towers/YM/SU3Basis.lean` but
+  the `simp + linarith` finisher on the 9-case `funext p q;
+  fin_cases p <;> fin_cases q` left-inverse proof over the 8-term
+  `∑ cᵢ • gellMannᵢ` reconstruction exceeded mathlib v4.12.0's
+  default 200000-heartbeat budget — `whnf` / `isDefEq` / `simp`
+  all hit the wall. The draft was rolled back; the file now ships
+  Batch 1 only (the 8 `gellMann_k_mem` membership bricks) plus a
+  `Path B batch 2/3 — deferred` docstring documenting the retreat.
+  No bricks were lost; total tower brick wall is **52** classical-
+  trio clean (51 from the Task #56 Batch 1 checkpoint above plus
+  `YMHamiltonian_abs_le_twelve` landed later; the `lake build Towers`
+  axiom-footprint check passes for all of them). The Batch 2/3 work
+  needs either
+  (a) a per-entry `LinearMap.smulRight` unfolding lemma instead
+  of `simp` over the whole sum, (b) `set_option maxHeartbeats` on
+  the equiv def, or (c) splitting the 9 entry-cases into 9 separate
+  intermediate lemmas. YM tower status unchanged: **Open**.
 - **Trivial-bundle Gauge bricks retired (2026-05-26, Task #50, Option A).** The six `gauge_action_*` lemmas (`one_smul`, `mul_smul`, `inv_smul`, `smul_inv`, `inv_inv`, `pow_zero`) that lived on `TrivialConfiguration G` in `Towers/YM/Gauge.lean` were removed: the action was `· • A := A`, so every lemma reduced definitionally on both sides to `A`, exercising neither group multiplication nor the action — hollow even by trivial-brick standards. The YM wall is now **18 bricks**, not 24, and YM bricks live exclusively in `Towers.YM.MassGap` against `Matrix.specialUnitaryGroup`. Rule going forward: no `gauge_action_*` on `TrivialConfiguration` — only real SU(3). See `docs/ROADMAP.md` for the retirement note and `scripts/check-towers.sh` for the comment block.
 
 ## User preferences

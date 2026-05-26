@@ -40,6 +40,10 @@ will consume — they are NOT themselves a YM result.
 import Mathlib.Data.Matrix.Notation
 import Mathlib.LinearAlgebra.Matrix.Trace
 import Mathlib.Data.Complex.Basic
+import Mathlib.Algebra.Module.LinearMap.End
+import Mathlib.Algebra.Module.Equiv.Basic
+import Mathlib.LinearAlgebra.Basis.Defs
+import Mathlib.LinearAlgebra.Pi
 import Towers.YM.SU3
 
 namespace TheoremaAureum
@@ -185,6 +189,19 @@ theorem gellMann₈_mem : gellMann₈ ∈ su3_submodule := by
   refine (su3_submodule_mem_iff _).mpr ⟨?_, ?_⟩
   · gellMann_antiHermitian_tac gellMann₈
   · gellMann_traceless_tac gellMann₈
+
+/-! ## Path B batch 2/3 — deferred
+
+The downstream bricks `su3_basis_def`, `su3_basis_linearIndependent`,
+`su3_basis_spans` (basis via `Basis.ofEquivFun`), and
+`instance_inner_product_space_su3_euclidean` (InnerProductSpace.Core)
+were prototyped in this session but exceeded mathlib v4.12.0's
+default 200000-heartbeat budget on the `simp + linarith` finisher
+over the 8-term `∑ cᵢ • gellMannᵢ` reconstruction. They are deferred
+to a follow-up task. The 8 `gellMann_k_mem` bricks above stand on
+their own — they are the explicit anti-Hermitian + traceless
+witnesses, and they ship classical-trio-clean.
+-/
 
 end YM
 end Towers
