@@ -72,6 +72,7 @@
 -/
 
 import Mathlib.Analysis.Calculus.FDeriv.Add
+import Mathlib.Analysis.Calculus.FDeriv.Mul
 import Mathlib.Analysis.InnerProductSpace.EuclideanDist
 import Mathlib.Analysis.InnerProductSpace.PiL2
 
@@ -139,6 +140,37 @@ theorem divergence_add (v w : V → V)
   rw [hsum, fderiv_add (hv x) (hw x)]
   simp only [ContinuousLinearMap.add_apply, PiLp.add_apply]
   exact Finset.sum_add_distrib
+
+/-- **Linearity of divergence under scalar multiplication (trivial second brick).**
+
+    For any real scalar `c : ℝ`, any `Differentiable ℝ` vector field
+    `v : V → V`, and any point `x : V`,
+
+      `div (c • v) (x) = c * div v (x)`.
+
+    The proof is a one-line reduction to mathlib's
+    `fderiv_const_smul` plus pulling the constant out of a finite
+    sum (`Finset.mul_sum`). This lemma is **not** new mathematics —
+    it is the trivial scalar-homogeneity of the Fréchet derivative
+    wrapped in a divergence-flavoured name so future NS plans have a
+    stable hook to invoke instead of dropping into the raw `fderiv`
+    API.
+
+    Axiom footprint: subset of mathlib's classical core
+    `{propext, Classical.choice, Quot.sound}` (verified by
+    `scripts/check-towers.sh`). No research-grade axioms; in
+    particular this lemma does **not** depend on any of the
+    placeholder axioms `IsSmooth`, `IsDivergenceFree`,
+    `HasFiniteEnergy`, or `IsGlobalSmoothSolutionOfNS` declared
+    below for the schema. -/
+theorem divergence_smul (c : ℝ) (v : V → V)
+    (hv : Differentiable ℝ v) (x : V) :
+    divergence (c • v) x = c * divergence v x := by
+  simp only [divergence]
+  have hsmul : (c • v) = (fun y => c • v y) := rfl
+  rw [hsmul, fderiv_const_smul (hv x) c]
+  simp only [ContinuousLinearMap.smul_apply, PiLp.smul_apply, smul_eq_mul]
+  rw [← Finset.mul_sum]
 
 /-- Placeholder for "the vector field `u` is smooth", in the sense
     required by the Clay statement (typically `C^∞` and Schwartz, or

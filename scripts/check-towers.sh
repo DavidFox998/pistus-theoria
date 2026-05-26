@@ -72,8 +72,11 @@ lake build Towers
 BRICKS=(
   "Towers.RH.ZeroDensity|TheoremaAureum.Towers.RH.N_monotone_in_sigma"
   "Towers.BSD.MordellWeil|TheoremaAureum.Towers.BSD.MordellWeilGroup.add_comm"
+  "Towers.BSD.MordellWeil|TheoremaAureum.Towers.BSD.MordellWeilGroup.eq_zero_of_isRankZero"
   "Towers.NS.Divergence|TheoremaAureum.Towers.NS.divergence_add"
+  "Towers.NS.Divergence|TheoremaAureum.Towers.NS.divergence_smul"
   "Towers.YM.Gauge|TheoremaAureum.Towers.YM.gauge_action_one_smul"
+  "Towers.YM.Gauge|TheoremaAureum.Towers.YM.gauge_action_mul_smul"
 )
 
 VERIFIER_DIR="$(mktemp -d)"
@@ -99,11 +102,18 @@ EOF
   fi
 
   local zero_line="'$thm' does not depend on any axioms"
-  local trio_re="^'${thm_escaped}' depends on axioms: \[((propext|Classical\.choice|Quot\.sound)(, (propext|Classical\.choice|Quot\.sound)){0,2})\]\$"
+  # Flatten the log first: `#print axioms` wraps long axiom lists across
+  # multiple lines, but grep -E does not span lines. Collapsing
+  # newlines+whitespace to single spaces lets the regex below match
+  # both the single-line case (short axiom names) and the wrapped case
+  # (e.g. three classical-trio axioms spread across three lines).
+  local flat
+  flat="$(tr '\n' ' ' < "$AXIOM_LOG" | tr -s '[:space:]' ' ')"
+  local trio_re="'${thm_escaped}' depends on axioms: \[((propext|Classical\.choice|Quot\.sound)(, (propext|Classical\.choice|Quot\.sound)){0,2})\]"
 
   if grep -qF "$zero_line" "$AXIOM_LOG"; then
     echo "ok: $thm has axiom debt = [] (no axioms used at all)." >&2
-  elif grep -qE "$trio_re" "$AXIOM_LOG"; then
+  elif printf '%s\n' "$flat" | grep -qE "$trio_re"; then
     echo "ok: $thm axiom footprint = subset of mathlib's classical trio" >&2
     echo "    {propext, Classical.choice, Quot.sound}. No research-grade axioms." >&2
   else

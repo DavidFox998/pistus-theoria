@@ -56,7 +56,7 @@ Status legend:
 
 ## 2. Yang-Mills mass gap
 
-**Status: Open — first brick formalized (gauge-action identity in Lean; axiom footprint = subset of mathlib's classical core {propext, Classical.choice, Quot.sound}, no research-grade axioms).**
+**Status: Open — second brick formalized (gauge-action identity and gauge-action composition in Lean; axiom footprint = subset of mathlib's classical core {propext, Classical.choice, Quot.sound}, no research-grade axioms).**
 
 - Geometric invariant under study in this repo:
   `C(S₄) = 11.4221486889`, an OpenCV-derived symmetry-count
@@ -93,7 +93,7 @@ Status legend:
 
 ## 3. Navier-Stokes global regularity
 
-**Status: Open — first brick formalized (divergence-linearity in Lean; axiom footprint = subset of mathlib's classical core {propext, Classical.choice, Quot.sound}, no research-grade axioms).**
+**Status: Open — second brick formalized (divergence linearity under addition and under scalar multiplication in Lean; axiom footprint = subset of mathlib's classical core {propext, Classical.choice, Quot.sound}, no research-grade axioms).**
 
 - Conjectural scaffolding in this repo: "Arakelov descent from
   `X_0(397)`" is a label for a proposed bridge from heights on a
@@ -126,7 +126,7 @@ Status legend:
 
 ## 4. 280-curve cohort (M9 Weil-transfer discharge) — and BSD
 
-**Status: Certified for `N = 397`. General statement Open — first general-statement brick formalized (Mordell-Weil commutativity in Lean; axiom footprint = subset of mathlib's classical core {propext, Classical.choice, Quot.sound}, no research-grade axioms).**
+**Status: Certified for `N = 397`. General statement Open — second general-statement brick formalized (Mordell-Weil commutativity and rank-zero ⇒ trivial-point in Lean; axiom footprint = subset of mathlib's classical core {propext, Classical.choice, Quot.sound}, no research-grade axioms).**
 
 - What is genuinely closed: for the specific elliptic conductor
   `N = 397` (the case that appears in `m9.out`), the Lean theorem

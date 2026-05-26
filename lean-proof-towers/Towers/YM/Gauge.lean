@@ -118,6 +118,34 @@ theorem gauge_action_one_smul {G : Type _} [Group G]
     (A : TrivialConfiguration G) : (1 : G) • A = A :=
   one_smul G A
 
+/-- **Composition of gauge transformations (trivial second brick).**
+
+    For any group `G`, any two gauge transformations `g h : G`, and
+    any configuration `A : TrivialConfiguration G`, applying the
+    composite gauge transformation `g * h` is the same as applying
+    `h` first and then `g`:
+
+      `(g * h) • A = g • (h • A)`.
+
+    The proof is a one-line delegation to mathlib's `_root_.mul_smul`
+    on the `MulAction` instance above. This lemma is **not** new
+    mathematics — it is the `MulAction.mul_smul` axiom of any group
+    action, re-named in the Yang-Mills context so future YM plans
+    have a stable hook to invoke instead of dropping into the raw
+    `MulAction` API.
+
+    Axiom footprint: subset of mathlib's classical core
+    `{propext, Classical.choice, Quot.sound}` (verified by
+    `scripts/check-towers.sh`). No research-grade axioms; in
+    particular this lemma does **not** depend on any of the
+    placeholder axioms `PhysicalStateOfYangMillsHamiltonian`,
+    `IsAboveVacuum`, `expectedEnergy`, or `normSq` declared below
+    for the mass-gap schema. -/
+theorem gauge_action_mul_smul {G : Type _} [Group G]
+    (g h : G) (A : TrivialConfiguration G) :
+    (g * h) • A = g • (h • A) :=
+  mul_smul g h A
+
 /-- Placeholder for "the type of physical (normalisable) states of
     the constructive 4D Yang-Mills Hamiltonian on `ℝ⁴` (or on a
     spatial slice `ℝ³`)".

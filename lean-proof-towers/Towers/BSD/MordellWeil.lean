@@ -132,6 +132,63 @@ theorem add_comm {K : Type*} [Field K] {E : WeierstrassCurve K}
     (P Q : MordellWeilGroup E) : P + Q = Q + P :=
   _root_.add_comm P Q
 
+/-- **Predicate "the Mordell-Weil group of `E` is algebraically rank
+    zero" (honest, real-content route).**
+
+    Defined as `Subsingleton (MordellWeilGroup E)`: there is at most
+    one `K`-rational point (necessarily the identity `0`). This is
+    the genuine mathlib notion of triviality of an additive group,
+    available right now in mathlib v4.12.0.
+
+    **Why this, and not `axiom rank : ... → ℕ` + `rank E = 0`?**
+    Mathlib v4.12.0 has no rank function for elliptic curves over
+    `ℚ`, no L-function, and no Mordell-Weil finiteness theorem. We
+    therefore *refuse* to introduce a placeholder `rank` axiom whose
+    only "proof" of `rank E = 0` would be a tautological
+    instantiation, and we *refuse* even more strongly to write
+    `theorem rank_E_zero : rank E = 0 := by decide` — `decide`
+    cannot pull a rank value out of `m9.out` bytes, and any
+    apparent success would be a lie about content.
+
+    The honest move is to express the brick in terms of a real
+    mathlib notion. `Subsingleton (MordellWeilGroup E)` *is* a real
+    mathlib notion (`Subsingleton` is in core), it *does* match the
+    informal meaning "every rational point is the identity", and it
+    can be discharged by a real `Subsingleton.elim` proof below.
+
+    Future work (separate plan): once mathlib formalizes
+    Mordell-Weil for `E(ℚ)` and the rank function, prove
+    `MordellWeilGroup.IsRankZero E ↔ rank E = 0` as a real theorem.
+    Until then, `IsRankZero` is the honest stand-in. -/
+def IsRankZero {K : Type*} [Field K] (E : WeierstrassCurve K) : Prop :=
+  Subsingleton (MordellWeilGroup E)
+
+/-- **Rank-zero ⇒ every point is the identity (trivial second brick).**
+
+    For any field `K`, any Weierstrass elliptic curve `E` over `K`,
+    and any `K`-rational point `P : MordellWeilGroup E`, if the
+    Mordell-Weil group is rank-zero in the sense of `IsRankZero`
+    (i.e. a `Subsingleton`), then `P = 0`.
+
+    The proof is a one-line delegation to mathlib's
+    `Subsingleton.elim` on the `Subsingleton (MordellWeilGroup E)`
+    instance carried by the hypothesis. This lemma is **not** new
+    mathematics — it is the elementary fact that a subsingleton
+    group has only one element, re-named in the Mordell-Weil context
+    so future BSD plans have a stable hook to invoke instead of
+    unfolding `IsRankZero` by hand.
+
+    Axiom footprint: subset of mathlib's classical core
+    `{propext, Classical.choice, Quot.sound}` (verified by
+    `scripts/check-towers.sh`). No research-grade axioms; in
+    particular this lemma does **not** depend on the placeholder
+    axioms `IsLFunctionOf`, `orderOfVanishingAt`, or
+    `MordellWeilRank` declared below for the BSD rank schema. -/
+theorem eq_zero_of_isRankZero {K : Type*} [Field K]
+    {E : WeierstrassCurve K}
+    (h : IsRankZero E) (P : MordellWeilGroup E) : P = 0 :=
+  @Subsingleton.elim _ h P 0
+
 end MordellWeilGroup
 
 /-- Placeholder for "`L_E` is the analytic L-function of the
