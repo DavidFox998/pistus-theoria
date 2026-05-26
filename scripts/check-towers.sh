@@ -81,12 +81,18 @@ BRICKS=(
   "Towers.NS.Divergence|TheoremaAureum.Towers.NS.divergence_const"
   "Towers.NS.Divergence|TheoremaAureum.Towers.NS.divergence_add_const"
   "Towers.NS.Divergence|TheoremaAureum.Towers.NS.divergence_sub_const"
-  "Towers.YM.Gauge|TheoremaAureum.Towers.YM.gauge_action_one_smul"
-  "Towers.YM.Gauge|TheoremaAureum.Towers.YM.gauge_action_mul_smul"
-  "Towers.YM.Gauge|TheoremaAureum.Towers.YM.gauge_action_inv_smul"
-  "Towers.YM.Gauge|TheoremaAureum.Towers.YM.gauge_action_smul_inv"
-  "Towers.YM.Gauge|TheoremaAureum.Towers.YM.gauge_action_inv_inv"
-  "Towers.YM.Gauge|TheoremaAureum.Towers.YM.gauge_action_pow_zero"
+  # NOTE: The six `gauge_action_*` bricks (one_smul, mul_smul,
+  # inv_smul, smul_inv, inv_inv, pow_zero) on `TrivialConfiguration`
+  # were retired in the 2026-05-26 retirement (Task #50, Option A).
+  # The `TrivialConfiguration` scalar action was `· • A := A`, so
+  # every `gauge_action_*` lemma reduced definitionally on both
+  # sides to `A`, exercising neither group multiplication nor the
+  # action — hollow even by trivial-brick standards. Removing them
+  # drops the wall from 24 → 18 but enforces the user-locked rule
+  # "no `gauge_action_*` on TrivialConfiguration anymore (only real
+  # SU(3))" consistently. YM bricks now live exclusively in
+  # `Towers.YM.MassGap` against the real `Matrix.specialUnitaryGroup`
+  # API. See git history for the withdrawn theorems.
   "Towers.YM.MassGap|TheoremaAureum.Towers.YM.SU3Connection_one_mul"
   "Towers.YM.MassGap|TheoremaAureum.Towers.YM.SU3Connection_component_unitary"
   "Towers.YM.MassGap|TheoremaAureum.Towers.YM.SU3Connection_component_det_one"

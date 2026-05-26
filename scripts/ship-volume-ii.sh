@@ -12,9 +12,12 @@
 #   4. Strict-mode build the lean-proof spine and re-verify
 #      TheoremaAureum.main_theorem axiom debt = [].
 #   5. Build the sibling lean-proof-towers/ package and run the
-#      per-brick axiom-footprint check (RH + YM + NS + BSD, 7 bricks
-#      total, all axiom footprints subset of mathlib's classical
-#      trio {propext, Classical.choice, Quot.sound}).
+#      per-brick axiom-footprint check (RH + YM + NS + BSD, 18 bricks
+#      total — 1 RH + 2 BSD + 8 NS + 7 YM/MassGap, all axiom
+#      footprints subset of mathlib's classical trio
+#      {propext, Classical.choice, Quot.sound}). Six hollow
+#      `gauge_action_*` bricks on `TrivialConfiguration` were
+#      retired 2026-05-26 — see docs/ROADMAP.md § 2.
 #   6. Print a one-screen honest-scope summary that re-states the
 #      current Status lines from docs/ROADMAP.md without promoting
 #      anything.
@@ -103,19 +106,25 @@ STRICT_LEAN_CHECK=1 bash scripts/check-lean-proof.sh \
 green "  TheoremaAureum.main_theorem axiom debt = [] preserved."
 
 # ------------------------------------------------------------------
-phase "[5/6] lean-proof-towers — 7 second-and-first bricks"
+phase "[5/6] lean-proof-towers — 18 trio-clean bricks"
 # ------------------------------------------------------------------
 # scripts/check-towers.sh builds the sibling lean-proof-towers/
 # package on mathlib v4.12.0 and runs `#print axioms` on each of the
-# 7 named bricks (RH N_monotone_in_sigma; BSD add_comm and
-# eq_zero_of_isRankZero; NS divergence_add and divergence_smul; YM
-# gauge_action_one_smul and gauge_action_mul_smul). Each brick's
-# axiom footprint must be either [] or a subset of
-# {propext, Classical.choice, Quot.sound}; sorryAx or any
-# user-declared axiom causes a non-zero exit.
+# 18 named bricks (RH: N_monotone_in_sigma; BSD: add_comm,
+# eq_zero_of_isRankZero; NS: divergence_{add,smul,zero,neg,sub,
+# const,add_const,sub_const}; YM/MassGap: SU3Connection_one_mul,
+# SU3Connection_component_unitary, SU3Connection_component_det_one,
+# SU3Connection_mul_one, SU3Connection_one_one,
+# SU3Connection_component_mul_unitary,
+# SU3Connection_component_mul_det_one). Each brick's axiom
+# footprint must be either [] or a subset of {propext,
+# Classical.choice, Quot.sound}; sorryAx or any user-declared
+# axiom causes a non-zero exit. (The six `gauge_action_*` bricks
+# on `TrivialConfiguration` were retired 2026-05-26 — see
+# docs/ROADMAP.md § 2.)
 bash scripts/check-towers.sh \
   || fail 5 "lean-proof-towers axiom-footprint check failed"
-green "  All 7 tower bricks: axiom footprint subset of classical trio."
+green "  All 18 tower bricks: axiom footprint subset of classical trio."
 
 # ------------------------------------------------------------------
 phase "[6/6] Honest-scope summary (no status promotions)"
@@ -126,10 +135,12 @@ cat <<'BANNER'
     1. RH ............ Open — first brick formalized
                         (N_monotone_in_sigma, conditional on
                          finiteness of the larger zero box).
-    2. Yang-Mills .... Open — second brick formalized
-                        (gauge_action_one_smul + mul_smul; the
+    2. Yang-Mills .... Open — seven SU(3) bricks formalized
+                        (Towers.YM.MassGap: real
+                         Matrix.specialUnitaryGroup algebra; the
                          trivial-bundle scaffold is NOT a physical
-                         YM configuration).
+                         YM configuration; six retired
+                         gauge_action_* bricks excluded).
     3. Navier-Stokes . Open — second brick formalized
                         (divergence_add + divergence_smul; linearity
                          of a minimal fderiv-based divergence on
@@ -144,7 +155,8 @@ cat <<'BANNER'
                         Higher h is Open.
 
   What "Volume II" actually means in this repo:
-    * Seven Lean bricks with axiom footprint subset of
+    * Eighteen Lean bricks (1 RH + 2 BSD + 8 NS + 7 YM/MassGap)
+      with axiom footprint subset of
       {propext, Classical.choice, Quot.sound}.
     * The spine (TheoremaAureum.main_theorem) still has axiom debt
       = []. The Genesis seal still matches eecbcd9a...875f.

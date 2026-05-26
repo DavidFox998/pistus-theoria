@@ -56,73 +56,100 @@ Status legend:
 
 ## 2. Yang-Mills mass gap
 
-**Status: Open — second brick formalized (gauge-action identity and gauge-action composition in Lean; axiom footprint = subset of mathlib's classical core {propext, Classical.choice, Quot.sound}, no research-grade axioms).**
+**Status: Open — seven trio-clean SU(3) bricks formalized in `Towers/YM/MassGap.lean` (real `Matrix.specialUnitaryGroup (Fin 3) ℂ` algebra: monoid identity left/right, unitarity and det = 1 of each component, plus closure under multiplication for both. Axiom footprint = subset of mathlib's classical core `{propext, Classical.choice, Quot.sound}`; no research-grade axioms).**
 
 - Geometric invariant under study in this repo:
   `C(S₄) = 11.4221486889`, an OpenCV-derived symmetry-count
   invariant attached to the M0 cube observations (`cube_M0_v*.jpg`,
   Appendix A of the architecture write-up).
-- First honest formal brick: `lean-proof-towers/Towers/YM/Gauge.lean`
-  defines a single-field `TrivialConfiguration G` structure, equips
-  it with a `MulAction G` instance (gauge action by left
-  multiplication on the carried value), and proves the trivial
-  identity-acts-trivially brick `gauge_action_one_smul` by
-  delegating to mathlib's `one_smul`. Axiom footprint contained in
-  mathlib's classical core `{propext, Classical.choice, Quot.sound}`
-  (no `sorryAx`, no user-declared axioms in the brick). Alongside,
-  it pins `YangMillsMassGap_statement : Prop` as a *statement
-  schema* (with four explicitly named placeholder axioms
-  `PhysicalStateOfYangMillsHamiltonian`, `IsAboveVacuum`, `normSq`,
-  and `expectedEnergy` — honest stand-ins because mathlib v4.12.0
-  lacks the Wightman/Osterwalder-Schrader axiomatic QFT framework
-  and a constructive 4D Yang-Mills Hamiltonian). Statement-only, no
+- Honest formal bricks: `lean-proof-towers/Towers/YM/MassGap.lean`
+  defines `SU3Connection := Fin 4 → Matrix.specialUnitaryGroup
+  (Fin 3) ℂ` (the trivial-bundle constant-coefficient case of an
+  SU(3) connection on ℝ⁴ — four constant SU(3)-valued fields, one
+  per spacetime direction) and proves seven trio-clean lemmas
+  against the real `Matrix.specialUnitaryGroup` API in
+  `Mathlib/LinearAlgebra/UnitaryGroup.lean`:
+  `SU3Connection_one_mul`, `SU3Connection_mul_one`,
+  `SU3Connection_one_one`, `SU3Connection_component_unitary`,
+  `SU3Connection_component_det_one`,
+  `SU3Connection_component_mul_unitary`,
+  `SU3Connection_component_mul_det_one`. Axiom footprint contained
+  in `{propext, Classical.choice, Quot.sound}`; no `sorryAx`, no
+  user-declared axioms in any brick. Alongside, the file pins
+  `YM_mass_gap_statement : Prop` as a *statement schema* with
+  three `sorry`-backed defs (`HilbertSpace`, `YMHamiltonian`,
+  `IsEigenstate`) — honest stand-ins because mathlib v4.12.0 lacks
+  the Wightman/Osterwalder-Schrader axiomatic QFT framework, a
+  constructive 4D Yang-Mills Hamiltonian, and the Sobolev-space
+  spectral theory the statement needs. Statement-only, no
   `True.intro`. Built by `scripts/check-towers.sh` / the
-  `towers-build` workflow. **The single-point trivial bundle used
-  by this brick is a scaffold for future work, not a physically
+  `towers-build` workflow. **The trivial-bundle constant-coefficient
+  SU(3) connection is a scaffold for future work, not a physically
   meaningful Yang-Mills configuration** — a real connection is a
   Lie-algebra-valued 1-form on a principal bundle over (at least)
   a 4-manifold.
+- Retirement note (2026-05-26, Task #50 Option A): a sibling file
+  `Towers/YM/Gauge.lean` previously held six `gauge_action_*`
+  bricks on a `TrivialConfiguration G` scaffold whose `MulAction`
+  was `· • A := A`. Every `gauge_action_*` lemma reduced
+  definitionally on both sides to `A`, exercising neither group
+  multiplication nor the action; the bricks were hollow even by
+  trivial-brick standards. The whole file was withdrawn — see git
+  history. YM bricks now live exclusively against the real
+  `Matrix.specialUnitaryGroup` API.
 - Honest note: `C(S₄) > 2√32` is an arithmetic fact about a
   cube-counting invariant. It is **not** a mass-gap lower bound on
   any Yang-Mills Hamiltonian, and no derivation in this repo
   connects it to the Jaffe-Witten Clay problem. Treat it as
   conjectural scaffolding for a future link, not as evidence for
-  the mass gap. The gauge-action-identity brick above does not
-  advance the mass gap past `Open` — it is the first elementary
-  group-theoretic brick on the way there.
+  the mass gap. The seven SU(3) bricks in `Towers/YM/MassGap.lean`
+  above do not advance the mass gap past `Open` — they are
+  elementary monoid/unitarity facts about the trivial-bundle
+  constant-coefficient SU(3) connection on the way there, not
+  spectral lower bounds on any Yang-Mills Hamiltonian.
 
 ## 3. Navier-Stokes global regularity
 
-**Status: Open — second brick formalized (divergence linearity under addition and under scalar multiplication in Lean; axiom footprint = subset of mathlib's classical core {propext, Classical.choice, Quot.sound}, no research-grade axioms).**
+**Status: Open — eight trio-clean divergence bricks formalized in `Towers/NS/Divergence.lean` (linearity under addition / scalar multiplication / negation / subtraction, plus the zero, constant, add-constant, and sub-constant cases of a minimal fderiv-based divergence operator on `Differentiable ℝ` vector fields; axiom footprint = subset of mathlib's classical core `{propext, Classical.choice, Quot.sound}`, no research-grade axioms).**
 
 - Conjectural scaffolding in this repo: "Arakelov descent from
   `X_0(397)`" is a label for a proposed bridge from heights on a
   modular curve to PDE energy estimates.
-- First honest formal brick: `lean-proof-towers/Towers/NS/Divergence.lean`
+- Honest formal bricks: `lean-proof-towers/Towers/NS/Divergence.lean`
   defines a minimal `divergence` operator on smooth vector fields
   `V → V` (where `V = EuclideanSpace ℝ (Fin 3)`) as the sum of the
   Fréchet-derivative-based directional derivatives along the three
-  coordinate axes, and proves the trivial linearity-under-addition
-  brick `divergence_add` (for `Differentiable ℝ` fields `v, w`) by
-  delegating to mathlib's `fderiv_add` and `Finset.sum_add_distrib`.
-  Axiom footprint contained in mathlib's classical core
-  `{propext, Classical.choice, Quot.sound}` (no `sorryAx`, no
-  user-declared axioms in the brick). Alongside, it pins
-  `NavierStokes_globalRegularity_statement : Prop` as a *statement
-  schema* (with four explicitly named placeholder axioms `IsSmooth`,
-  `IsDivergenceFree`, `HasFiniteEnergy`, and
-  `IsGlobalSmoothSolutionOfNS` — honest stand-ins because mathlib
-  v4.12.0 lacks Sobolev spaces and the Navier-Stokes operator).
-  Statement-only, no `True.intro`. Built by
-  `scripts/check-towers.sh` / the `towers-build` workflow.
+  coordinate axes, and proves eight trio-clean linearity lemmas
+  (`divergence_add`, `divergence_smul`, `divergence_zero`,
+  `divergence_neg`, `divergence_sub`, `divergence_const`,
+  `divergence_add_const`, `divergence_sub_const`) by delegating to
+  mathlib's `fderiv_add`/`fderiv_smul`/`fderiv_const`/etc. and
+  `Finset.sum_*` lemmas. Axiom footprint contained in mathlib's
+  classical core `{propext, Classical.choice, Quot.sound}` (no
+  `sorryAx`, no user-declared axioms in any brick). Alongside,
+  the sibling file `Towers/NS/EnergyIneq.lean` pins
+  `NS_global_regular_statement : Prop` as a *statement schema*
+  with two `sorry`-backed defs (`H1Norm`, `HasFiniteEnergy`) plus
+  a `LeraySolution` structure carrying two abstract `Prop` fields
+  (`h_div_free`, `h_energy`) — honest stand-ins because mathlib
+  v4.12.0 lacks Sobolev spaces (`SobolevSpace.norm` on
+  `H^1(ℝ³; ℝ³)`) and the Navier-Stokes operator. Statement-only,
+  no `True.intro`. The `Towers/NS/EnergyIneq.lean` file carries
+  an in-source "Task #51 decision audit" comment explaining why
+  every concrete replacement of those two sorries was rejected as
+  either a forbidden stub or a substantively misleading
+  formalization. Built by `scripts/check-towers.sh` / the
+  `towers-build` workflow.
 - Honest note: there is no derivation in this repo (or, to our
   knowledge, in the literature) from `X_0(397)` to a Leray-Hopf
   weak-strong uniqueness statement or to the Beale-Kato-Majda
   blow-up criterion for 3D incompressible Navier-Stokes. Treat
   the phrase as a research direction, not as a proof token. The
-  divergence-linearity brick above does not advance global
-  regularity past `Open` — it is the first elementary calculus
-  brick on the way there.
+  eight divergence linearity bricks above do not advance global
+  regularity past `Open` — they are elementary calculus facts
+  about a minimal fderiv-based divergence operator on the way
+  there, not energy or blow-up estimates for the Navier-Stokes
+  operator.
 
 ## 4. 280-curve cohort (M9 Weil-transfer discharge) — and BSD
 

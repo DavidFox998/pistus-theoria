@@ -114,9 +114,27 @@ abbrev SU3Connection : Type := Fin 4 → Matrix.specialUnitaryGroup (Fin 3) ℂ
 --  `Mathlib/LinearAlgebra/UnitaryGroup.lean`, not in a separate
 --  `Mathlib.LinearAlgebra.Matrix.SpecialUnitaryGroup` file.)
 
+/-
+  **Task #51 decision audit (2026-05-26).** The three schema defs
+  below (`HilbertSpace`, `YMHamiltonian`, `IsEigenstate`) were
+  evaluated for concrete-mathlib replacement. Every candidate
+  replacement was rejected as either (a) a disguised stub
+  (e.g. `HilbertSpace := ℂ`, `YMHamiltonian _ := 0`,
+  `IsEigenstate _ _ := True` — explicitly forbidden by the
+  user's "no stubs" rule) or (b) a real mathlib type that is
+  *substantively misleading* (e.g. `HilbertSpace :=
+  EuclideanSpace ℂ (Fin 3)` — type-checks `YM_mass_gap_statement`
+  against a finite-dim space, manufacturing the appearance of a
+  formalized Clay conjecture). Per the user's authorized escape
+  clause ("Full proofs or leave sorry and move on"), all three
+  stay as `sorry`. Status: deliberately deferred to
+  mathlib v4.13+ when Sobolev/Wightman/OS machinery lands.
+-/
+
 /-- **Hilbert space of physical states** of the Yang-Mills
     Hamiltonian. Still `sorry`: mathlib v4.12.0 has no formalised
-    physical-state Hilbert space for YM. -/
+    physical-state Hilbert space for YM. See "Task #51 decision
+    audit" comment immediately above. -/
 def HilbertSpace : Type := sorry
 -- TODO (mathlib v4.13+): physical-state Hilbert space of the YM Hamiltonian
 

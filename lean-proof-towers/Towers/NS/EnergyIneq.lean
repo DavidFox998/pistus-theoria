@@ -88,7 +88,25 @@ namespace NS
 abbrev VelocityField : Type :=
   ℝ → (EuclideanSpace ℝ (Fin 3)) → EuclideanSpace ℝ (Fin 3)
 
-/-- **H¹ Sobolev norm** of a velocity field at time `t`. -/
+/-
+  **Task #51 decision audit (2026-05-26).** The two schema defs
+  below (`H1Norm`, `HasFiniteEnergy`) were evaluated for
+  concrete-mathlib replacement. Every candidate was rejected as
+  either (a) a disguised stub (`H1Norm _ _ := 0`,
+  `HasFiniteEnergy _ := True` — explicitly forbidden) or
+  (b) a real mathlib expression that is *substantively
+  misleading* (e.g. a bounded-amplitude L^∞ bound dressed up as
+  finite L² energy; would make `NS_global_regular_statement`
+  type-check against the wrong norm and manufacture the
+  appearance of a formalized Clay conjecture). Per the user's
+  authorized escape clause ("Full proofs or leave sorry and move
+  on"), both stay as `sorry`. Status: deliberately deferred to
+  mathlib v4.13+ when `SobolevSpace.norm` on `H^1(ℝ³; ℝ³)` lands.
+-/
+
+/-- **H¹ Sobolev norm** of a velocity field at time `t`. Still
+    `sorry`: see "Task #51 decision audit" comment immediately
+    above. -/
 noncomputable def H1Norm (_u : VelocityField) (_t : ℝ) : ℝ := sorry
 -- TODO (mathlib v4.13+): `SobolevSpace.norm` on `H^1(ℝ³; ℝ³)`
 
