@@ -202,6 +202,21 @@ BRICKS=(
   "Towers.NS.EnergyIneq|TheoremaAureum.Towers.NS.H1Norm_zero"
   "Towers.NS.EnergyIneq|TheoremaAureum.Towers.NS.HasFiniteEnergy_zero"
   "Towers.NS.EnergyIneq|TheoremaAureum.Towers.NS.H1Norm_nonneg"
+  # Task #62 (2026-05-26): second wave of NS energy schema bricks
+  # on the Task #51 concretizations of `H1Norm` / `HasFiniteEnergy`,
+  # this time referencing fully-general / non-zero inputs (not just
+  # the zero velocity field). NS analogue of the YM Task #55 wave:
+  # `H1Norm_eq_norm_apply_zero` is the named unfolder for arbitrary
+  # `(u, t)`; `HasFiniteEnergy_of_bounded_zero` packages any uniform
+  # `∀ x, ‖u₀ 0 x‖ ≤ M` bound into the placeholder finite-energy
+  # witness; `HasFiniteEnergy_const` proves every constant-in-
+  # spacetime field `(fun _ _ => c)` has finite placeholder energy
+  # via `M = ‖c‖`. NS tower status unchanged: Open
+  # (`docs/ROADMAP.md` § 3). These are NOT statements about the H¹
+  # Sobolev norm, the L² energy bound, or any Leray-Hopf solution.
+  "Towers.NS.EnergyIneq|TheoremaAureum.Towers.NS.H1Norm_eq_norm_apply_zero"
+  "Towers.NS.EnergyIneq|TheoremaAureum.Towers.NS.HasFiniteEnergy_of_bounded_zero"
+  "Towers.NS.EnergyIneq|TheoremaAureum.Towers.NS.HasFiniteEnergy_const"
   # Task #55 (Branch A witness, 2026-05-26): infinite-dimensionality
   # witness for `HilbertSpace = lp (fun _ : ℕ => ℂ) 2`. The canonical
   # `lp.single`-at-`1` family indexed by ℕ is orthonormal (norm-one

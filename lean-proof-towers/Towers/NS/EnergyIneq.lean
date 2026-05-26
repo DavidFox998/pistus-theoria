@@ -202,6 +202,65 @@ theorem H1Norm_nonneg (u : VelocityField) (t : ℝ) : 0 ≤ H1Norm u t := by
   unfold H1Norm
   exact norm_nonneg _
 
+/-
+  ## Task #62 (2026-05-26) — second wave of NS energy schema bricks.
+
+  Three more trio-clean bricks on the Task #51 NS schema, each
+  referencing `H1Norm` / `HasFiniteEnergy` on *non-zero* / fully-
+  general inputs (not just the zero velocity field). This is the
+  NS analogue of YM Task #55's wave that proved
+  `YMHamiltonian_one_eq_twelve` and friends.
+
+    * `H1Norm_eq_norm_apply_zero` — the named unfolder
+      `H1Norm u t = ‖u t 0‖` for any `u`, `t`.
+    * `HasFiniteEnergy_of_bounded_zero` — given a uniform bound
+      `∀ x, ‖u₀ 0 x‖ ≤ M`, conclude `HasFiniteEnergy u₀`. Real
+      hypothesis, not vacuous.
+    * `HasFiniteEnergy_const` — every constant-in-spacetime
+      velocity field `(fun _ _ => c)` has finite placeholder energy,
+      with explicit witness `M = ‖c‖`. References a non-zero input.
+
+  **Honest scoping reminder.** None of these advance the NS tower
+  past `Status: Open` (see `docs/ROADMAP.md` § 3). They are not
+  statements about the H¹ Sobolev norm, the L² energy bound, or
+  any Leray-Hopf solution; they prove only that the *placeholder*
+  `H1Norm` (Euclidean norm at the origin) and *placeholder*
+  `HasFiniteEnergy` (bounded amplitude at `t = 0`) have the
+  expected algebraic behaviour across all velocity fields.
+
+  Axiom-footprint contract (per `scripts/check-towers.sh`): each
+  theorem must be either axiom-free or use only the classical trio
+  `{propext, Classical.choice, Quot.sound}`.
+-/
+
+/-- **Named unfolder for `H1Norm`.** Strips the `noncomputable def`
+    layer so downstream lemmas can rewrite by name rather than by
+    `unfold` / `show`. Holds for every `u`, `t` — not specialised to
+    the zero field. References the Task #51 schema def `H1Norm`. -/
+theorem H1Norm_eq_norm_apply_zero (u : VelocityField) (t : ℝ) :
+    H1Norm u t = ‖u t 0‖ := rfl
+
+/-- **`HasFiniteEnergy` from a uniform spatial bound at `t = 0`.**
+    Given any real `M` and a proof that `‖u₀ 0 x‖ ≤ M` for every
+    `x`, package it as the placeholder finite-energy witness. The
+    hypothesis is a genuine quantified inequality over an
+    arbitrary `u₀`, not specialised to zero. References the Task
+    #51 schema def `HasFiniteEnergy`. -/
+theorem HasFiniteEnergy_of_bounded_zero (u₀ : VelocityField) (M : ℝ)
+    (h : ∀ x : EuclideanSpace ℝ (Fin 3), ‖u₀ 0 x‖ ≤ M) :
+    HasFiniteEnergy u₀ :=
+  ⟨M, h⟩
+
+/-- **Every constant-in-spacetime velocity field has finite
+    placeholder energy.** Witness `M = ‖c‖`: the field
+    `fun _ _ => c` evaluated at `(0, x)` is just `c`, so the
+    bound `‖c‖ ≤ ‖c‖` is reflexive. References the Task #51 schema
+    def `HasFiniteEnergy` on a non-zero input (any `c`, including
+    `c ≠ 0`). -/
+theorem HasFiniteEnergy_const (c : EuclideanSpace ℝ (Fin 3)) :
+    HasFiniteEnergy (fun (_ : ℝ) (_ : EuclideanSpace ℝ (Fin 3)) => c) :=
+  ⟨‖c‖, fun _ => le_refl _⟩
+
 end NS
 end Towers
 end TheoremaAureum
