@@ -943,6 +943,71 @@ theorem HasFiniteEnergy_galilean_boost (u₀ : VelocityField)
   refine ⟨M, fun x => ?_⟩
   simpa using hM x
 
+/-
+  ## Task #146 (2026-05-27) — full inhomogeneous Galilean group on the
+  placeholder finite-energy predicate.
+
+  Task #134 landed Galilean-boost closure (`HasFiniteEnergy_galilean_boost`,
+  `(t, x) ↦ (t, x + v t)`); Task #118 landed full spacetime rigid-motion
+  closure (`HasFiniteEnergy_spacetime_rigid_motion`,
+  `(t, x) ↦ (t + s, R x + a)`). The natural composite is the **full
+  inhomogeneous Galilean group** on the spatial slice:
+  `(t, x) ↦ (t + s, R x + a + v (t + s))` — the most general change of
+  inertial reference frame classical Navier-Stokes respects. Landing
+  the composite as a single named brick documents that the placeholder
+  schema is honest under the entire Galilean symmetry group, not just
+  its generators in isolation.
+
+  Like Task #101 (`HasFiniteEnergy_euclidean_motion`, compose
+  translation + rotation) and Task #118 (compose time translation +
+  Euclidean motion), this is a one-line composition: instantiate
+  `HasFiniteEnergy_spacetime_rigid_motion` on the Task #134 boosted
+  field `fun t x => u₀ t (x + t • v)`, conditional on the same uniform
+  spatial bound at the shifted time `s` inherited from Task #100.
+  The spacetime-rigid step substitutes `t ↦ t + s` everywhere inside
+  the boosted field, producing the target outer form
+  `u₀ (t + s) (R x + a + (t + s) • v)`. Same witness `M` end-to-end.
+
+  **Honest scope.** Does NOT advance the NS tower past `Status: Open`
+  (see `docs/ROADMAP.md` § 3). `HasFiniteEnergy` is still the Task #51
+  placeholder (bounded amplitude at `t = 0`), not the L² energy bound;
+  full Galilean-group closure of the *placeholder* predicate is not
+  Galilean invariance of the real energy or of any Leray-Hopf solution.
+
+  Axiom-footprint contract (per `scripts/check-towers.sh`): the
+  theorem must be either axiom-free or use only the classical trio
+  `{propext, Classical.choice, Quot.sound}`.
+-/
+
+/-- **Full inhomogeneous Galilean-group invariance of placeholder
+    finite-energy.** Given a uniform spatial bound `∀ x, ‖u₀ s x‖ ≤ M`
+    on `u₀` at the shifted time `s`, any linear isometry `R` of `ℝ³`,
+    any spatial translation `a : ℝ³`, and any boost velocity
+    `v : ℝ³`, the full Galilean change of inertial frame
+    `(t, x) ↦ u₀ (t + s) (R x + a + (t + s) • v)` also has finite
+    placeholder energy with the *same* witness `M`. Composes Task #134
+    (`HasFiniteEnergy_galilean_boost`, applied inline as the boosted
+    field `fun t x => u₀ t (x + t • v)`) with Task #118
+    (`HasFiniteEnergy_spacetime_rigid_motion`, which absorbs the
+    rotation `R`, the spatial shift `a`, and the time shift `s` —
+    promoting the inner `t • v` to `(t + s) • v`), documenting closure
+    of the placeholder schema under the full inhomogeneous Galilean
+    group on the spatial slice — the actual symmetry group of classical
+    Navier-Stokes. NOT a statement about the L² energy bound or any
+    Leray-Hopf solution, and NOT Galilean invariance of real
+    Navier-Stokes; this is closure of the *placeholder* predicate
+    under the full Galilean change of inertial frame. -/
+theorem HasFiniteEnergy_galilean_group (u₀ : VelocityField)
+    (s : ℝ)
+    (R : EuclideanSpace ℝ (Fin 3) →ₗᵢ[ℝ] EuclideanSpace ℝ (Fin 3))
+    (a v : EuclideanSpace ℝ (Fin 3)) (M : ℝ)
+    (h : ∀ x : EuclideanSpace ℝ (Fin 3), ‖u₀ s x‖ ≤ M) :
+    HasFiniteEnergy (fun (t : ℝ) (x : EuclideanSpace ℝ (Fin 3)) =>
+      u₀ (t + s) (R x + a + (t + s) • v)) :=
+  HasFiniteEnergy_spacetime_rigid_motion
+    (fun (t : ℝ) (x : EuclideanSpace ℝ (Fin 3)) => u₀ t (x + t • v))
+    s R a M (fun x => h (x + s • v))
+
 end NS
 end Towers
 end TheoremaAureum
