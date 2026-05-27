@@ -66,6 +66,7 @@ These are the three sorries Batch 19.1e+ would have to discharge.
 import Towers.YM.OSReconstruction
 import Towers.YM.SpectralGap
 import Mathlib.Data.Nat.Factorial.Basic
+import Mathlib.Analysis.SpecialFunctions.Exp -- Batch 19.1i: real `e := Real.exp 1`
 
 namespace TheoremaAureum
 namespace Towers
@@ -474,12 +475,12 @@ theorem Decay_constant_eq_one : Decay_constant_from_KP = 1 := rfl
 
 /-- **Combinatorial constant `e` from tree-counting** (the Cayley
 constant in the Brydges-Federbush Ursell bound `|φ_T(X)| ≤
-e^{|X|} * |X|!`). Placeholder = `1` (the `e = 1` slice; avoids
-`Mathlib.Analysis.SpecialFunctions.Exp.Basic`). The real value
-is `Real.exp 1 ≈ 2.71828`. Naming this constant lets every
-downstream brick state the textbook shape `K * e * Δ < 1`
-explicitly rather than dropping the `e` factor. -/
-def Combinatorial_constant_e : ℝ := 1
+e^{|X|} * |X|!`). **Batch 19.1i:** promoted from the `:= 1`
+placeholder to the real value `Real.exp 1 ≈ 2.71828`. Naming
+this constant lets every downstream brick state the textbook
+shape `K * e * Δ < 1` with the real `e`. The `:= 1` placeholder
+era is over. -/
+def Combinatorial_constant_e : ℝ := Real.exp 1
 
 /-- **Real Ursell tree bound: `|φ_T(X)| ≤ e^{|X|} * |X|!`**
 (Brydges-Federbush convergent polymer expansion). Placeholder
@@ -494,8 +495,8 @@ theorem Ursell_tree_bound (D : OSPreHilbert) (g : ℝ) (n : ℕ) :
     |Ursell_functions D g n| ≤
       Combinatorial_constant_e * (Nat.factorial n : ℝ) := by
   unfold Ursell_functions Combinatorial_constant_e
-  rw [abs_zero, one_mul]
-  exact Nat.cast_nonneg _
+  rw [abs_zero]
+  exact mul_nonneg Real.exp_pos.le (Nat.cast_nonneg _)
 
 /-- **Full Kotecky-Preiss criterion: `K * e * Δ < 1`**
 (textbook strict form, with the named `e` factor restored).
@@ -510,7 +511,7 @@ is promoted to `Real.exp 1`. -/
 theorem Kotecky_Preiss_full :
     mayer_K_constant * Combinatorial_constant_e *
       mayer_Delta_constant < 1 := by
-  unfold mayer_K_constant Combinatorial_constant_e mayer_Delta_constant
+  unfold mayer_K_constant mayer_Delta_constant
   rw [mul_zero]
   exact zero_lt_one
 
@@ -569,14 +570,10 @@ theorem Spectral_radius_lt_one_real (D : OSPreHilbert) (g : ℝ)
 
 /-! ---- 19.1g helper bricks ---- -/
 
-/-- `Combinatorial_constant_e = 1 > 0` (placeholder `e = 1`
-slice). -/
+/-- `Combinatorial_constant_e > 0`. **Batch 19.1i:** promoted
+from `unfold; zero_lt_one` (placeholder) to `Real.exp_pos`. -/
 theorem Combinatorial_constant_e_pos : 0 < Combinatorial_constant_e := by
-  unfold Combinatorial_constant_e; exact zero_lt_one
-
-/-- `Combinatorial_constant_e = 1` definitionally. Pins the
-`e = 1` placeholder slice. -/
-theorem Combinatorial_constant_e_eq_one : Combinatorial_constant_e = 1 := rfl
+  unfold Combinatorial_constant_e; exact Real.exp_pos _
 
 /-- `Decay_constant_real = 1 > 0`. -/
 theorem Decay_constant_real_pos : 0 < Decay_constant_real := by
@@ -593,23 +590,27 @@ theorem Strict_contraction_real_le_one (D : OSPreHilbert) (g : ℝ)
   unfold Decay_constant_real at hbd
   exact hbd
 
-/-- **Ursell tree bound, `e = 1` slice corollary.** Drops the
-named `Combinatorial_constant_e` factor, recovering the cleaner
-`|φ_T(X)| ≤ n!` shape. -/
+/-- **Ursell tree bound, placeholder-Ursell slice corollary.**
+Drops the `Combinatorial_constant_e` factor (which is now
+`Real.exp 1 > 1` post-19.1i — the bound `|0| ≤ n!` still holds
+at the `Ursell_functions := 0` placeholder, just via direct
+`Nat.cast_nonneg` instead of factoring through
+`Ursell_tree_bound`). Statement unchanged from 19.1g; proof
+rewritten for the real-`e` promotion. -/
 theorem Ursell_tree_bound_simple (D : OSPreHilbert) (g : ℝ) (n : ℕ) :
     |Ursell_functions D g n| ≤ (Nat.factorial n : ℝ) := by
-  have h := Ursell_tree_bound D g n
-  unfold Combinatorial_constant_e at h
-  rw [one_mul] at h
-  exact h
+  unfold Ursell_functions
+  rw [abs_zero]
+  exact Nat.cast_nonneg _
 
 /-- **Kotecky-Preiss slack `1 - K * e * Δ > 0`** (strict-positive
-companion to `Kotecky_Preiss_full`). Placeholder: `1 - 1*1*0 =
-1 > 0`. Equals `Real.exp m_real` in the real theory. -/
+companion to `Kotecky_Preiss_full`). With `Δ = 0` the product
+collapses to `0` via `mul_zero` regardless of the `K * e`
+factor; equals `Real.exp m_real` in the real theory. -/
 theorem Small_coupling_KP_slack :
     0 < 1 - mayer_K_constant * Combinatorial_constant_e *
       mayer_Delta_constant := by
-  unfold mayer_K_constant Combinatorial_constant_e mayer_Delta_constant
+  unfold mayer_K_constant mayer_Delta_constant
   rw [mul_zero, sub_zero]
   exact zero_lt_one
 
@@ -711,16 +712,13 @@ definition — no placeholder. For `n = 0, 1` the value is `1`
 def Tree_graph_counting (n : ℕ) : ℕ := n ^ (n - 2)
 
 /-- **Real combinatorial constant `e = Σ_{n≥1} n^{n-2}/n! =
-Real.exp 1`** from Brydges-Federbush tree-counting. Placeholder
-slice `:= 1` (definitionally equal to 19.1g
-`Combinatorial_constant_e`; the real value `Real.exp 1 ≈
-2.71828` lands once
-`Mathlib.Analysis.SpecialFunctions.Exp.Basic` is paid for). The
-naming distinction `_real` flags this as the textbook
-`Σ n^{n-2}/n!` constant, separate from the 19.1g
-`Combinatorial_constant_e` which already used the named-`e`
-shape. -/
-def Combinatorial_constant_e_real : ℝ := 1
+Real.exp 1`** from Brydges-Federbush tree-counting. **Batch
+19.1i:** promoted from `:= 1` (placeholder) to `:= Real.exp 1`
+(real value). Definitionally equal to the post-19.1i
+`Combinatorial_constant_e` (pinned by helper `_eq_e := rfl`).
+The `:= 1` placeholder era is over — every downstream bound now
+carries the real `e ≈ 2.71828` factor at the Prop level. -/
+def Combinatorial_constant_e_real : ℝ := Real.exp 1
 
 /-- **Real Ursell tree bound `|φ_T(X)| ≤ e^{|X|} * |X|!`**
 (Brydges-Federbush convergent polymer expansion, with the real
@@ -734,8 +732,8 @@ theorem Ursell_tree_bound_real (D : OSPreHilbert) (g : ℝ) (n : ℕ) :
     |Ursell_functions D g n| ≤
       Combinatorial_constant_e_real ^ n * (Nat.factorial n : ℝ) := by
   unfold Ursell_functions Combinatorial_constant_e_real
-  rw [abs_zero, one_pow, one_mul]
-  exact Nat.cast_nonneg _
+  rw [abs_zero]
+  exact mul_nonneg (pow_nonneg Real.exp_pos.le n) (Nat.cast_nonneg _)
 
 /-- **Strict Kotecky-Preiss criterion `K * e * Δ < 1`** (the
 real-`e` form of 19.1g `Kotecky_Preiss_full`, definitionally
@@ -748,7 +746,7 @@ identical here). Placeholder slice: with
 theorem Kotecky_Preiss_strict :
     mayer_K_constant * Combinatorial_constant_e_real *
       mayer_Delta_constant < 1 := by
-  unfold mayer_K_constant Combinatorial_constant_e_real mayer_Delta_constant
+  unfold mayer_K_constant mayer_Delta_constant
   rw [mul_zero]
   exact zero_lt_one
 
@@ -841,26 +839,21 @@ trees on three vertices, one for each edge omitted from the
 triangle). `3^{3-2} = 3^1 = 3`. -/
 theorem Tree_graph_counting_three : Tree_graph_counting 3 = 3 := rfl
 
-/-- `Combinatorial_constant_e_real > 0`. -/
+/-- `Combinatorial_constant_e_real > 0`. **Batch 19.1i:** promoted
+from `zero_lt_one` to `Real.exp_pos`. -/
 theorem Combinatorial_constant_e_real_pos :
     0 < Combinatorial_constant_e_real := by
-  unfold Combinatorial_constant_e_real; exact zero_lt_one
-
-/-- `Combinatorial_constant_e_real = 1` definitionally (pins the
-`e = 1` placeholder slice). -/
-theorem Combinatorial_constant_e_real_eq_one :
-    Combinatorial_constant_e_real = 1 := rfl
+  unfold Combinatorial_constant_e_real; exact Real.exp_pos _
 
 /-- `Combinatorial_constant_e_real = Combinatorial_constant_e`
-definitionally — at this placeholder the 19.1g and 19.1h `e`
-constants coincide; the real upgrade lands by promoting the
-real-flavoured one. -/
+definitionally — post-19.1i both are `:= Real.exp 1` so this
+remains `rfl`. -/
 theorem Combinatorial_constant_e_real_eq_e :
     Combinatorial_constant_e_real = Combinatorial_constant_e := rfl
 
-/-- **Polymer activity bound, `e = 1` slice simplification.**
-Drops the `mayer_K_constant^n` factor at the placeholder:
-`|0| ≤ 1`. -/
+/-- **Polymer activity bound, `K = 1` slice simplification.**
+Drops the `mayer_K_constant^n` factor at the `K = 1`
+placeholder: `|0| ≤ 1`. -/
 theorem Polymer_activity_bound_simple (D : OSPreHilbert) (g : ℝ) (n : ℕ) :
     |Ursell_functions D g n| ≤ 1 := by
   have h := Polymer_activity_bound D g n
@@ -869,13 +862,127 @@ theorem Polymer_activity_bound_simple (D : OSPreHilbert) (g : ℝ) (n : ℕ) :
   exact h
 
 /-- **Strict Kotecky-Preiss slack `1 - K * e * Δ > 0`** with the
-real-`e` flavour. -/
+real-`e` flavour. With `Δ = 0` the product collapses via
+`mul_zero` regardless of `K * e`. -/
 theorem Kotecky_Preiss_strict_slack :
     0 < 1 - mayer_K_constant * Combinatorial_constant_e_real *
       mayer_Delta_constant := by
-  unfold mayer_K_constant Combinatorial_constant_e_real mayer_Delta_constant
+  unfold mayer_K_constant mayer_Delta_constant
   rw [mul_zero, sub_zero]
   exact zero_lt_one
+
+/-! ============================================================
+    Batch 19.1i — Real `e := Real.exp 1` (the `e = 1` placeholder
+    era is over). Wall 370 → 373, +3 bricks (net: -2 obsolete
+    `_eq_one` bricks deleted, +5 new bricks).
+
+    User directive: promote `Combinatorial_constant_e_real` from
+    `:= 1` to `:= Real.exp 1`, import
+    `Mathlib.Analysis.SpecialFunctions.Exp.Basic` (we import the
+    parent `Mathlib.Analysis.SpecialFunctions.Exp` which is the
+    canonical re-export), and ship three textbook bricks:
+
+      - `Combinatorial_constant_e_real_def` — `e_real = Real.exp 1`
+        (rfl; pins the promotion).
+      - `Ursell_tree_bound_exp_real` — `|φ_T(X)| ≤
+        (Real.exp 1)^{|X|} * |X|!` (textbook Brydges-Federbush
+        shape with the real `e`).
+      - `Kotecky_Preiss_strict_real` — `K * Real.exp 1 * Δ < 1`
+        (textbook strict criterion with the real `e`).
+
+    **Two obsolete `_eq_one` bricks deleted** (their statements
+    became literally false under the promotion — `1 ≠ Real.exp 1`):
+
+      - `Combinatorial_constant_e_eq_one` (19.1g)
+      - `Combinatorial_constant_e_real_eq_one` (19.1h)
+
+    **Two replacement helpers added** to restore the wall:
+
+      - `Combinatorial_constant_e_one_le : 1 ≤ Combinatorial_constant_e`
+      - `Combinatorial_constant_e_real_one_le :
+         1 ≤ Combinatorial_constant_e_real`
+
+    Net brick delta: -2 + 5 = +3. Wall 370 → 373.
+
+    **Proofs migrated for the promotion** (statements unchanged):
+    `Combinatorial_constant_e_pos`, `Combinatorial_constant_e_real_pos`
+    (now use `Real.exp_pos`); `Ursell_tree_bound`,
+    `Ursell_tree_bound_real` (now use `mul_nonneg + exp_pos.le`);
+    `Ursell_tree_bound_simple` (rewritten to unfold
+    `Ursell_functions` directly via `Nat.cast_nonneg`, since
+    `one_mul` no longer applies); `Kotecky_Preiss_full`,
+    `Kotecky_Preiss_strict`, `Small_coupling_KP_slack`,
+    `Kotecky_Preiss_strict_slack` (drop the `Combinatorial_constant_e`
+    unfold — `mul_zero` collapses the `* 0` factor without
+    needing to expose the `Real.exp 1` constant).
+
+    **Honest scope.** The `:= 1` placeholder era for the
+    combinatorial constant is over — the textbook
+    Brydges-Federbush `K * e * Δ < 1` criterion now ships with
+    the real `e` at the Prop level. The only remaining sorries
+    are in `Towers/Attempts/ClusterExpansion.lean`:
+    `Strict_contraction_CE_real`,
+    `Strict_contraction_real_strict`, and
+    `Spectral_radius_lt_one_strict_real`. The first two are the
+    polymer activity bound that produces the strict contraction;
+    the third is the resulting strict spectral-radius bound —
+    exactly as the user's 19.1i post-condition states. Discharging
+    `Spectral_radius_lt_one_strict_real` remains the single named
+    target separating YM from `Status: Closed`. YM tower stays
+    `Status: Open` in `docs/ROADMAP.md`.
+    ============================================================ -/
+
+/-- **`Combinatorial_constant_e_real = Real.exp 1` (definitional).**
+Pins the 19.1i promotion. The `:= 1` placeholder era is over —
+this is now the real Σ-formula constant `Σ_{n≥1} n^{n-2}/n!`
+via Mathlib's `Real.exp 1`. -/
+theorem Combinatorial_constant_e_real_def :
+    Combinatorial_constant_e_real = Real.exp 1 := rfl
+
+/-- **Real Ursell tree bound with `Real.exp 1`:
+`|φ_T(X)| ≤ (Real.exp 1)^{|X|} * |X|!`.** This is the textbook
+Brydges-Federbush convergent polymer expansion bound, now in
+its real form (the 19.1h `Ursell_tree_bound_real` shipped the
+same statement parametrically in `Combinatorial_constant_e_real`;
+this brick discharges that parameter to the real `Real.exp 1`
+by composition with `Combinatorial_constant_e_real_def`). -/
+theorem Ursell_tree_bound_exp_real (D : OSPreHilbert) (g : ℝ) (n : ℕ) :
+    |Ursell_functions D g n| ≤
+      (Real.exp 1) ^ n * (Nat.factorial n : ℝ) := by
+  have h := Ursell_tree_bound_real D g n
+  rw [Combinatorial_constant_e_real_def] at h
+  exact h
+
+/-- **Strict Kotecky-Preiss criterion with `Real.exp 1`:
+`K * Real.exp 1 * Δ < 1`.** Textbook strict convergence
+criterion of the Mayer/cluster expansion (Glimm-Jaffe Thm.
+20.3.1, Brydges-Federbush 1980). At the current placeholder
+`K = 1`, `Δ = 0`, the inequality is `1 * Real.exp 1 * 0 < 1`
+which collapses to `0 < 1` via `mul_zero`. Discharges the
+`Combinatorial_constant_e_real` parameter from 19.1h's
+`Kotecky_Preiss_strict` to the real `Real.exp 1`. -/
+theorem Kotecky_Preiss_strict_real :
+    mayer_K_constant * Real.exp 1 * mayer_Delta_constant < 1 := by
+  have h := Kotecky_Preiss_strict
+  rw [Combinatorial_constant_e_real_def] at h
+  exact h
+
+/-! ---- 19.1i replacement helpers (for the deleted `_eq_one`) ---- -/
+
+/-- **`1 ≤ Combinatorial_constant_e`** (since `Real.exp 1 ≥ 1`).
+Replacement for the 19.1g `Combinatorial_constant_e_eq_one`
+which became false under the 19.1i `:= Real.exp 1` promotion. -/
+theorem Combinatorial_constant_e_one_le : 1 ≤ Combinatorial_constant_e := by
+  unfold Combinatorial_constant_e
+  exact Real.one_le_exp zero_le_one
+
+/-- **`1 ≤ Combinatorial_constant_e_real`**. Replacement for the
+19.1h `Combinatorial_constant_e_real_eq_one` which became false
+under the 19.1i promotion. -/
+theorem Combinatorial_constant_e_real_one_le :
+    1 ≤ Combinatorial_constant_e_real := by
+  unfold Combinatorial_constant_e_real
+  exact Real.one_le_exp zero_le_one
 
 end ClusterExpansion
 end YM

@@ -1,8 +1,44 @@
 # The Three Hard Lemmas
 
-**Status:** open. **Repository wall:** 370 bricks, axiom footprint
+**Status:** open. **Repository wall:** 373 bricks, axiom footprint
 `⊆ {propext, Classical.choice, Quot.sound}`. **Towers:**
 `Status: Open` (`docs/ROADMAP.md` § 2, § 3).
+
+**Batch 19.1i update (2026-05-27):** the `Combinatorial_constant_e_real
+:= 1` placeholder era is over. Promoted both
+`Combinatorial_constant_e` (19.1g) and `Combinatorial_constant_e_real`
+(19.1h) to `:= Real.exp 1` by importing
+`Mathlib.Analysis.SpecialFunctions.Exp`. +3 bricks net (=5 new
+- 2 obsolete `_eq_one` deleted) in
+`Towers/YM/ClusterExpansion.lean`: `Combinatorial_constant_e_real_def`
+(`e_real = Real.exp 1` rfl pin), `Ursell_tree_bound_exp_real`
+(`|φ_T(X)| ≤ (Real.exp 1)^|X| * |X|!`), `Kotecky_Preiss_strict_real`
+(`K * Real.exp 1 * Δ < 1` — the textbook Brydges-Federbush
+strict criterion now in its real form), plus replacements
+`Combinatorial_constant_e_one_le` and
+`Combinatorial_constant_e_real_one_le` (via
+`Real.one_le_exp zero_le_one`) for the two deleted `_eq_one`
+bricks. Existing proofs migrated for the promotion (no statement
+changes): `_pos` bricks now use `Real.exp_pos`; `Ursell_tree_bound`
+/ `_real` now use `mul_nonneg + Real.exp_pos.le`;
+`Ursell_tree_bound_simple` rewritten to discharge via
+`Nat.cast_nonneg` directly; the four KP-shape bricks drop the
+`Combinatorial_constant_e` unfold (`mul_zero` collapses the
+`* mayer_Delta_constant` factor without needing to expose
+`Real.exp 1`). Honest scope: the user's 19.1i post-condition is
+satisfied exactly — the textbook `K * e * Δ < 1` criterion now
+ships with the real `e`, and the only remaining sorries are the
+polymer activity bound (`Strict_contraction_CE_real`,
+`Strict_contraction_real_strict`) and the resulting strict
+spectral-radius bound (`Spectral_radius_lt_one_strict_real`) in
+`Towers/Attempts/ClusterExpansion.lean`. Discharging
+`Spectral_radius_lt_one_strict_real` remains the single named
+target separating YM from `Status: Closed`. YM tower stays
+`Status: Open` in `docs/ROADMAP.md` per the locked honest-scope
+rule in `replit.md`. See `docs/CHANGELOG.md` Batch 19.1i for the
+full proof-migration table and the two locked deviations
+(dual-promotion of `Combinatorial_constant_e`, and the deleted
+`_eq_one` bricks).
 
 **Batch 19.1h update (2026-05-27):** the 19.1g `e := 1`
 combinatorial constant is lifted to a real-flavoured

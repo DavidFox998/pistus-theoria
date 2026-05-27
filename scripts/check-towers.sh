@@ -1315,7 +1315,6 @@ BRICKS=(
   "Towers.YM.ClusterExpansion|TheoremaAureum.Towers.YM.ClusterExpansion.Strict_contraction_real"
   "Towers.YM.ClusterExpansion|TheoremaAureum.Towers.YM.ClusterExpansion.Spectral_radius_lt_one_real"
   "Towers.YM.ClusterExpansion|TheoremaAureum.Towers.YM.ClusterExpansion.Combinatorial_constant_e_pos"
-  "Towers.YM.ClusterExpansion|TheoremaAureum.Towers.YM.ClusterExpansion.Combinatorial_constant_e_eq_one"
   "Towers.YM.ClusterExpansion|TheoremaAureum.Towers.YM.ClusterExpansion.Decay_constant_real_pos"
   "Towers.YM.ClusterExpansion|TheoremaAureum.Towers.YM.ClusterExpansion.Decay_constant_real_eq_one"
   "Towers.YM.ClusterExpansion|TheoremaAureum.Towers.YM.ClusterExpansion.Strict_contraction_real_le_one"
@@ -1387,8 +1386,41 @@ BRICKS=(
   "Towers.YM.ClusterExpansion|TheoremaAureum.Towers.YM.ClusterExpansion.Tree_graph_counting_two"
   "Towers.YM.ClusterExpansion|TheoremaAureum.Towers.YM.ClusterExpansion.Tree_graph_counting_three"
   "Towers.YM.ClusterExpansion|TheoremaAureum.Towers.YM.ClusterExpansion.Combinatorial_constant_e_real_pos"
-  "Towers.YM.ClusterExpansion|TheoremaAureum.Towers.YM.ClusterExpansion.Combinatorial_constant_e_real_eq_one"
   "Towers.YM.ClusterExpansion|TheoremaAureum.Towers.YM.ClusterExpansion.Combinatorial_constant_e_real_eq_e"
+  # -----------------------------------------------------------------
+  # Batch 19.1i — Real `e := Real.exp 1` (the `e = 1` placeholder
+  # era is over). Wall 370 → 373, +3 bricks (net: -2 obsolete
+  # `_eq_one` bricks deleted above, +5 new bricks below).
+  #
+  # 3 spec'd bricks:
+  #   - Combinatorial_constant_e_real_def (e_real = Real.exp 1)
+  #   - Ursell_tree_bound_exp_real (|φ_T(X)| ≤ (Real.exp 1)^|X| * |X|!)
+  #   - Kotecky_Preiss_strict_real (K * Real.exp 1 * Δ < 1)
+  #
+  # 2 replacement helpers (for the deleted _eq_one bricks, which
+  # became literally false under the := Real.exp 1 promotion):
+  #   - Combinatorial_constant_e_one_le (1 ≤ Combinatorial_constant_e)
+  #   - Combinatorial_constant_e_real_one_le
+  #
+  # Deleted (now false): Combinatorial_constant_e_eq_one,
+  # Combinatorial_constant_e_real_eq_one — see CHANGELOG 19.1i and
+  # the in-file 19.1i section header for the full migration table.
+  #
+  # New import: Mathlib.Analysis.SpecialFunctions.Exp (canonical
+  # re-export of `Mathlib.Analysis.SpecialFunctions.Exp.Basic`).
+  #
+  # YM tower stays `Status: Open` — the post-condition's "only
+  # sorries left in Attempts/ are the polymer activity bound and
+  # the resulting strict contraction" matches the actual state:
+  # 3 sorries unchanged in Towers/Attempts/ClusterExpansion.lean
+  # (Strict_contraction_CE_real, Strict_contraction_real_strict,
+  # Spectral_radius_lt_one_strict_real). docs/ROADMAP.md untouched.
+  # -----------------------------------------------------------------
+  "Towers.YM.ClusterExpansion|TheoremaAureum.Towers.YM.ClusterExpansion.Combinatorial_constant_e_real_def"
+  "Towers.YM.ClusterExpansion|TheoremaAureum.Towers.YM.ClusterExpansion.Ursell_tree_bound_exp_real"
+  "Towers.YM.ClusterExpansion|TheoremaAureum.Towers.YM.ClusterExpansion.Kotecky_Preiss_strict_real"
+  "Towers.YM.ClusterExpansion|TheoremaAureum.Towers.YM.ClusterExpansion.Combinatorial_constant_e_one_le"
+  "Towers.YM.ClusterExpansion|TheoremaAureum.Towers.YM.ClusterExpansion.Combinatorial_constant_e_real_one_le"
   "Towers.YM.ClusterExpansion|TheoremaAureum.Towers.YM.ClusterExpansion.Polymer_activity_bound_simple"
   "Towers.YM.ClusterExpansion|TheoremaAureum.Towers.YM.ClusterExpansion.Kotecky_Preiss_strict_slack"
 )

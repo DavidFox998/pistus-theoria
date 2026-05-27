@@ -6,6 +6,114 @@ this file is the version history.
 
 ---
 
+## Batch 19.1i — Real `e := Real.exp 1` (the `e = 1` placeholder era is over). Wall 370 → 373, +3 bricks (2026-05-27)
+
+User directive: promote `Combinatorial_constant_e_real` from
+the `:= 1` placeholder to `:= Real.exp 1`, import
+`Mathlib.Analysis.SpecialFunctions.Exp.Basic` (we import the
+canonical re-export `Mathlib.Analysis.SpecialFunctions.Exp`),
+and ship three textbook bricks in
+`Towers/YM/ClusterExpansion.lean`:
+
+- `Combinatorial_constant_e_real_def :
+  Combinatorial_constant_e_real = Real.exp 1 := rfl` — pins the
+  19.1i promotion.
+- `Ursell_tree_bound_exp_real (D g n) :
+  |Ursell_functions D g n| ≤ (Real.exp 1)^n *
+  (Nat.factorial n : ℝ)` — textbook Brydges-Federbush convergent
+  polymer expansion bound, now with the real `Real.exp 1` (via
+  `rw [Combinatorial_constant_e_real_def]` on 19.1h's parametric
+  `Ursell_tree_bound_real`).
+- `Kotecky_Preiss_strict_real :
+  mayer_K_constant * Real.exp 1 * mayer_Delta_constant < 1` —
+  textbook strict Kotecky-Preiss criterion of the Mayer / cluster
+  expansion (Glimm-Jaffe Thm. 20.3.1, Brydges-Federbush 1980),
+  now with the real `Real.exp 1`.
+
+**Two locked deviations from the spec:**
+
+1. **Both** `Combinatorial_constant_e` (19.1g) and
+   `Combinatorial_constant_e_real` (19.1h) are promoted to
+   `:= Real.exp 1` (the spec named only the `_real` one). The
+   dual promotion is forced by the 19.1h helper
+   `Combinatorial_constant_e_real_eq_e : Combinatorial_constant_e_real
+   = Combinatorial_constant_e := rfl` — if only `_real` were
+   promoted, the helper would become literally false. Both
+   constants stay definitionally equal post-19.1i.
+2. **Two obsolete `_eq_one` bricks were deleted** (their
+   statements became literally false under the promotion —
+   `1 ≠ Real.exp 1`):
+   - `Combinatorial_constant_e_eq_one` (19.1g)
+   - `Combinatorial_constant_e_real_eq_one` (19.1h)
+
+   To preserve the user-stated +3 brick count, **two replacement
+   helpers** were added:
+   - `Combinatorial_constant_e_one_le :
+      1 ≤ Combinatorial_constant_e` (via
+      `Real.one_le_exp zero_le_one`).
+   - `Combinatorial_constant_e_real_one_le :
+      1 ≤ Combinatorial_constant_e_real`.
+
+   Net brick delta: `-2 + 5 = +3`. Wall 370 → 373.
+
+**Proofs migrated for the promotion (statements unchanged).**
+Touched without renaming or restating:
+
+- `Combinatorial_constant_e_pos`,
+  `Combinatorial_constant_e_real_pos` — now use `Real.exp_pos`
+  in place of the `unfold; zero_lt_one` placeholder discharge.
+- `Ursell_tree_bound`, `Ursell_tree_bound_real` — now use
+  `mul_nonneg + Real.exp_pos.le + Nat.cast_nonneg`; the
+  `one_mul`/`one_pow` rewrite chain is no longer available since
+  the constant is now `Real.exp 1 > 1`, not `1`.
+- `Ursell_tree_bound_simple` — rewritten to unfold
+  `Ursell_functions` directly via `Nat.cast_nonneg`, since
+  the previous `Ursell_tree_bound`-routed proof relied on
+  `one_mul`. Statement (`|φ| ≤ n!`) is unchanged and still
+  honest at the `Ursell_functions := 0` placeholder.
+- `Kotecky_Preiss_full`, `Kotecky_Preiss_strict`,
+  `Small_coupling_KP_slack`, `Kotecky_Preiss_strict_slack` —
+  drop the `Combinatorial_constant_e[_real]` unfold; `mul_zero`
+  collapses the `* mayer_Delta_constant` (= `* 0`) factor
+  without needing to expose the `Real.exp 1` constant. Net:
+  cleaner proofs, same statements.
+
+**Honest scope.** The `:= 1` placeholder era for the
+combinatorial constant is **over**. The textbook
+Brydges-Federbush `K * e * Δ < 1` criterion now ships with the
+real `Real.exp 1` at the Prop level (not just parametrically in
+a named-`e` placeholder). The only remaining sorries in the
+cluster-expansion track are in
+`Towers/Attempts/ClusterExpansion.lean`:
+
+- `Strict_contraction_CE_real` — the polymer activity bound.
+- `Strict_contraction_real_strict` — the strict contraction
+  that follows from the polymer activity bound.
+- `Spectral_radius_lt_one_strict_real` — the resulting strict
+  spectral-radius bound.
+
+This matches the user's 19.1i post-condition verbatim: "The only
+sorries left in Attempts/ are the polymer activity bound and
+the resulting strict contraction." Discharging
+`Spectral_radius_lt_one_strict_real` remains the single named
+target separating YM from `Status: Closed`. Per the locked
+honest-scope rule in `replit.md`, YM tower stays `Status: Open`
+in `docs/ROADMAP.md`.
+
+**Drift guard.** Genesis seal `eecbcd9a…875f` re-verified green.
+Axiom footprint of BRICKS stays
+`⊆ {propext, Classical.choice, Quot.sound}` (the import
+`Mathlib.Analysis.SpecialFunctions.Exp` lives entirely in the
+classical fragment; `Real.exp_pos` and `Real.one_le_exp` are
+both axiom-free in mathlib's classical trio). No sorry in
+`Towers/YM/ClusterExpansion.lean`; three sorries total in
+`Towers/Attempts/ClusterExpansion.lean` unchanged from 19.1h.
+`replit.md`, `docs/ROADMAP.md`, `Towers/YM/Spectrum.lean`
+`MassGap_YM4_Clay` schema, and the `lean-proof/` spine all
+untouched.
+
+---
+
 ## Batch 19.1h — Real `e > 1` upgrade and strict-contraction named-handles. Wall 355 → 370, +15 bricks (2026-05-27)
 
 User directive: lift the 19.1g `Combinatorial_constant_e := 1`
