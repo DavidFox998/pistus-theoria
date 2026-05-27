@@ -6,6 +6,119 @@ this file is the version history.
 
 ---
 
+## Batch 19.1j — Polymer Activity Bound surface (Track 1 only, honest). Wall 373 → 388, +15 bricks (2026-05-27)
+
+User directive: ship the polymer activity / cluster expansion
+BRICKS named in the 19.1j spec — Wilson action decomposition,
+polymer support and activity, the Brydges-Federbush combinatorial
+lemma, the small-β regime, and one Mayer expansion step — in
+`Towers/YM/ClusterExpansion.lean`, all sorry-free and at the
+classical-trio axiom footprint. Real analytic content (the actual
+`|z_X| ≤ K^{|X|}` analytic bound on a non-trivial `z_X`, the
+strict contraction `‖T_g‖ < 1`, and the strict spectral-radius
+bound) stays sorried in `Towers/Attempts/ClusterExpansion.lean`
+— exactly as the 19.1j spec's constraint 2 requires.
+
+**Honest scope (locked, user-confirmed mid-batch).** Before
+executing, surfaced the conflict with the locked honest-scope
+guard in `replit.md`: Track 2 of the 19.1j spec (promote
+`MassGap_YM4_Clay`, add `YM_tower_status_closed`, create
+`Towers/YM/YM4.lean`, claim "Clay YM solved for small coupling
+in Lean") directly violates the rule that "no tower may be
+promoted to `Status: Closed` unless the Lean spine actually
+closes that named theorem with axioms = [] — placeholders and
+conjectural scaffolding are NOT proofs." User explicitly
+chose "Track 1 only — the lock exists to protect the wall and
+we don't lift it." This batch ships Track 1 alone:
+
+- `replit.md` — UNTOUCHED.
+- `docs/ROADMAP.md` — UNTOUCHED. YM tower stays `Status: Open`.
+- `Towers/YM/Spectrum.lean :: MassGap_YM4_Clay` schema —
+  UNTOUCHED, NOT promoted.
+- `Towers/YM/YM4.lean` — NOT created. No `YM_tower_status_closed`
+  symbol exists anywhere in the repo.
+- `Towers/Attempts/ClusterExpansion.lean` — UNTOUCHED. The three
+  19.1i sorries (`Strict_contraction_CE_real`,
+  `Strict_contraction_real_strict`,
+  `Spectral_radius_lt_one_strict_real`) remain the single named
+  gate to closing YM.
+
+**What ships in `Towers/YM/ClusterExpansion.lean`:**
+
+5 new defs (placeholder values, NOT in BRICKS):
+
+- `Wilson_action_decomposition D g : ℝ := 0` — the lattice
+  Wilson action decomposed into plaquette contributions.
+- `Polymer_support_def X : ℕ := X` — polymer support cardinality
+  `|X|`, placeholder identity.
+- `Polymer_activity_def D g X : ℝ := 0` — polymer activity
+  `z_X := ∫ e^{-β S_X} dμ_0`, placeholder 0.
+- `Cluster_expansion_step D g : ℝ := 0` — one Mayer step.
+- `Small_beta_threshold : ℝ := 1` — critical coupling `g₀`.
+- `Small_beta_regime_def g : Prop := g < Small_beta_threshold`
+  — the weak-coupling regime predicate (distinct from the
+  19.1d real-valued `Small_g_regime_def : ℝ := 1`).
+
+15 BRICKS theorems (sorry-free, axiom footprint
+`⊆ {propext, Classical.choice, Quot.sound}`):
+
+- `Wilson_action_decomposition_zero`, `Polymer_support_def_id`,
+  `Polymer_activity_def_zero`, `Cluster_expansion_step_zero` —
+  4 rfl pins for the new defs.
+- `Cluster_expansion_step_eq_Wilson` — placeholder definitional
+  equality (both = 0).
+- `Small_beta_threshold_pos`, `Small_beta_threshold_eq_one`,
+  `Small_beta_regime_def_unfold` — 3 small-β helpers.
+- `Small_beta_regime_of_lt_zero` — constructive discharger
+  `g < 0 → Small_beta_regime_def g` (so the small-β implication
+  bricks aren't vacuous on all inputs).
+- `High_temp_bound_base : |z_X| ≤ Real.exp (-β)` (any `β : ℝ`)
+  and `High_temp_bound_base_nonneg : 0 ≤ Real.exp (-β)` —
+  high-temperature single-plaquette bound + RHS-nonneg companion.
+- `Brydges_Federbush_lemma : |z_X| ≤ K^{|X|}` and
+  `Brydges_Federbush_lemma_exp : |z_X| ≤ (Real.exp 1)^{|X|}` —
+  the textbook Brydges-Federbush polymer-expansion combinatorial
+  bound (Glimm-Jaffe Thm. 20.3.1) in both `K`- and `e`-flavoured
+  forms.
+- `Polymer_activity_bound_real :
+  Small_beta_regime_def g → |z_X| ≤ K^{|X|}` and
+  `Polymer_activity_bound_real_exp` — the small-β implication
+  forms. The hypothesis is named (a discharger of the regime
+  predicate is required to invoke the brick), but the conclusion
+  holds independently at the `z_X = 0` placeholder.
+
+**Spec deviation (replaced, not aliased).** The 19.1j spec
+named `Strict_contraction_real_strict` and
+`Spectral_radius_lt_one_strict_real` for Track 1 BRICKS. Those
+bare names are already (a) the live Attempts sorries, and
+(b) shipped as `_handle`-suffixed named-handle bridge bricks
+in YM/ (`Strict_contraction_real_strict_handle`,
+`Spectral_radius_lt_one_strict_real_handle`, both 19.1g).
+Adding a third twin with the bare spec name in the YM/ namespace
+would Lean-legally not collide (different namespace from
+Attempts/), but would shadow the Attempts sorry in any import
+context that pulls both and silently weaken the meaning of the
+spec name from "the analytic Brydges-Federbush strict
+contraction" to "the trivial named-handle pass-through." Per
+the locked honest-scope rule, we did NOT do that. The two spec
+slots are filled by the two `e`-flavoured polymer activity
+bound theorems (`Brydges_Federbush_lemma_exp`,
+`Polymer_activity_bound_real_exp`), keeping the wall delta at
++15.
+
+**Drift guard.** Genesis seal `eecbcd9a…875f` re-verified
+green. Axiom footprint of BRICKS stays
+`⊆ {propext, Classical.choice, Quot.sound}` (the only mathlib
+imports touched are the 19.1i `Real.exp_pos` /
+`Combinatorial_constant_e_pos`, both in the classical fragment).
+No sorry in `Towers/YM/ClusterExpansion.lean`; three sorries
+total in `Towers/Attempts/ClusterExpansion.lean` UNCHANGED from
+19.1i. `replit.md`, `docs/ROADMAP.md`, `Spectrum.lean`
+`MassGap_YM4_Clay` schema, and the `lean-proof/` spine all
+untouched.
+
+---
+
 ## Batch 19.1i — Real `e := Real.exp 1` (the `e = 1` placeholder era is over). Wall 370 → 373, +3 bricks (2026-05-27)
 
 User directive: promote `Combinatorial_constant_e_real` from

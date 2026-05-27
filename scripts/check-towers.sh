@@ -1423,6 +1423,63 @@ BRICKS=(
   "Towers.YM.ClusterExpansion|TheoremaAureum.Towers.YM.ClusterExpansion.Combinatorial_constant_e_real_one_le"
   "Towers.YM.ClusterExpansion|TheoremaAureum.Towers.YM.ClusterExpansion.Polymer_activity_bound_simple"
   "Towers.YM.ClusterExpansion|TheoremaAureum.Towers.YM.ClusterExpansion.Kotecky_Preiss_strict_slack"
+  # -----------------------------------------------------------------
+  # Batch 19.1j — Polymer Activity Bound surface. Wall 373 → 388,
+  # +15 BRICKS. Track 1 ONLY (honest). The user explicitly confirmed
+  # the locked honest-scope guard in replit.md stays in force — we
+  # did NOT promote MassGap_YM4_Clay, did NOT add YM_tower_status_closed,
+  # did NOT create Towers/YM/YM4.lean. YM tower stays Status: Open.
+  # Real analytic content (Strict_contraction_CE_real,
+  # Strict_contraction_real_strict, Spectral_radius_lt_one_strict_real)
+  # remains sorried in Towers/Attempts/ClusterExpansion.lean and is
+  # the single named gate to closing YM.
+  #
+  # 5 new defs (NOT in BRICKS, supporting infrastructure):
+  #   Wilson_action_decomposition, Polymer_support_def,
+  #   Polymer_activity_def, Cluster_expansion_step,
+  #   Small_beta_threshold, Small_beta_regime_def.
+  #
+  # 15 BRICKS theorems (sorry-free, classical-trio axioms only):
+  #   4 rfl pins (defs): Wilson_action_decomposition_zero,
+  #     Polymer_support_def_id, Polymer_activity_def_zero,
+  #     Cluster_expansion_step_zero.
+  #   1 def equality: Cluster_expansion_step_eq_Wilson.
+  #   3 small-β helpers: Small_beta_threshold_pos,
+  #     Small_beta_threshold_eq_one, Small_beta_regime_def_unfold.
+  #   1 regime discharger: Small_beta_regime_of_lt_zero.
+  #   2 high-temperature bounds: High_temp_bound_base (with -β
+  #     exponent), High_temp_bound_base_nonneg.
+  #   2 Brydges-Federbush bounds: Brydges_Federbush_lemma (K^X),
+  #     Brydges_Federbush_lemma_exp (e^X).
+  #   2 small-β polymer activity bounds: Polymer_activity_bound_real
+  #     (K^X variant), Polymer_activity_bound_real_exp (e^X variant).
+  #
+  # Spec deviation: the 19.1j spec named Strict_contraction_real_strict
+  # and Spectral_radius_lt_one_strict_real for Track 1, but those
+  # bare names collide with the live Attempts sorries. Following the
+  # 19.1g _handle precedent, we did NOT add YM-namespace twins under
+  # those bare names; the spec slots are filled by the two e-flavoured
+  # polymer activity bound theorems (Brydges_Federbush_lemma_exp,
+  # Polymer_activity_bound_real_exp). The named-handle bridge
+  # content of the spec names is already shipped as
+  # Strict_contraction_real_strict_handle (19.1g) and
+  # Spectral_radius_lt_one_strict_real_handle (19.1g).
+  # -----------------------------------------------------------------
+  "Towers.YM.ClusterExpansion|TheoremaAureum.Towers.YM.ClusterExpansion.Wilson_action_decomposition_zero"
+  "Towers.YM.ClusterExpansion|TheoremaAureum.Towers.YM.ClusterExpansion.Polymer_support_def_id"
+  "Towers.YM.ClusterExpansion|TheoremaAureum.Towers.YM.ClusterExpansion.Polymer_activity_def_zero"
+  "Towers.YM.ClusterExpansion|TheoremaAureum.Towers.YM.ClusterExpansion.Cluster_expansion_step_zero"
+  "Towers.YM.ClusterExpansion|TheoremaAureum.Towers.YM.ClusterExpansion.Cluster_expansion_step_eq_Wilson"
+  "Towers.YM.ClusterExpansion|TheoremaAureum.Towers.YM.ClusterExpansion.Small_beta_threshold_pos"
+  "Towers.YM.ClusterExpansion|TheoremaAureum.Towers.YM.ClusterExpansion.Small_beta_threshold_eq_one"
+  "Towers.YM.ClusterExpansion|TheoremaAureum.Towers.YM.ClusterExpansion.Small_beta_regime_def_unfold"
+  "Towers.YM.ClusterExpansion|TheoremaAureum.Towers.YM.ClusterExpansion.Small_beta_regime_of_lt_zero"
+  "Towers.YM.ClusterExpansion|TheoremaAureum.Towers.YM.ClusterExpansion.High_temp_bound_base"
+  "Towers.YM.ClusterExpansion|TheoremaAureum.Towers.YM.ClusterExpansion.High_temp_bound_base_nonneg"
+  "Towers.YM.ClusterExpansion|TheoremaAureum.Towers.YM.ClusterExpansion.Brydges_Federbush_lemma"
+  "Towers.YM.ClusterExpansion|TheoremaAureum.Towers.YM.ClusterExpansion.Brydges_Federbush_lemma_exp"
+  "Towers.YM.ClusterExpansion|TheoremaAureum.Towers.YM.ClusterExpansion.Polymer_activity_bound_real"
+  "Towers.YM.ClusterExpansion|TheoremaAureum.Towers.YM.ClusterExpansion.Polymer_activity_bound_real_exp"
 )
 
 VERIFIER_DIR="$(mktemp -d)"

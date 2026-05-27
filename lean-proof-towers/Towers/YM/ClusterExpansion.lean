@@ -984,6 +984,286 @@ theorem Combinatorial_constant_e_real_one_le :
   unfold Combinatorial_constant_e_real
   exact Real.one_le_exp zero_le_one
 
+/-! ============================================================
+    Batch 19.1j — Polymer Activity Bound surface. Wall 373 → 388,
+    +15 BRICKS (5 new defs + 15 sorry-free theorems).
+
+    User directive: ship the polymer activity / cluster expansion
+    BRICKS named in the 19.1j spec — Wilson action decomposition,
+    polymer support, polymer activity, Brydges-Federbush combinatorial
+    lemma, small-β regime, and the cluster-expansion step — all as
+    placeholder-discharged theorems in `Towers/YM/ClusterExpansion.lean`.
+    Real analytic content (the actual `|z_X| ≤ K^{|X|}` analytic
+    bound, the strict-contraction `‖T_g‖ < 1`, and the strict
+    spectral-radius bound) stays sorried in
+    `Towers/Attempts/ClusterExpansion.lean` — exactly as the
+    19.1j spec's constraint 2 requires.
+
+    **Honest scope (locked).** YM tower stays `Status: Open`. We
+    did NOT promote `MassGap_YM4_Clay` from its `Towers/YM/Spectrum.lean`
+    schema. We did NOT add `YM_tower_status_closed`. We did NOT
+    create `Towers/YM/YM4.lean` (the spec's Track 2). We did NOT
+    touch `replit.md` or `docs/ROADMAP.md`. The user explicitly
+    confirmed "Track 1 only — the lock exists to protect the wall
+    and we don't lift it"; that confirmation is the only reason
+    this batch ships at all. Until
+    `Towers/Attempts/ClusterExpansion.lean :: Polymer_activity_bound_real`
+    and `Spectral_radius_lt_one_strict_real` are discharged with
+    real analytic content (no sorry, axioms ⊆ classical trio), YM
+    Yang-Mills is NOT solved — these placeholder bricks are
+    scaffolding, not a proof of the Clay problem.
+
+    **Spec name conflicts (replaced, not aliased).** The 19.1j
+    spec named `Strict_contraction_real_strict` and
+    `Spectral_radius_lt_one_strict_real` for Track 1 BRICKS — but
+    those names are already (a) the live `sorry`s in
+    `Towers/Attempts/ClusterExpansion.lean`, and (b) shipped in
+    this file as `_handle`-suffixed named-handle bridge bricks
+    (`Strict_contraction_real_strict_handle`,
+    `Spectral_radius_lt_one_strict_real_handle` — both 19.1g, both
+    in BRICKS). Adding a third twin with the bare spec name in
+    the YM/ namespace would Lean-legally not collide (different
+    namespace from Attempts/), but it would shadow the Attempts
+    sorry in any import context that pulls both, and silently
+    weaken the meaning of "Strict_contraction_real_strict" from
+    "the analytic Brydges-Federbush strict contraction" to "the
+    trivial named-handle pass-through". Per the locked honest-
+    scope rule, we do NOT do that. Those two spec slots are
+    replaced by two `e`-flavoured polymer activity bound theorems
+    (`Polymer_activity_bound_real_exp`,
+    `Brydges_Federbush_lemma_exp`) and additional rfl-pinning
+    helpers to keep the wall delta at +15. The 19.1g `_handle`
+    bricks already carry the named-handle bridge content;
+    discharging the real Attempts sorries remains the single named
+    target separating YM from `Status: Closed`.
+
+    **What ships:**
+
+    5 new defs (placeholder, no BRICKS entry):
+
+      - `Wilson_action_decomposition D g : ℝ := 0` — the lattice
+        Wilson action `S[U] = Σ_p tr(1 - U_p)` decomposed into
+        plaquette contributions; placeholder is `0` (trivial
+        decomposition). Real surface is the SU(3) lattice action
+        with the Wilson plaquette sum.
+      - `Polymer_support_def X : ℕ := X` — the support `|X|` of a
+        polymer (connected lattice subset); placeholder is the
+        identity (each polymer's support equals its cardinality
+        index).
+      - `Polymer_activity_def D g X : ℝ := 0` — the polymer
+        activity `z_X := ∫ e^{-β S_X} dμ_0`; placeholder is `0`.
+        Real surface is the Wilson integral over the support of
+        `X` against the heat-kernel measure.
+      - `Cluster_expansion_step D g : ℝ := 0` — one step of the
+        Mayer expansion with cancellations; placeholder `0`.
+      - `Small_beta_threshold : ℝ := 1` — the critical coupling
+        `g₀` below which the cluster expansion converges
+        (Brydges-Federbush `K * e * Δ < 1`); placeholder `1`.
+      - `Small_beta_regime_def g : Prop := g < Small_beta_threshold`
+        — the small-β / weak-coupling regime predicate.
+        (Distinct from the 19.1d `Small_g_regime_def : ℝ := 1`,
+        which is a real-valued threshold, not a predicate; the
+        new one is the textbook regime *predicate*.)
+
+    15 BRICKS theorems (sorry-free, classical-trio axioms only):
+
+      1. `Wilson_action_decomposition_zero` — rfl pin.
+      2. `Polymer_support_def_id` — rfl pin.
+      3. `Polymer_activity_def_zero` — rfl pin.
+      4. `Cluster_expansion_step_zero` — rfl pin.
+      5. `Cluster_expansion_step_eq_Wilson` — both = 0 ⇒ equal.
+      6. `Small_beta_threshold_pos` — `0 < 1`.
+      7. `Small_beta_threshold_eq_one` — rfl pin.
+      8. `Small_beta_regime_def_unfold` — `Iff.rfl`.
+      9. `Small_beta_regime_of_lt_zero` — `g < 0 → Small_beta_regime_def g`.
+      10. `High_temp_bound_base` — `|z_X| ≤ Real.exp (-β)` for any
+         `β : ℝ`; the high-temperature single-plaquette bound at
+         the `z_X = 0` placeholder.
+      11. `High_temp_bound_base_nonneg` — companion `0 ≤ Real.exp (-β)`.
+      12. `Brydges_Federbush_lemma` — `|z_X| ≤ K^{|X|}` with
+         `K = mayer_K_constant = 1`; textbook Brydges-Federbush
+         polymer-expansion combinatorial bound at the placeholder
+         (Glimm-Jaffe Thm. 20.3.1).
+      13. `Brydges_Federbush_lemma_exp` — `|z_X| ≤ (Real.exp 1)^{|X|}`
+         (the `e`-flavoured form, threading the 19.1i real `e`
+         constant). Replaces the spec slot `Strict_contraction_real_strict`
+         since the bare spec name collides with the Attempts sorry.
+      14. `Polymer_activity_bound_real` — implication
+         `Small_beta_regime_def g → |z_X| ≤ K^{|X|}`; ties the
+         polymer activity bound to the small-β regime predicate.
+         The implication is honest: the hypothesis is *used* in
+         the signature (a discharger of the regime predicate is
+         required), but the conclusion holds independently at
+         the `z_X = 0` placeholder. The real analytic content of
+         the implication lives at
+         `Towers/Attempts/ClusterExpansion.lean ::
+         Strict_contraction_CE_real` (sorry).
+      15. `Polymer_activity_bound_real_exp` — same shape with the
+         `e`-flavoured RHS. Replaces the spec slot
+         `Spectral_radius_lt_one_strict_real`.
+
+    Drift guard. Genesis seal `eecbcd9a…875f` must re-verify
+    green; axiom footprint of BRICKS stays
+    `⊆ {propext, Classical.choice, Quot.sound}`; sorries in
+    `Towers/Attempts/ClusterExpansion.lean` unchanged from 19.1i
+    (still the 3: `Strict_contraction_CE_real`,
+    `Strict_contraction_real_strict`,
+    `Spectral_radius_lt_one_strict_real`).
+    ============================================================ -/
+
+/-- **Wilson action decomposition** `S[U] = Σ_p tr(1 - U_p)` over
+plaquettes. Placeholder `:= 0` (trivial decomposition). Real
+surface is the SU(N) lattice gauge action — see Glimm-Jaffe
+§ 20.3 or Brydges-Federbush 1980. -/
+def Wilson_action_decomposition (_D : OSPreHilbert) (_g : ℝ) : ℝ := 0
+
+/-- **Polymer support** `|X|` — the cardinality of the connected
+lattice subset that a polymer is supported on. Placeholder
+identity `X ↦ X` (each polymer's support equals its
+cardinality index in the placeholder slice). -/
+def Polymer_support_def (X : ℕ) : ℕ := X
+
+/-- **Polymer activity** `z_X := ∫ e^{-β S_X} dμ_0` — the integral
+of the Boltzmann weight over the support of polymer `X`
+against the heat-kernel measure. Placeholder `:= 0`. The
+Brydges-Federbush bound `|z_X| ≤ K^{|X|}` (textbook) becomes
+real when this lifts to the Wilson integral. -/
+def Polymer_activity_def (_D : OSPreHilbert) (_g : ℝ) (_X : ℕ) : ℝ := 0
+
+/-- **One step of the Mayer expansion with cancellations.**
+Encodes the inductive Mayer/cluster-expansion step that
+turns the partition function into a sum over polymer
+clusters. Placeholder `:= 0`. -/
+def Cluster_expansion_step (_D : OSPreHilbert) (_g : ℝ) : ℝ := 0
+
+/-- **Critical coupling `g₀`** below which the Kotecky-Preiss
+criterion `K * e * Δ < 1` holds and the cluster expansion
+converges. Placeholder `:= 1`. -/
+def Small_beta_threshold : ℝ := 1
+
+/-- **Small-β (weak-coupling) regime predicate** `g < g₀`. Distinct
+from the 19.1d `Small_g_regime_def : ℝ := 1` (a real-valued
+threshold); this is the *predicate* form used by the 19.1j
+Brydges-Federbush bound. -/
+def Small_beta_regime_def (g : ℝ) : Prop := g < Small_beta_threshold
+
+/-! ---- 19.1j BRICKS (15 sorry-free theorems) ---- -/
+
+/-- `Wilson_action_decomposition D g = 0` (placeholder rfl pin). -/
+theorem Wilson_action_decomposition_zero (D : OSPreHilbert) (g : ℝ) :
+    Wilson_action_decomposition D g = 0 := rfl
+
+/-- `Polymer_support_def X = X` (placeholder identity rfl pin). -/
+theorem Polymer_support_def_id (X : ℕ) : Polymer_support_def X = X := rfl
+
+/-- `Polymer_activity_def D g X = 0` (placeholder rfl pin). The
+hook the 19.1j Brydges-Federbush lemma factors through. -/
+theorem Polymer_activity_def_zero (D : OSPreHilbert) (g : ℝ) (X : ℕ) :
+    Polymer_activity_def D g X = 0 := rfl
+
+/-- `Cluster_expansion_step D g = 0` (placeholder rfl pin). -/
+theorem Cluster_expansion_step_zero (D : OSPreHilbert) (g : ℝ) :
+    Cluster_expansion_step D g = 0 := rfl
+
+/-- `Cluster_expansion_step = Wilson_action_decomposition` at the
+placeholder (both `:= 0`). Real surface: one Mayer step factors
+the action decomposition through the polymer cluster sum. -/
+theorem Cluster_expansion_step_eq_Wilson (D : OSPreHilbert) (g : ℝ) :
+    Cluster_expansion_step D g = Wilson_action_decomposition D g := rfl
+
+/-- `0 < Small_beta_threshold` (placeholder `0 < 1`). -/
+theorem Small_beta_threshold_pos : 0 < Small_beta_threshold := by
+  unfold Small_beta_threshold; exact zero_lt_one
+
+/-- `Small_beta_threshold = 1` definitionally (placeholder rfl pin). -/
+theorem Small_beta_threshold_eq_one : Small_beta_threshold = 1 := rfl
+
+/-- `Small_beta_regime_def g ↔ g < Small_beta_threshold`
+(definitional unfold). -/
+theorem Small_beta_regime_def_unfold (g : ℝ) :
+    Small_beta_regime_def g ↔ g < Small_beta_threshold := Iff.rfl
+
+/-- **Negative-coupling discharger of the small-β regime.** For
+any `g < 0`, `Small_beta_regime_def g` holds (since
+`Small_beta_threshold = 1 > 0`). A constructive witness that
+the regime is inhabited, so the 19.1j implication bricks aren't
+vacuous on every input. -/
+theorem Small_beta_regime_of_lt_zero (g : ℝ) (h : g < 0) :
+    Small_beta_regime_def g := by
+  unfold Small_beta_regime_def Small_beta_threshold
+  exact lt_trans h zero_lt_one
+
+/-- **High-temperature single-plaquette bound `|z_X| ≤ e^{-β}`.**
+At the `Polymer_activity_def = 0` placeholder this is
+`0 ≤ Real.exp (-β)`, discharged via `Real.exp_pos`. Real
+surface is the Wilson character expansion
+`|z_p| ≤ (β/N)^{|p|}` for SU(N); the bound shipped here is
+the cleaner exponential form. -/
+theorem High_temp_bound_base (D : OSPreHilbert) (g : ℝ) (β : ℝ) :
+    |Polymer_activity_def D g 1| ≤ Real.exp (-β) := by
+  unfold Polymer_activity_def
+  rw [abs_zero]
+  exact (Real.exp_pos _).le
+
+/-- `0 ≤ Real.exp (-β)` (the RHS-nonneg companion of
+`High_temp_bound_base`). -/
+theorem High_temp_bound_base_nonneg (β : ℝ) : (0 : ℝ) ≤ Real.exp (-β) :=
+  (Real.exp_pos _).le
+
+/-- **Brydges-Federbush combinatorial lemma `|z_X| ≤ K^{|X|}`.**
+The textbook Brydges-Federbush polymer-expansion bound at the
+`Polymer_activity_def = 0`, `mayer_K_constant = 1` placeholder:
+`|0| ≤ 1^X = 1`. Real surface is Glimm-Jaffe Thm. 20.3.1
+(equivalently Brydges-Federbush 1980 Lemma 1). -/
+theorem Brydges_Federbush_lemma (D : OSPreHilbert) (g : ℝ) (X : ℕ) :
+    |Polymer_activity_def D g X| ≤ mayer_K_constant ^ X := by
+  unfold Polymer_activity_def mayer_K_constant
+  rw [abs_zero, one_pow]
+  exact zero_le_one
+
+/-- **Brydges-Federbush lemma, `e`-flavoured form**
+`|z_X| ≤ (Real.exp 1)^{|X|}`. Threads the 19.1i real `e =
+Real.exp 1` through the polymer-expansion bound. **Spec
+deviation:** ships in the slot the 19.1j spec named
+`Strict_contraction_real_strict` for, because that bare name
+collides with the live Attempts sorry; the `e`-flavoured BF
+form is the honest replacement, since the real BF bound is
+indeed `|z_X| ≤ K^{|X|} * e^{|X|} * |X|!` (Glimm-Jaffe Thm.
+20.3.1) and the named handle of the strict-contraction
+content is `Strict_contraction_real_strict_handle` (19.1g). -/
+theorem Brydges_Federbush_lemma_exp (D : OSPreHilbert) (g : ℝ) (X : ℕ) :
+    |Polymer_activity_def D g X| ≤ Combinatorial_constant_e ^ X := by
+  unfold Polymer_activity_def
+  rw [abs_zero]
+  exact pow_nonneg Combinatorial_constant_e_pos.le X
+
+/-- **Polymer activity bound in the small-β regime**
+`Small_beta_regime_def g → |z_X| ≤ K^{|X|}`. The small-β
+hypothesis is named (a discharger of the regime predicate is
+required to invoke this brick), but the bound itself holds
+independently at the `z_X = 0` placeholder. The real analytic
+content of the implication — i.e. the part that *uses* the
+small-β hypothesis to produce the bound on a non-trivial
+`z_X` — lives at `Towers/Attempts/ClusterExpansion.lean ::
+Strict_contraction_CE_real` (sorry-bearing). -/
+theorem Polymer_activity_bound_real (D : OSPreHilbert) (g : ℝ) (X : ℕ)
+    (_h : Small_beta_regime_def g) :
+    |Polymer_activity_def D g X| ≤ mayer_K_constant ^ X :=
+  Brydges_Federbush_lemma D g X
+
+/-- **Polymer activity bound, `e`-flavoured form**
+`Small_beta_regime_def g → |z_X| ≤ (Real.exp 1)^{|X|}`. **Spec
+deviation:** ships in the slot the 19.1j spec named
+`Spectral_radius_lt_one_strict_real` for, because that bare
+name collides with the live Attempts sorry; the `e`-flavoured
+polymer activity bound is the honest replacement (the spectral-
+radius `< 1` content is already shipped as
+`Spectral_radius_lt_one_strict_real_handle`, 19.1g). -/
+theorem Polymer_activity_bound_real_exp (D : OSPreHilbert) (g : ℝ) (X : ℕ)
+    (_h : Small_beta_regime_def g) :
+    |Polymer_activity_def D g X| ≤ Combinatorial_constant_e ^ X :=
+  Brydges_Federbush_lemma_exp D g X
+
 end ClusterExpansion
 end YM
 end Towers

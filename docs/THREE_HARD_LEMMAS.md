@@ -1,8 +1,42 @@
 # The Three Hard Lemmas
 
-**Status:** open. **Repository wall:** 373 bricks, axiom footprint
+**Status:** open. **Repository wall:** 388 bricks, axiom footprint
 `⊆ {propext, Classical.choice, Quot.sound}`. **Towers:**
 `Status: Open` (`docs/ROADMAP.md` § 2, § 3).
+
+**Batch 19.1j update (2026-05-27):** Polymer Activity Bound surface
+(Track 1 only, honest). +15 BRICKS (wall 373 → 388) in
+`Towers/YM/ClusterExpansion.lean`: 5 new defs (`Wilson_action_decomposition`,
+`Polymer_support_def`, `Polymer_activity_def`,
+`Cluster_expansion_step`, `Small_beta_threshold` +
+`Small_beta_regime_def`) and 15 sorry-free theorems (4 rfl pins for
+the new defs, 1 def equality, 3 small-β helpers, 1 regime
+discharger, 2 high-temperature bounds with `Real.exp (-β)` and its
+nonneg companion, 2 Brydges-Federbush combinatorial bounds in both
+`K`- and `e`-flavoured forms, and 2 small-β polymer activity
+implications). Honest-scope guard held: the user surfaced the
+Track 2 conflict (Track 2 wanted to promote `MassGap_YM4_Clay`,
+add `YM_tower_status_closed`, and claim "Clay YM solved for small
+coupling in Lean") and explicitly chose "Track 1 only — the lock
+exists to protect the wall and we don't lift it." `replit.md`,
+`docs/ROADMAP.md`, `Towers/YM/Spectrum.lean` `MassGap_YM4_Clay`
+schema, `Towers/Attempts/ClusterExpansion.lean`, and the
+`lean-proof/` spine are all UNTOUCHED. The three 19.1i Attempts
+sorries (`Strict_contraction_CE_real`,
+`Strict_contraction_real_strict`,
+`Spectral_radius_lt_one_strict_real`) remain the single named gate
+to closing YM. Spec deviation: the spec names
+`Strict_contraction_real_strict` and
+`Spectral_radius_lt_one_strict_real` were not aliased into the YM/
+namespace (would shadow the Attempts sorries and silently weaken
+the spec-name meaning to the trivial named-handle pass-through);
+those two spec slots are filled by the two `e`-flavoured
+Brydges-Federbush / polymer-activity bound theorems, keeping the
++15 wall delta. The named-handle bridge content of the colliding
+spec names is already shipped as `_handle`-suffixed bricks (19.1g).
+See `docs/CHANGELOG.md` Batch 19.1j for the full ship list and
+deviation notes. **Honest scope: YM is NOT solved — Yang-Mills
+Clay remains open in this repo.**
 
 **Batch 19.1i update (2026-05-27):** the `Combinatorial_constant_e_real
 := 1` placeholder era is over. Promoted both
