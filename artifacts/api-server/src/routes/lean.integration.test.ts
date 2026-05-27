@@ -528,7 +528,7 @@ describe("POST /api/lean/verify/rebuild/stream — auth & error envelopes", () =
     const res = await openStream({ authorization: "Bearer x" });
     expect(res.status).toBe(503);
     expect(res.headers.get("content-type")).toMatch(/json/);
-    const body = await res.json();
+    const body = (await res.json()) as { error?: string };
     expect(body.error).toMatch(/disabled/i);
     expect(res.headers.get("retry-after")).toBeNull();
     expect(insertedRows).toHaveLength(0);
@@ -540,7 +540,7 @@ describe("POST /api/lean/verify/rebuild/stream — auth & error envelopes", () =
     expect(res.status).toBe(401);
     expect(res.headers.get("retry-after")).toBeNull();
     expect(res.headers.get("content-type")).toMatch(/json/);
-    const body = await res.json();
+    const body = (await res.json()) as { error?: string };
     expect(body.error).toMatch(/invalid|unauthor/i);
 
     // Parity check: JSON endpoint returns the same `error` shape on a wrong token.
@@ -566,7 +566,7 @@ describe("POST /api/lean/verify/rebuild/stream — auth & error envelopes", () =
     expect(blocked.headers.get("content-type")).toMatch(/json/);
     const blockedRetryAfter = Number(blocked.headers.get("retry-after"));
     expect(blockedRetryAfter).toBeGreaterThan(0);
-    const blockedBody = await blocked.json();
+    const blockedBody = (await blocked.json()) as { error?: string };
     expect(blockedBody.error).toMatch(/too many|locked|wait/i);
 
     // Parity check: JSON endpoint sees the same locked-out IP and returns the same envelope shape.
@@ -773,7 +773,7 @@ describe("rebuild cooldown surfaces Retry-After (429) even with a valid token", 
     expect(second.headers.get("content-type")).toMatch(/json/);
     const retryAfter = Number(second.headers.get("retry-after"));
     expect(retryAfter).toBeGreaterThan(0);
-    const body = await second.json();
+    const body = (await second.json()) as { error?: string };
     expect(body.error).toMatch(/rate-limited/i);
 
     // No history row was inserted for the rejected second attempt.

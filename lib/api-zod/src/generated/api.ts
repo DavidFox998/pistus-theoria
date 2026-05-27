@@ -86,7 +86,7 @@ export const UpdateCertificateParams = zod.object({
 export const UpdateCertificateBody = zod.object({
   "pdfObjectPath": zod.string().nullish(),
   "notes": zod.string().nullish(),
-  "status": zod.string().nullish()
+  "status": zod.enum(['CERTIFIED', 'AWAITING', 'LOCKED', 'DISCHARGED']).optional()
 })
 
 export const UpdateCertificateResponse = zod.object({

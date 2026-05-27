@@ -49,13 +49,22 @@ export interface Certificate {
   updatedAt?: string;
 }
 
+export type CertificateUpdateStatus = typeof CertificateUpdateStatus[keyof typeof CertificateUpdateStatus];
+
+
+export const CertificateUpdateStatus = {
+  CERTIFIED: 'CERTIFIED',
+  AWAITING: 'AWAITING',
+  LOCKED: 'LOCKED',
+  DISCHARGED: 'DISCHARGED',
+} as const;
+
 export interface CertificateUpdate {
   /** @nullable */
   pdfObjectPath?: string | null;
   /** @nullable */
   notes?: string | null;
-  /** @nullable */
-  status?: string | null;
+  status?: CertificateUpdateStatus;
 }
 
 export interface CertificateSummary {

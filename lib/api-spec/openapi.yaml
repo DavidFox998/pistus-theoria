@@ -563,7 +563,8 @@ components:
         notes:
           type: ["string", "null"]
         status:
-          type: ["string", "null"]
+          type: string
+          enum: [CERTIFIED, AWAITING, LOCKED, DISCHARGED]
 
     CertificateSummary:
       type: object

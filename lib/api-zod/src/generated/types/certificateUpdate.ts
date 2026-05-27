@@ -5,12 +5,12 @@
  * Theorema Aureum 143 — Certificate Ledger API
  * OpenAPI spec version: 0.1.0
  */
+import type { CertificateUpdateStatus } from './certificateUpdateStatus';
 
 export interface CertificateUpdate {
   /** @nullable */
   pdfObjectPath?: string | null;
   /** @nullable */
   notes?: string | null;
-  /** @nullable */
-  status?: string | null;
+  status?: CertificateUpdateStatus;
 }
