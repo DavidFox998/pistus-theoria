@@ -601,6 +601,100 @@ theorem kotecky_preiss_criterion (β : ℝ) (N : ℕ) (_γ₀ : Polymer) :
     True → Converges_Mayer_expansion β N := by
   sorry
 
+/-! ============================================================
+    Batch 19.3 — Truncated Peter-Weyl ≤ heat-kernel (parked).
+
+    User-requested Batch 19.3 brick
+      `Weyl_sum_le_heat_kernel : Weyl_sum_explicit_SU3_real (1/β) N
+                                 ≤ Heat_kernel_def_real (1/β)`
+    cannot ship as a sorry-free BRICK on the YM/ wall:
+
+      * `Weyl_sum_explicit_SU3_real t N` is a **finite** Peter–Weyl
+        truncation — `Finset.sum` over `{(m,n) : m+n ≤ N}` ⊂ ℕ × ℕ
+        (`Towers/YM/ClusterExpansion.lean` line 1904).
+      * `Heat_kernel_def_real t := exp(-(c/t)) / t^4` is the
+        Varadhan / Molchanov **asymptotic shape placeholder** with
+        `heat_decay_constant := 1` (`YM/ClusterExpansion.lean`
+        line 1614). It is NOT an infinite sum; there is no
+        `Finset.sum_le_sum` route from one to the other.
+      * The honest infinite-sum companion is the parked
+        `tsum` over `ℕ × ℕ` of `(dim λ)² · exp(-(t·C₂(λ)))`
+        gestured at by the docstring of `Heat_kernel_at_identity`
+        (`YM/ClusterExpansion.lean` line 1910-1932) and pending the
+        Peter-Weyl `Summable` lemma on a compact Lie group
+        (Varadhan / Molchanov, classical analysis but not yet in
+        mathlib).
+      * Even the patched signature against `Heat_kernel_def_real`
+        is **false at N = 0, β = 1**: LHS =
+        `Weyl_sum_explicit_SU3_real_at_zero = 1` (the trivial-rep
+        `(0,0)` summand), RHS = `exp(-1) / 1^4 ≈ 0.368`. The same
+        `(0,0)` obstruction that forced Batch 19.2 to drop
+        `exists_c_per_plaquette_pw` and ship
+        `plaquette_activity_pw_ge_one` instead.
+
+    The honest gap therefore lives here as a sorry, NOT on the
+    wall. Two pieces of mathlib infrastructure are missing before
+    this implication can be discharged trio-clean:
+
+      1. `Summable` for the Peter-Weyl series
+         `∑'_{(m,n) : ℕ²} (dim λ)² · exp(-(t·C₂(λ)))` on SU(3) —
+         requires the Casimir lower bound `C₂(m,n) ≥ c · (m+n)²`
+         and a `tsum`-style geometric envelope.
+      2. The **monotone limit** identity
+         `∀ N, Weyl_sum_explicit_SU3_real t N ≤ ∑'_{(m,n)} …`,
+         i.e. that the finite Finset.sum is bounded above by the
+         tsum — `Summable.sum_le_tsum` in mathlib, but only
+         applicable once (1) lands.
+
+    Until both ship, this sorry blocks the downstream chain
+    `exists_c_per_plaquette_pw` → `polymer_activity_bound_real_pw`
+    hypothesis discharge → `kotecky_preiss_criterion` substantive
+    close. YM tower stays `Status: Open` in `docs/ROADMAP.md`.
+
+    Not registered in BRICKS. YM/ stays sorry-free. The green wall
+    stays at 452 trio-clean bricks. Attempts/ sorry count: 9 → 10.
+============================================================ -/
+
+/-- **Real-shape Peter-Weyl ≤ heat-kernel (parked sorry).**
+The honest infinite-sum statement
+  `Weyl_sum_explicit_SU3_real t N ≤ Heat_kernel_def_real t`
+that the placeholder shape `exp(-(c/t)) / t^4` is *supposed* to
+be (eventually) the Varadhan upper envelope of the Peter–Weyl
+truncated sum on SU(3) at the identity.
+
+**Honest gap.** `Weyl_sum_explicit_SU3_real t N` is the finite
+Finset.sum truncation at `m + n ≤ N`; `Heat_kernel_def_real t`
+is the small-`t` asymptotic shape placeholder
+`exp(-(heat_decay_constant / t)) / t^4`. The bridge needs
+(a) the Peter-Weyl `Summable` lemma for SU(3) so the tsum
+`∑'_{(m,n) : ℕ²} (dim λ)² · exp(-(t·C₂(λ)))` is well-defined,
+(b) the monotone-limit comparison `finite truncation ≤ tsum`,
+and (c) the Varadhan / Molchanov asymptotic
+`tsum t ≤ heat_amplitude_constant · exp(-(c/t)) / t^4` for `t`
+small enough. None of (a)-(c) live in mathlib yet; (a) is
+classical analysis on compact Lie groups, NOT a Clay surface.
+
+**Even the patched statement is false on the wrong slice.** At
+`N = 0`, `t = 1`, LHS = `1` (the trivial-rep `(0,0)` summand,
+proven sorry-free as `Weyl_sum_explicit_SU3_real_at_zero` in
+`Towers/YM/ClusterExpansion.lean`), RHS = `exp(-1) / 1 ≈ 0.368`.
+The real statement therefore needs `t` restricted to the
+small-`t` regime where the Varadhan bound dominates, plus the
+constants `c, C` promoted away from their `:= 1` placeholders.
+
+**Blocks.** This sorry sits underneath the downstream chain
+`exists_c_per_plaquette_pw` (Batch 19.2 dropped this brick for
+the same `(0,0)` obstruction) → `polymer_activity_bound_real_pw`
+hypothesis discharge → substantive close of
+`kotecky_preiss_criterion`. YM tower stays `Status: Open`.
+
+Lives in Attempts/, not BRICKS — the green wall axiom footprint
+stays trio-clean and at 452 entries. -/
+theorem Weyl_sum_le_heat_kernel_real (t : ℝ) (_ht : 0 < t) (N : ℕ) :
+    TheoremaAureum.Towers.YM.ClusterExpansion.Weyl_sum_explicit_SU3_real t N ≤
+      TheoremaAureum.Towers.YM.ClusterExpansion.Heat_kernel_def_real t := by
+  sorry
+
 end ClusterExpansion
 end Attempts
 end Towers
