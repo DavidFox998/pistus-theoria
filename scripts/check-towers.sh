@@ -1098,6 +1098,25 @@ BRICKS=(
   "Towers.YM.OSReconstruction|TheoremaAureum.Towers.YM.OSReconstruction.ReflectionPositiveData.pullback_pullback"
   "Towers.YM.OSReconstruction|TheoremaAureum.Towers.YM.OSReconstruction.ReflectionPositiveData.vacuumFunction_apply"
   "Towers.YM.OSReconstruction|TheoremaAureum.Towers.YM.OSReconstruction.ReflectionPositiveData.pullback_vacuum"
+  # Batch 19.1b — OS Hilbert space (named-placeholder skeleton; Wall
+  # 285 → 295). Ten bricks that unpack named structure fields of the
+  # new `OSPreHilbert` bundle (extends `ReflectionPositiveData` with
+  # an abstract `osInner` form, the squared OS seminorm, the null
+  # space, the NAMED-Type `physHilbert`, the vacuum vector, and four
+  # NAMED Prop fields). The three hard theorems (OS positivity for
+  # Wilson, transfer-operator bounded, transfer-operator compact)
+  # stay OUT OF SCOPE and live in `Towers/Attempts/OSHilbert.lean`
+  # as `sorry`-bearing stubs (NOT bricks).
+  "Towers.YM.OSReconstruction|TheoremaAureum.Towers.YM.OSReconstruction.OSPreHilbert.OSInnerProduct"
+  "Towers.YM.OSReconstruction|TheoremaAureum.Towers.YM.OSReconstruction.OSPreHilbert.OSInnerProduct_symm"
+  "Towers.YM.OSReconstruction|TheoremaAureum.Towers.YM.OSReconstruction.OSPreHilbert.OSSeminorm"
+  "Towers.YM.OSReconstruction|TheoremaAureum.Towers.YM.OSReconstruction.OSPreHilbert.OSSeminorm_nonneg"
+  "Towers.YM.OSReconstruction|TheoremaAureum.Towers.YM.OSReconstruction.OSPreHilbert.OSNullSpace"
+  "Towers.YM.OSReconstruction|TheoremaAureum.Towers.YM.OSReconstruction.OSPreHilbert.OS_Hilbert_quotient"
+  "Towers.YM.OSReconstruction|TheoremaAureum.Towers.YM.OSReconstruction.OSPreHilbert.OS_Hilbert_complete"
+  "Towers.YM.OSReconstruction|TheoremaAureum.Towers.YM.OSReconstruction.OSPreHilbert.OS_Hilbert_separable"
+  "Towers.YM.OSReconstruction|TheoremaAureum.Towers.YM.OSReconstruction.OSPreHilbert.Vacuum_vector_norm_one"
+  "Towers.YM.OSReconstruction|TheoremaAureum.Towers.YM.OSReconstruction.OSPreHilbert.TimeZeroAlgebra_action"
 )
 
 VERIFIER_DIR="$(mktemp -d)"

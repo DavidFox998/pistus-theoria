@@ -6,6 +6,75 @@ this file is the version history.
 
 ---
 
+## Batch 19.1b — OS Hilbert space (named-placeholder skeleton) (2026-05-27)
+
+Second slice of the Three-Hard-Lemmas OS prerequisite. Wall
+**285 → 295** (+10 bricks). **Files:**
+`lean-proof-towers/Towers/YM/OSReconstruction.lean` (extended with
+the `OSPreHilbert` bundle) and
+`lean-proof-towers/Towers/Attempts/OSHilbert.lean` (new — three
+`sorry`-backed hard-surface stubs, NOT bricks).
+
+Adds an `OSPreHilbert` structure that extends
+`ReflectionPositiveData` with the type-level shape of the OS
+inner-product datum: an abstract bilinear form `osInner`, the
+squared seminorm `‖f‖² := ⟨f,f⟩_OS`, the null-space
+`ker := {f : ‖f‖² = 0}`, a NAMED `Type` field `physHilbert` for
+the would-be `L²/ker` completion, a vacuum vector
+`Ω : physHilbert`, and four NAMED `Prop` fields for the hard
+unconditional surfaces (Hilbert-completeness, separability,
+vacuum-norm-one, A₀-action). Ten bricks unpack these fields:
+
+- `OSInnerProduct` (def), `OSInnerProduct_symm` (thm)
+- `OSSeminorm` (def — squared form, no sqrt), `OSSeminorm_nonneg`
+  (thm)
+- `OSNullSpace` (def — `{f : ‖f‖² = 0}` as a `Set`)
+- `OS_Hilbert_quotient` (def — alias for `physHilbert`)
+- `OS_Hilbert_complete` (thm — named handle for the
+  `physHilbert_isHilbert` field)
+- `OS_Hilbert_separable` (thm — named handle for
+  `physHilbert_isSeparable`)
+- `Vacuum_vector_norm_one` (thm — named handle for
+  `vacuum_normOne`)
+- `TimeZeroAlgebra_action` (def — alias for
+  `timeZeroAlgebra_acts`)
+
+Every brick carries axiom footprint
+`⊆ {propext, Classical.choice, Quot.sound}`. No `sorry`. No new
+axioms. The three hard theorems
+(`OS_positivity_for_Wilson`, `Transfer_bounded`, `Transfer_compact`)
+live in `Towers/Attempts/OSHilbert.lean` as `sorry`-bearing
+statements that reference real fields of `OSPreHilbert`. They are
+NOT in BRICKS and do NOT contribute to the wall.
+
+**Departure from the original 19.1b plan.** The originally-planned
+"real `MeasureTheory.Lp` quotient on a constructed measure" was
+dropped: it would have required the Wilson measure (or a
+continuum Gaussian on `S'(ℝ³)`) which 19.1a deliberately leaves
+OUT OF SCOPE, and threading mathlib's `Lp` machinery would have
+pushed the sub-batch back into the unrealistic-monolith failure
+mode that triggered the original Batch 19.1 split. 19.1b instead
+uses the same NAMED-Prop / NAMED-Type pattern as 19.1a:
+`physHilbert` is a `Type` field, never inhabited; the four hard
+properties are `Prop` fields, never inhabited. The bricks unpack
+these fields as *named handles* for downstream batches (19.1c
+transfer operator, 19.1d gap surface) to reference without
+unfolding structure-field names. Documented in
+`docs/THREE_HARD_LEMMAS.md` § "Batch 19.1 split / 19.1b LANDED".
+
+**Honest-scope reminder.** This batch does NOT inhabit
+`reflectionPositive`, does NOT construct any Hilbert space, does
+NOT prove the vacuum norm-one identity, does NOT prove the
+transfer operator bounded or compact. The YM tower stays
+`Status: Open` in `docs/ROADMAP.md`. The honest-scope rule in
+`replit.md` is NOT modified. No tower is promoted out of
+`Status: Open` by this batch.
+
+Genesis seal verified intact (`eecbcd9a…875f`). Sealed files
+untouched. `replit.md` untouched.
+
+---
+
 ## Batch 19.1a — Abstract OS-reconstruction skeleton (2026-05-27)
 
 First slice of the Three-Hard-Lemmas OS prerequisite. Wall
@@ -147,7 +216,12 @@ Verification:
   `TheoremaAureum.main_theorem axioms = []` unchanged
   (HilbertSpace lives in `lean-proof-towers`, not in the
   sealed `lean-proof/` spine).
-- Sealed files untouched. Genesis seal still
+- Sealed surfaces untouched by this batch: `data/hits.txt` preamble
+  (lines 1–9), `data/THEOREMA_AUREUM_143.manifest.txt`,
+  `scripts/print-direction.sh`, and the Lean spine in `lean-proof/`
+  are all byte-identical. `data/hits.txt` line 10+ continues to grow
+  via the running `zeta-burst-*` / `zeta-sieve-*` workflows (additive,
+  Genesis-sealed prefix unchanged). Genesis seal still
   `eecbcd9a540aa7a2c90edd23827c73e4d1bb5af641d352f70a5de849b21f875f`.
 
 YM mass-gap remaining sorry count: was 3 (`HilbertSpace`,

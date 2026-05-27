@@ -1,6 +1,6 @@
 # The Three Hard Lemmas
 
-**Status:** open. **Repository wall:** 285 bricks, axiom footprint
+**Status:** open. **Repository wall:** 295 bricks, axiom footprint
 `⊆ {propext, Classical.choice, Quot.sound}`. **Towers:**
 `Status: Open` (`docs/ROADMAP.md` § 2, § 3).
 
@@ -329,14 +329,67 @@ Wilson lattice measure, Bochner–Minlos, and inhabiting
 `reflectionPositive` for any concrete action are all OUT OF
 SCOPE. YM tower stays `Status: Open`.
 
-### 19.1b — Physical Hilbert space `ℋ_phys` quotient (PLANNED)
+### 19.1b — Physical Hilbert space `ℋ_phys` quotient — schema/named-handle scaffold ✅ LANDED (NOT a real Lp/measure quotient)
 
-Construct the OS quotient `ℋ_phys := L²(Ω, dμ) / ker(⟨·, θ·⟩)`
-as a Hilbert space. Requires `MeasureTheory.Lp` on a constructed
-measure, which 19.1a does NOT supply. Bricks: ~10. Wall target:
-285 → ~295. Conditional on supplying `[MeasureSpace D.carrier]`
-and a measure `μ`; the OS-reconstruction Wilson measure remains
-out of scope for this sub-batch.
+**Wall:** 285 → 295 (+10 bricks). **File:**
+`lean-proof-towers/Towers/YM/OSReconstruction.lean` (extends the
+file from 19.1a with the new `OSPreHilbert` bundle). Hard
+theorems pinned in
+`lean-proof-towers/Towers/Attempts/OSHilbert.lean` (`sorry`-backed,
+NOT bricks).
+
+Adds an `OSPreHilbert` structure that extends
+`ReflectionPositiveData` with the *type-level shape* of the OS
+inner-product datum: an abstract bilinear form `osInner`, the
+squared seminorm `‖f‖² := ⟨f,f⟩_OS`, the null-space
+`ker := {f : ‖f‖² = 0}`, a NAMED `Type` field `physHilbert` for
+the would-be `L²/ker` completion, a vacuum vector
+`Ω : physHilbert`, and four NAMED `Prop` fields for the hard
+unconditional surfaces (completeness, separability, vacuum-norm,
+A₀ action). Ten bricks unpack these fields:
+
+- `OSInnerProduct` / `OSInnerProduct_symm` — alias + symmetry
+- `OSSeminorm` / `OSSeminorm_nonneg` — squared seminorm + PSD
+- `OSNullSpace` — `{f : ‖f‖² = 0}` as a `Set`
+- `OS_Hilbert_quotient` — alias for the `physHilbert` field
+- `OS_Hilbert_complete`, `OS_Hilbert_separable`,
+  `Vacuum_vector_norm_one`, `TimeZeroAlgebra_action` — named
+  handles for the four NAMED Prop / Type fields
+
+Every brick carries axiom footprint
+`⊆ {propext, Classical.choice, Quot.sound}`. No `sorry`. No new
+axioms.
+
+**Departure from the original 19.1b plan.** The originally-planned
+"real `MeasureTheory.Lp` quotient on a constructed measure" was
+dropped: it would have required the Wilson measure (or a continuum
+Gaussian on `S'(ℝ³)`) which 19.1a deliberately leaves OUT OF
+SCOPE, and threading mathlib's `Lp` machinery would have pushed
+the sub-batch back into the unrealistic-monolith failure mode that
+caused the 19.1 split. Instead 19.1b uses the same NAMED-Prop /
+NAMED-Type pattern as 19.1a: `physHilbert` is a `Type` field of
+the bundle, never inhabited; the four hard properties are `Prop`
+fields, never inhabited. The bricks unpack these fields as
+*named handles* downstream batches can reference without
+unfolding structure-field names. The honest mass-on-the-table is
+the same — and the BRICKS axiom-footprint guarantee is
+preserved without compromise.
+
+**What 19.1b is NOT:**
+
+- NOT a real `L²(carrier, dμ) / ker` quotient construction.
+- NOT a proof of `ℋ_phys` Hilbert-completeness, separability, or
+  `‖Ω‖ = 1` for any concrete OS data. Inhabiting any of those
+  four NAMED Prop fields for the Wilson SU(3) action is Glimm–
+  Jaffe ch. 6 + Osterwalder–Seiler 1978 territory and OUT OF
+  SCOPE.
+- NOT a proof of OS positivity for Wilson, transfer-operator
+  boundedness, or transfer-operator compactness — those land in
+  `Towers/Attempts/OSHilbert.lean` as `sorry`-backed statements
+  (`OS_positivity_for_Wilson`, `Transfer_bounded`,
+  `Transfer_compact`), explicitly excluded from BRICKS.
+
+YM tower stays `Status: Open`.
 
 ### 19.1c — Self-adjoint transfer operator `T` on `ℋ_phys` (PLANNED)
 

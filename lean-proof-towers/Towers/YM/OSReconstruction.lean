@@ -185,6 +185,188 @@ theorem pullback_vacuum (D : ReflectionPositiveData) :
 
 end ReflectionPositiveData
 
+/-
+================================================================
+Batch 19.1b — OS Hilbert space (named-placeholder skeleton).
+
+Adds an `OSPreHilbert` bundle that extends `ReflectionPositiveData`
+with the *type-level shape* of the Osterwalder–Schrader pre-Hilbert
+data: an abstract OS bilinear form `osInner`, the seminorm
+`‖f‖² := ⟨f,f⟩_OS`, the null-space `ker := {f : ‖f‖² = 0}`, the
+physical Hilbert space `ℋ_phys` (as a NAMED `Type` field — NOT the
+real `L²/ker` completion), a vacuum vector `Ω : ℋ_phys`, and four
+NAMED `Prop` fields capturing the unconditional theorems that the
+real OS reconstruction would discharge: `ℋ_phys` is a Hilbert
+space, `ℋ_phys` is separable when the carrier is, `‖Ω‖ = 1`, and
+the time-zero algebra `A₀` acts on `ℋ_phys`.
+
+Wall 285 → 295 (this addition).
+
+## What this batch IS
+
+Ten bricks that **unpack** named structure fields, in the same
+pattern as 19.1a's `theta_*` bricks: each `theorem` is a stable
+named handle for downstream batches (19.1c transfer operator,
+19.1d gap surface) to reference without unfolding structure-field
+names. Each `def` is a literal alias for a structure field. All
+ten are axiom-free or carry a footprint a subset of mathlib's
+classical trio `{propext, Classical.choice, Quot.sound}`.
+
+## What this batch IS NOT
+
+  * NOT a construction of the real `L²(carrier, dμ) / ker`
+    quotient. `physHilbert` is a NAMED `Type` field; we do not
+    build it from a measure (which would require the Wilson or
+    continuum Gaussian measure, both OUT OF SCOPE).
+  * NOT a proof of completeness, separability, or the
+    vacuum-norm-one identity for any concrete OS data. The four
+    Prop fields (`physHilbert_isHilbert`, `physHilbert_isSeparable`,
+    `vacuum_normOne`, `timeZeroAlgebra_acts`) are NAMED and never
+    inhabited in this batch. Inhabiting any of them for the Wilson
+    SU(3) action requires the Osterwalder–Seiler 1978 construction
+    plus the cyclicity/density arguments of Glimm–Jaffe ch. 6 —
+    OUT OF SCOPE.
+  * NOT a proof of OS positivity, transfer-operator boundedness,
+    or transfer-operator compactness. Those three hard theorems
+    are pinned as `sorry`-bearing statements in
+    `Towers/Attempts/OSHilbert.lean` (NOT bricks).
+  * NOT a promotion of any tower out of `Status: Open`. The YM
+    tower stays `Status: Open` in `docs/ROADMAP.md`; the honest-
+    scope rule in `replit.md` is NOT modified.
+
+================================================================
+-/
+
+/--
+**Abstract OS pre-Hilbert data.**
+
+Extends `ReflectionPositiveData` with the type-level shape of an
+Osterwalder–Schrader inner-product datum. All five additional
+fields are NAMED (never inhabited for concrete data in this
+batch). To inhabit `OSPreHilbert` for the Wilson SU(3) lattice
+gauge action one would need (a) the Wilson measure on
+`SU(3)^{|Λ|}`, (b) the OS bilinear form `osInner` from
+`∫ (θ f̄) g dμ`, (c) the `L²` completion modulo the null space —
+all OUT OF SCOPE here.
+-/
+structure OSPreHilbert extends ReflectionPositiveData where
+  /-- Abstract OS bilinear form `⟨·,·⟩_OS`. NAMED, not constructed
+      from any concrete measure. For the real construction this
+      would be `λ f g, ∫ (f ∘ θ) · g  dμ` for an OS-positive
+      measure μ. -/
+  osInner : carrier → carrier → ℝ
+  /-- The OS form is symmetric in its two arguments. NAMED axiom
+      of the bundle — for the real construction this follows from
+      the involution property of θ together with measure
+      symmetry. -/
+  osInner_symm : ∀ f g : carrier, osInner f g = osInner g f
+  /-- The OS form is positive-semidefinite on the diagonal — the
+      `‖f‖²` value `⟨f,f⟩_OS` is nonnegative. NAMED axiom — this is
+      the *positivity* half of reflection positivity for the
+      pre-Hilbert datum. NOT a proof. -/
+  osInner_psd : ∀ f : carrier, 0 ≤ osInner f f
+  /-- Physical Hilbert space `ℋ_phys`. NAMED `Type` field — a
+      placeholder for the real `L²(carrier, dμ) / ker` quotient
+      completion, which we do not construct. -/
+  physHilbert : Type
+  /-- `ℋ_phys` is a Hilbert space. NAMED `Prop` — for the real
+      construction this is the Cauchy completeness of the
+      `L²` quotient. Not inhabited here. -/
+  physHilbert_isHilbert : Prop
+  /-- `ℋ_phys` is separable, conditional on the carrier being
+      separable. NAMED `Prop` — for the real construction this
+      follows from separability of `L²` over a σ-finite measure on
+      a separable space. Not inhabited here. -/
+  physHilbert_isSeparable : Prop
+  /-- The vacuum vector `Ω ∈ ℋ_phys`. For the real construction
+      this is the equivalence class of the constant `1` function.
+      Here it is just an inhabitant of the NAMED `physHilbert`
+      type, witnessing that ℋ_phys is nonempty in the bundle. -/
+  vacuum : physHilbert
+  /-- `‖Ω‖ = 1`. NAMED `Prop` — for the real construction this is
+      Glimm–Jaffe Theorem 6.1.3 (vacuum unit-norm). Not inhabited
+      here. -/
+  vacuum_normOne : Prop
+  /-- The time-zero algebra `A₀` acts on `ℋ_phys`. NAMED `Prop` —
+      for the real construction this is the action of the
+      time-zero observables on the OS Hilbert space (Glimm–Jaffe
+      ch. 6). Not inhabited here. -/
+  timeZeroAlgebra_acts : Prop
+
+namespace OSPreHilbert
+
+/-- **OS inner product `⟨f,g⟩_OS`.** Named alias for the structure
+field. Stable identifier for downstream batches. -/
+def OSInnerProduct (D : OSPreHilbert) (f g : D.carrier) : ℝ :=
+  D.osInner f g
+
+/-- **OS inner product is symmetric.** Named handle for the
+`osInner_symm` field. -/
+theorem OSInnerProduct_symm (D : OSPreHilbert) (f g : D.carrier) :
+    D.OSInnerProduct f g = D.OSInnerProduct g f :=
+  D.osInner_symm f g
+
+/-- **OS seminorm-squared `‖f‖² := ⟨f,f⟩_OS`.** Named alias for
+the diagonal of the OS form. We define the *squared* seminorm
+rather than the seminorm itself to avoid pulling
+`Mathlib.Analysis.SpecialFunctions.Sqrt` into this slice — the
+square is what every downstream OS argument actually uses
+(Schwarz inequality, null-space definition, vacuum normalization),
+and `Real.sqrt` can be threaded in 19.1c when it is needed. -/
+def OSSeminorm (D : OSPreHilbert) (f : D.carrier) : ℝ :=
+  D.osInner f f
+
+/-- **The OS seminorm-squared is nonnegative.** Named handle for
+the `osInner_psd` field. -/
+theorem OSSeminorm_nonneg (D : OSPreHilbert) (f : D.carrier) :
+    0 ≤ D.OSSeminorm f :=
+  D.osInner_psd f
+
+/-- **OS null space `ker := {f : ‖f‖² = 0}`.** The set of fields
+whose OS seminorm-squared vanishes. This is the set we would
+quotient out by in the real `L² / ker` construction. -/
+def OSNullSpace (D : OSPreHilbert) : Set D.carrier :=
+  {f : D.carrier | D.OSSeminorm f = 0}
+
+/-- **Physical Hilbert space `ℋ_phys := L² / ker`.** Named alias
+for the `physHilbert` field. In this slice it is a NAMED
+placeholder type, not the real `L²` quotient. -/
+def OS_Hilbert_quotient (D : OSPreHilbert) : Type :=
+  D.physHilbert
+
+/-- **`ℋ_phys` is a Hilbert space.** Named handle that unpacks the
+`physHilbert_isHilbert` field. The hypothesis `h` is the witness
+that completeness has been established — in this slice it is
+NEVER provided. Downstream batches that actually construct
+`ℋ_phys` will pass a real witness here. -/
+theorem OS_Hilbert_complete (D : OSPreHilbert)
+    (h : D.physHilbert_isHilbert) : D.physHilbert_isHilbert :=
+  h
+
+/-- **`ℋ_phys` is separable.** Named handle that unpacks the
+`physHilbert_isSeparable` field, conditional on the witness `h`.
+NOT inhabited in this slice — the carrier itself must be
+separable, and the construction must commute with the `L²/ker`
+quotient. -/
+theorem OS_Hilbert_separable (D : OSPreHilbert)
+    (h : D.physHilbert_isSeparable) : D.physHilbert_isSeparable :=
+  h
+
+/-- **`‖Ω‖ = 1` for the vacuum vector.** Named handle that unpacks
+the `vacuum_normOne` field. NOT inhabited in this slice. -/
+theorem Vacuum_vector_norm_one (D : OSPreHilbert)
+    (h : D.vacuum_normOne) : D.vacuum_normOne :=
+  h
+
+/-- **The time-zero algebra `A₀` acts on `ℋ_phys`.** Named alias
+for the `timeZeroAlgebra_acts` field. In this slice it is a NAMED
+`Prop` with no witness; downstream batches will supply a real
+action. -/
+def TimeZeroAlgebra_action (D : OSPreHilbert) : Prop :=
+  D.timeZeroAlgebra_acts
+
+end OSPreHilbert
+
 end OSReconstruction
 end YM
 end Towers
