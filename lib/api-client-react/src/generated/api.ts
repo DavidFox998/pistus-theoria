@@ -23,6 +23,7 @@ import type {
   Certificate,
   CertificateSummary,
   CertificateUpdate,
+  CheckpointRerollResult,
   GetLedgerAlertsParams,
   GetMorningstarHitsParams,
   HealthStatus,
@@ -1252,6 +1253,95 @@ export const useAckLedgerAlert = <TError = ErrorType<void>,
         TContext
       > => {
       return useMutation(getAckLedgerAlertMutationOptions(options));
+    }
+
+export const getRerollLedgerCheckpointUrl = () => {
+
+
+
+
+  return `/api/ledger/checkpoint/reroll`
+}
+
+/**
+ * Task #127. Shells out to `scripts/reroll-checkpoint.py`, which
+takes `kernel.hits_exclusive_lock()` (the same sidecar flock
+`_append_line` and the tamper fixture use) and calls
+`kernel._update_checkpoint()` to atomically rewrite
+`data/hits.txt.checkpoint` to the (size, sha256) of the live
+ledger. Refuses to overwrite when the existing checkpoint
+already fails `_verify_checkpoint` (truncation or in-place
+rewrite): re-rolling in that case would rubber-stamp a
+tampered file as the new known-good prefix and silently shrink
+tamper coverage to zero. After a successful re-roll the
+next ledger-monitor tick clears the amber
+`checkpointStale` hint and emits a `checkpoint_stale →
+recovered` alert (task #111).
+
+Requires the same `Authorization: Bearer <LEAN_REBUILD_TOKEN>`
+header as the rebuild endpoints, and is subject to the same
+per-IP brute-force limiter and 60-second cooldown so a
+runaway dashboard can't hammer the lock.
+
+ * @summary Re-roll `data/hits.txt.checkpoint` over the current ledger prefix
+ */
+export const rerollLedgerCheckpoint = async ( options?: RequestInit): Promise<CheckpointRerollResult> => {
+
+  return customFetch<CheckpointRerollResult>(getRerollLedgerCheckpointUrl(),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+export const getRerollLedgerCheckpointMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof rerollLedgerCheckpoint>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof rerollLedgerCheckpoint>>, TError,void, TContext> => {
+
+const mutationKey = ['rerollLedgerCheckpoint'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof rerollLedgerCheckpoint>>, void> = () => {
+
+
+          return  rerollLedgerCheckpoint(requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type RerollLedgerCheckpointMutationResult = NonNullable<Awaited<ReturnType<typeof rerollLedgerCheckpoint>>>
+
+    export type RerollLedgerCheckpointMutationError = ErrorType<void>
+
+    /**
+ * @summary Re-roll `data/hits.txt.checkpoint` over the current ledger prefix
+ */
+export const useRerollLedgerCheckpoint = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof rerollLedgerCheckpoint>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof rerollLedgerCheckpoint>>,
+        TError,
+        void,
+        TContext
+      > => {
+      return useMutation(getRerollLedgerCheckpointMutationOptions(options));
     }
 
 export const getGetMorningstarHitsUrl = (params?: GetMorningstarHitsParams,) => {

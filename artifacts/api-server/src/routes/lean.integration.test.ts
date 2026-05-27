@@ -467,6 +467,107 @@ describe("POST /api/lean/lockouts/clear", () => {
   });
 });
 
+describe("POST /api/ledger/checkpoint/reroll — auth, cooldown, and helper outcomes", () => {
+  afterEach(() => {
+    __testing.setRerollSpawner(null);
+    __testing.resetCheckpointRerollState();
+  });
+
+  it("returns 503 when no token is configured", async () => {
+    const r = await call({
+      method: "POST",
+      path: "/api/ledger/checkpoint/reroll",
+      authorization: "Bearer anything",
+    });
+    expect(r.status).toBe(503);
+    expect(r.json.ok).toBe(false);
+    expect(r.json.error).toMatch(/disabled|token/i);
+  });
+
+  it("returns 401 on a wrong bearer token", async () => {
+    process.env["LEAN_REBUILD_TOKEN"] = "shared";
+    const r = await call({
+      method: "POST",
+      path: "/api/ledger/checkpoint/reroll",
+      authorization: "Bearer nope",
+    });
+    expect(r.status).toBe(401);
+    expect(r.json.ok).toBe(false);
+  });
+
+  it("shells out to reroll-checkpoint.py and returns ok=true on exit 0", async () => {
+    process.env["LEAN_REBUILD_TOKEN"] = "shared";
+    __testing.setRerollSpawner(async () => ({
+      ok: true,
+      exitCode: 0,
+      stdout: "OK: checkpoint re-rolled (before=100, after=200)\n",
+      stderr: "",
+      error: null,
+    }));
+    const r = await call({
+      method: "POST",
+      path: "/api/ledger/checkpoint/reroll",
+      authorization: "Bearer shared",
+    });
+    expect(r.status).toBe(200);
+    expect(r.json).toMatchObject({
+      ok: true,
+      exitCode: 0,
+      error: null,
+    });
+    expect(r.json.stdout).toContain("OK: checkpoint re-rolled");
+    expect(typeof r.json.durationMs).toBe("number");
+  });
+
+  it("returns ok=false with refused envelope when helper exits 2", async () => {
+    process.env["LEAN_REBUILD_TOKEN"] = "shared";
+    __testing.setRerollSpawner(async () => ({
+      ok: false,
+      exitCode: 2,
+      stdout: "",
+      stderr: "REFUSE: existing checkpoint fails verification (...)\n",
+      error:
+        "refused: existing checkpoint fails verification — investigate the tamper incident before re-rolling.",
+    }));
+    const r = await call({
+      method: "POST",
+      path: "/api/ledger/checkpoint/reroll",
+      authorization: "Bearer shared",
+    });
+    expect(r.status).toBe(200);
+    expect(r.json.ok).toBe(false);
+    expect(r.json.exitCode).toBe(2);
+    expect(r.json.error).toMatch(/refused/i);
+    expect(r.json.stderr).toMatch(/REFUSE/);
+  });
+
+  it("enforces the shared rebuild cooldown after a successful re-roll", async () => {
+    process.env["LEAN_REBUILD_TOKEN"] = "shared";
+    __testing.setRerollSpawner(async () => ({
+      ok: true,
+      exitCode: 0,
+      stdout: "OK\n",
+      stderr: "",
+      error: null,
+    }));
+    const first = await call({
+      method: "POST",
+      path: "/api/ledger/checkpoint/reroll",
+      authorization: "Bearer shared",
+    });
+    expect(first.status).toBe(200);
+    expect(first.json.ok).toBe(true);
+
+    const second = await call({
+      method: "POST",
+      path: "/api/ledger/checkpoint/reroll",
+      authorization: "Bearer shared",
+    });
+    expect(second.status).toBe(429);
+    expect(Number(second.headers.get("retry-after"))).toBeGreaterThan(0);
+  });
+});
+
 interface SseEvent {
   event: string;
   data: any;

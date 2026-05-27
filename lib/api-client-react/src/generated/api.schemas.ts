@@ -266,6 +266,34 @@ export interface LedgerAlertAckResult {
 }
 
 /**
+ * Result of `POST /ledger/checkpoint/reroll` (task #127). The
+Python helper writes `OK: ...` on stdout on success and
+`REFUSE: ...` / `FATAL: ...` on stderr otherwise; both
+streams are surfaced verbatim so a referee can audit what
+actually happened without tailing server logs.
+
+ */
+export interface CheckpointRerollResult {
+  /** True iff the helper exited 0 and the checkpoint was re-rolled. */
+  ok: boolean;
+  /** Process exit code (-1 if the helper failed to spawn). */
+  exitCode?: number;
+  stdout?: string;
+  stderr?: string;
+  /** Wall-clock duration of the helper invocation in milliseconds. */
+  durationMs: number;
+  /**
+     * Human-readable error envelope. Non-null when `ok` is false:
+  `refused` (exit 2, existing checkpoint already fails verify),
+  `timeout`, `spawn_failed`, or a generic non-zero exit. Null
+  on success.
+
+     * @nullable
+     */
+  error?: string | null;
+}
+
+/**
  * Result of `POST /ledger/sidecar-forged-ack` (task #124). On
 success, the dashboard banner driven by
 `lastOkSidecarStatus === "forged"` gains an "acknowledged"

@@ -370,6 +370,38 @@ export const AckLedgerAlertResponse = zod.object({
 
 
 /**
+ * Task #127. Shells out to `scripts/reroll-checkpoint.py`, which
+takes `kernel.hits_exclusive_lock()` (the same sidecar flock
+`_append_line` and the tamper fixture use) and calls
+`kernel._update_checkpoint()` to atomically rewrite
+`data/hits.txt.checkpoint` to the (size, sha256) of the live
+ledger. Refuses to overwrite when the existing checkpoint
+already fails `_verify_checkpoint` (truncation or in-place
+rewrite): re-rolling in that case would rubber-stamp a
+tampered file as the new known-good prefix and silently shrink
+tamper coverage to zero. After a successful re-roll the
+next ledger-monitor tick clears the amber
+`checkpointStale` hint and emits a `checkpoint_stale →
+recovered` alert (task #111).
+
+Requires the same `Authorization: Bearer <LEAN_REBUILD_TOKEN>`
+header as the rebuild endpoints, and is subject to the same
+per-IP brute-force limiter and 60-second cooldown so a
+runaway dashboard can't hammer the lock.
+
+ * @summary Re-roll `data/hits.txt.checkpoint` over the current ledger prefix
+ */
+export const RerollLedgerCheckpointResponse = zod.object({
+  "ok": zod.boolean().describe('True iff the helper exited 0 and the checkpoint was re-rolled.'),
+  "exitCode": zod.number().optional().describe('Process exit code (-1 if the helper failed to spawn).'),
+  "stdout": zod.string().optional(),
+  "stderr": zod.string().optional(),
+  "durationMs": zod.number().describe('Wall-clock duration of the helper invocation in milliseconds.'),
+  "error": zod.string().nullish().describe('Human-readable error envelope. Non-null when `ok` is false:\n`refused` (exit 2, existing checkpoint already fails verify),\n`timeout`, `spawn_failed`, or a generic non-zero exit. Null\non success.\n')
+}).describe('Result of `POST \/ledger\/checkpoint\/reroll` (task #127). The\nPython helper writes `OK: ...` on stdout on success and\n`REFUSE: ...` \/ `FATAL: ...` on stderr otherwise; both\nstreams are surfaced verbatim so a referee can audit what\nactually happened without tailing server logs.\n')
+
+
+/**
  * Returns the parsed contents of `data/hits.txt`: the header comment
 lines, the five frozen Genesis lines (including the
 `--- GENESIS SEAL ---` marker), the SHA-256 of the immutable

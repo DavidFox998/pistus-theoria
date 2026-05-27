@@ -10,6 +10,7 @@ import {
   useGetLedgerAlerts,
   useAckLedgerAlert,
   useAckSidecarForged,
+  useRerollLedgerCheckpoint,
   getGetMorningstarHitsQueryKey,
   getGetLeanVerificationQueryKey,
   getGetLeanRebuildHistoryQueryKey,
@@ -274,6 +275,12 @@ export default function DashboardPage() {
   const ackSidecarForgedMutation = useAckSidecarForged({
     request: lockoutsAuthHeader ? { headers: lockoutsAuthHeader } : undefined,
   });
+  const rerollCheckpointMutation = useRerollLedgerCheckpoint({
+    request: lockoutsAuthHeader ? { headers: lockoutsAuthHeader } : undefined,
+  });
+  const [rerollCheckpointError, setRerollCheckpointError] = useState<
+    string | null
+  >(null);
   const [sidecarForgedAckError, setSidecarForgedAckError] = useState<
     string | null
   >(null);
@@ -2071,6 +2078,58 @@ export default function DashboardPage() {
                     data-testid="badge-ledger-checkpoint-stale"
                   >
                     CHECKPOINT STALE — re-roll the sealed prefix
+                  </span>
+                ) : null}
+                {cpStale && rebuildToken ? (
+                  <span className="mt-2 flex flex-wrap items-center gap-2 normal-case">
+                    <button
+                      type="button"
+                      className="border border-amber-500/50 bg-amber-500/10 hover:bg-amber-500/20 text-amber-700 dark:text-amber-300 px-2 py-1 text-xs disabled:opacity-50 disabled:cursor-not-allowed"
+                      data-testid="button-reroll-checkpoint"
+                      disabled={rerollCheckpointMutation.isPending}
+                      onClick={() => {
+                        setRerollCheckpointError(null);
+                        rerollCheckpointMutation.mutate(undefined, {
+                          onSuccess: (data) => {
+                            if (data?.ok) {
+                              queryClient.invalidateQueries({
+                                queryKey: getGetLedgerIntegrityQueryKey(),
+                              });
+                              queryClient.invalidateQueries({
+                                queryKey: getGetLedgerAlertsQueryKey(),
+                              });
+                            } else {
+                              setRerollCheckpointError(
+                                data?.error ??
+                                  (data?.stderr ? data.stderr.trim() : null) ??
+                                  "Re-roll failed (no error returned).",
+                              );
+                            }
+                          },
+                          onError: (err: unknown) => {
+                            const msg =
+                              err instanceof Error
+                                ? err.message
+                                : typeof err === "string"
+                                  ? err
+                                  : "Re-roll request failed.";
+                            setRerollCheckpointError(msg);
+                          },
+                        });
+                      }}
+                    >
+                      {rerollCheckpointMutation.isPending
+                        ? "Re-rolling..."
+                        : "Re-roll checkpoint"}
+                    </button>
+                    {rerollCheckpointError ? (
+                      <span
+                        className="text-red-700 dark:text-red-400 normal-case"
+                        data-testid="text-reroll-checkpoint-error"
+                      >
+                        {rerollCheckpointError}
+                      </span>
+                    ) : null}
                   </span>
                 ) : null}
               </p>

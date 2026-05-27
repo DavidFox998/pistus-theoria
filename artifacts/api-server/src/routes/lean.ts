@@ -435,6 +435,164 @@ router.get("/lean/ledger-alerts", (req, res) => {
   });
 });
 
+const RerollHelperPath = path.join(REPO_ROOT, "scripts", "reroll-checkpoint.py");
+const REROLL_TIMEOUT_MS = 30 * 1000;
+
+let checkpointRerollInFlight = false;
+
+interface RerollOutcome {
+  ok: boolean;
+  exitCode: number;
+  stdout: string;
+  stderr: string;
+  error: string | null;
+}
+
+type RerollSpawner = (opts: {
+  script: string;
+  cwd: string;
+  timeoutMs: number;
+}) => Promise<RerollOutcome>;
+
+const defaultRerollSpawner: RerollSpawner = ({ script, cwd, timeoutMs }) =>
+  new Promise<RerollOutcome>((resolve) => {
+    let child: ChildProcessWithoutNullStreams;
+    try {
+      child = spawn("python3", [script], { cwd, env: process.env });
+    } catch (err) {
+      resolve({
+        ok: false,
+        exitCode: -1,
+        stdout: "",
+        stderr: "",
+        error: `spawn_failed: ${err instanceof Error ? err.message : String(err)}`,
+      });
+      return;
+    }
+    let stdout = "";
+    let stderr = "";
+    let timedOut = false;
+    const timer = setTimeout(() => {
+      timedOut = true;
+      child.kill("SIGKILL");
+    }, timeoutMs);
+    child.stdout.on("data", (c: Buffer) => {
+      stdout += c.toString("utf8");
+    });
+    child.stderr.on("data", (c: Buffer) => {
+      stderr += c.toString("utf8");
+    });
+    child.on("error", (err) => {
+      clearTimeout(timer);
+      resolve({
+        ok: false,
+        exitCode: -1,
+        stdout,
+        stderr,
+        error: `spawn_failed: ${err.message}`,
+      });
+    });
+    child.on("close", (code) => {
+      clearTimeout(timer);
+      if (timedOut) {
+        resolve({
+          ok: false,
+          exitCode: code ?? -1,
+          stdout,
+          stderr,
+          error: `timeout: reroll-checkpoint.py exceeded ${timeoutMs}ms`,
+        });
+        return;
+      }
+      const ok = code === 0;
+      let error: string | null = null;
+      if (!ok) {
+        if (code === 2) {
+          error =
+            "refused: existing checkpoint fails verification — investigate the tamper incident before re-rolling.";
+        } else {
+          error = `reroll-checkpoint.py exited ${code ?? "null"}`;
+        }
+      }
+      resolve({ ok, exitCode: code ?? -1, stdout, stderr, error });
+    });
+  });
+
+let rerollSpawner: RerollSpawner = defaultRerollSpawner;
+
+router.post("/ledger/checkpoint/reroll", async (req, res) => {
+  const start = Date.now();
+  const auth = checkRebuildAuth(req);
+  if (!auth.ok) {
+    applyAuthFailureHeaders(res, auth);
+    res.status(auth.status).json({
+      ok: false,
+      exitCode: -1,
+      stdout: "",
+      stderr: "",
+      durationMs: Date.now() - start,
+      error: auth.error,
+    });
+    return;
+  }
+  if (checkpointRerollInFlight || rebuildInFlight) {
+    res.status(409).json({
+      ok: false,
+      exitCode: -1,
+      stdout: "",
+      stderr: "",
+      durationMs: Date.now() - start,
+      error:
+        "Another checkpoint re-roll or Lean rebuild is already in flight. Please wait for it to finish.",
+    });
+    return;
+  }
+  const cooldown = checkRebuildCooldown();
+  if (!cooldown.ok) {
+    const retryAfterSec = Math.ceil(cooldown.retryAfterMs / 1000);
+    res.setHeader("Retry-After", String(retryAfterSec));
+    res.status(429).json({
+      ok: false,
+      exitCode: -1,
+      stdout: "",
+      stderr: "",
+      durationMs: Date.now() - start,
+      error: `Rebuild/re-roll cooldown active. Please wait ${retryAfterSec}s before triggering another.`,
+    });
+    return;
+  }
+  checkpointRerollInFlight = true;
+  try {
+    const outcome = await rerollSpawner({
+      script: RerollHelperPath,
+      cwd: REPO_ROOT,
+      timeoutMs: REROLL_TIMEOUT_MS,
+    });
+    lastRebuildFinishedAt = Date.now();
+    const durationMs = Date.now() - start;
+    req.log.info(
+      {
+        ok: outcome.ok,
+        exitCode: outcome.exitCode,
+        durationMs,
+        rerolledBy: getClientIp(req),
+        refereeName: auth.refereeName,
+      },
+      "Ledger checkpoint reroll attempted",
+    );
+    res.json({
+      ok: outcome.ok,
+      exitCode: outcome.exitCode,
+      stdout: outcome.stdout,
+      stderr: outcome.stderr,
+      durationMs,
+      error: outcome.error,
+    });
+  } finally {
+    checkpointRerollInFlight = false;
+  }
+});
+
 router.post("/ledger/sidecar-forged-ack", (req, res) => {
   const auth = checkRebuildAuth(req);
   if (!auth.ok) {
@@ -1338,6 +1496,12 @@ export const __testing = {
   },
   setAlertsAckPath(p: string | null): void {
     ALERTS_ACK_PATH = p ?? path.join(REPO_ROOT, "data", "ledger-alerts.ack.json");
+  },
+  setRerollSpawner(fn: RerollSpawner | null): void {
+    rerollSpawner = fn ?? defaultRerollSpawner;
+  },
+  resetCheckpointRerollState(): void {
+    checkpointRerollInFlight = false;
   },
   normalizeAlertEntry,
 };
