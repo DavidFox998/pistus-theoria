@@ -50,3 +50,7 @@ Thumbs.db
 data/hits.txt.checkpoint
 data/ledger-alerts.jsonl
 data/hits.txt.lastok
+
+# playwright generated artifacts — never commit
+test-results
+playwright-report
