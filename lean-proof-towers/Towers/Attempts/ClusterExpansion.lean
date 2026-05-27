@@ -356,7 +356,18 @@ convergence with real Mayer combinatorics) and the UV
 continuum limit downstream of `MassGap_YM4_Clay` — remain
 the genuine Clay-hard walls. The 19.1l/m wave shrinks the
 **first** of three independent hard surfaces; it does NOT
-collapse the chain. -/
+collapse the chain.
+
+**19.1n update.** Explicit Weyl dim / Casimir polynomial
+forms landed in `Towers/YM/ClusterExpansion.lean` as
+`Weyl_dim_SU3_explicit (m,n) := (m+1)(n+1)(m+n+2)/2` and
+`Casimir_SU3_explicit (m,n) := m² + n² + mn + 3m + 3n`,
+with structural bricks pinned at the trivial rep `(0,0)`
+and the SU(3) fundamental `(1,0)`. The next reduction step
+is to promote `Weyl_sum_explicit_SU3` from `:= 0` to the
+real truncated Peter-Weyl sum
+`Σ_{(m,n) : m+n ≤ N} (dim λ)² · e^{-t·C₂(λ)}` and prove
+Peter-Weyl convergence (19.1o target). -/
 theorem Single_plaquette_bound_SU3 (β : ℝ) (_hβ : 0 < β) :
     Character_expansion_plaquette β * SU3_Haar_measure_explicit ≤
       Real.exp (-(Casimir_SU3 * β)) := by

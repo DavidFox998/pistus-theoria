@@ -1,8 +1,43 @@
 # The Three Hard Lemmas
 
-**Status:** open. **Repository wall:** 420 bricks, axiom footprint
+**Status:** open. **Repository wall:** 428 bricks, axiom footprint
 `⊆ {propext, Classical.choice, Quot.sound}`. **Towers:**
 `Status: Open` (`docs/ROADMAP.md` § 2, § 3).
+
+**Batch 19.1n update (2026-05-27):** Explicit Weyl dim / Casimir
+polynomial forms — promote the 19.1m `Weyl_dim_def := 1` /
+`Casimir_eigenvalue_def := 0` single-`ℕ` placeholders to
+two-parameter explicit polynomial forms indexed by SU(3) highest
+weights `(m, n) : ℕ × ℕ`, `λ = m·ω₁ + n·ω₂`. Track 1
+(`Towers/YM/ClusterExpansion.lean`): +8 BRICKS (wall 420 → 428),
++4 new defs (`Weyl_label`, `Weyl_dim_SU3_explicit (m,n) :=
+(m+1)(n+1)(m+n+2)/2`, `Casimir_SU3_explicit (m,n) := m² + n² +
+mn + 3m + 3n` as `3 ×` the rational form to avoid `ℚ`,
+`Weyl_sum_explicit_SU3 t N := 0` placeholder). Structural bricks
+cover positivity (`Weyl_dim_SU3_explicit_pos`), Casimir nonneg
+(`Casimir_SU3_explicit_nonneg`), trivial-rep pins (`dim(0,0)=1`,
+`C₂(0,0)=0`), SU(3) fundamental-rep pins (`dim(1,0)=3`,
+`C₂(1,0)=4 = 3 × 4/3`), and the placeholder dominance bound
+`Small_t_dominance`. Track 2 (`Towers/Attempts/ClusterExpansion.lean`):
+`Single_plaquette_bound_SU3` statement and proof unchanged;
+docstring "Honest framing (locked)" paragraph gains a "19.1n
+update" footer naming the explicit polynomial defs and pointing
+the next reduction step (19.1o) at promoting
+`Weyl_sum_explicit_SU3` from `:= 0` to the real truncated
+Peter-Weyl sum + Peter-Weyl convergence proof. Attempts sorries
+unchanged at 8. **Honest scope (locked):** explicit polynomial
+dim/Casimir is textbook Lie theory (Fulton–Harris level), NOT
+Clay-hard. Peter-Weyl convergence + rigorous small-`t` dominance
+are still classical analysis on compact Lie groups — also not
+Clay-hard, but not yet free in this repo. The Brydges-Federbush
+polymer convergence + UV continuum limit downstream of
+`MassGap_YM4_Clay` remain the two genuine Clay-hard walls — 19.1n
+does NOT touch them. YM tower stays `Status: Open`. No promotion
+of `MassGap_YM4_Clay`; no `replit.md` / `ROADMAP.md` /
+`Towers/YM/Spectrum.lean` / `lean-proof/` edits. See
+`docs/CHANGELOG.md` Batch 19.1n for the full ship list.
+**Honest scope: YM is NOT solved — Yang-Mills Clay remains open
+in this repo.**
 
 **Batch 19.1m update (2026-05-27):** Real Heat Kernel Shape —
 promote the 19.1l `Heat_kernel_def := 1` placeholder to a

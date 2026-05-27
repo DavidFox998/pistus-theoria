@@ -6,6 +6,72 @@ this file is the version history.
 
 ---
 
+## Batch 19.1n — Explicit Weyl dim / Casimir polynomial forms. Wall 420 → 428, +8 BRICKS, no new Attempts sorry (2026-05-27)
+
+Promote the 19.1m `Weyl_dim_def := 1` / `Casimir_eigenvalue_def := 0`
+single-`ℕ` placeholders to **two-parameter explicit polynomial
+forms** indexed by SU(3) highest weights `(m, n) : ℕ × ℕ`,
+`λ = m·ω₁ + n·ω₂`. The textbook Weyl dimension formula and the
+(scaled) quadratic Casimir eigenvalue land as explicit polynomial
+defs, with structural bricks pinned at the trivial rep `(0,0)`
+and the SU(3) fundamental rep `(1,0)`. Additive only; all 19.1m
+bricks coexist untouched.
+
+**Track 1 — `Towers/YM/ClusterExpansion.lean` (+8 BRICKS, +4 new defs):**
+
+- 4 new defs (placeholder / explicit, NOT in BRICKS):
+  - `Weyl_label : Type := ℕ × ℕ` — SU(3) highest weight `(m, n)`.
+  - `Weyl_dim_SU3_explicit (mn) := (m+1)(n+1)(m+n+2) / 2` — the
+    textbook Weyl dimension formula for SU(3) (numerator always
+    even, `Nat.div` is exact).
+  - `Casimir_SU3_explicit (mn) := m² + n² + mn + 3m + 3n` — `3 ×`
+    the true rational form `C₂(λ) = (m² + n² + mn + 3m + 3n)/3`;
+    kept as `ℕ` to avoid pulling in `ℚ` for the placeholder layer.
+  - `Weyl_sum_explicit_SU3 (_t) (_N) : ℝ := 0` — placeholder for
+    the truncated Peter–Weyl heat-kernel sum
+    `Σ_{(m,n) : m+n ≤ N} (dim λ)² · e^{-t·C₂(λ)}`. Real surface
+    lands in 19.1o.
+- 8 sorry-free BRICKS (axiom footprint
+  `⊆ {propext, Classical.choice, Quot.sound}`):
+  1. `Weyl_dim_SU3_explicit_pos` — `0 < dim(λ_{m,n})`, via
+     `Nat.div_pos` on `2 ≤ (m+1)(n+1)(m+n+2)`.
+  2. `Weyl_dim_SU3_explicit_at_zero` — `dim(0,0) = 1` (trivial rep).
+  3. `Weyl_dim_SU3_explicit_at_fundamental` — `dim(1,0) = 3`
+     (SU(3) fundamental rep).
+  4. `Casimir_SU3_explicit_nonneg` — `0 ≤ C₂(λ_{m,n})` (ℕ).
+  5. `Casimir_SU3_explicit_at_zero` — `C₂(0,0) = 0` (trivial rep).
+  6. `Casimir_SU3_explicit_at_fundamental` — `C₂(1,0) = 4` (=
+     `3 × 4/3`, the SU(3) fundamental Casimir).
+  7. `Weyl_sum_explicit_SU3_nonneg` — `0 ≤ Weyl_sum_explicit_SU3 t N`
+     (placeholder `:= 0`, `le_refl`).
+  8. `Small_t_dominance` — `Weyl_sum_explicit_SU3 t N ≤ 1` for
+     `t > 0` (placeholder; real form 19.1o target).
+
+**Track 2 — `Towers/Attempts/ClusterExpansion.lean` (docstring only):**
+
+`Single_plaquette_bound_SU3` statement and proof (line 374, sorry)
+unchanged. The "Honest framing (locked)" paragraph gains a
+"**19.1n update**" footer naming the new explicit polynomial defs
+and pointing the next reduction step at promoting
+`Weyl_sum_explicit_SU3` from `:= 0` to the real truncated sum +
+proving Peter–Weyl convergence (19.1o target). Attempts sorry-count
+unchanged at 8.
+
+**Honest framing (locked).** YM tower stays `Status: Open`.
+Explicit polynomial dim / Casimir is **textbook Lie theory**, NOT
+a Clay surface — the formulas are in any Fulton–Harris-level rep
+theory text. The genuine **Peter–Weyl convergence** (infinite sum)
+and rigorous **small-`t` dominance** are still classical analysis
+on compact Lie groups — also not a Clay surface, but not yet free
+in this repo. The Brydges–Federbush polymer convergence + UV
+continuum limit downstream of `MassGap_YM4_Clay` remain the two
+genuine Clay-hard walls — **19.1n does not touch them.** No
+promotion of `MassGap_YM4_Clay`. No new `Towers/YM/YM4.lean`. No
+edits to `replit.md`, `docs/ROADMAP.md`, `Towers/YM/Spectrum.lean`,
+or `lean-proof/`.
+
+---
+
 ## Batch 19.1m — Real Heat Kernel Shape. Wall 408 → 420, +12 BRICKS, no new Attempts sorry (2026-05-27)
 
 Promote the 19.1l `Heat_kernel_def := 1` placeholder to a

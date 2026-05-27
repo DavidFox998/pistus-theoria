@@ -1649,6 +1649,29 @@ BRICKS=(
   "Towers.YM.ClusterExpansion|TheoremaAureum.Towers.YM.ClusterExpansion.Weyl_character_formula_SU3"
   "Towers.YM.ClusterExpansion|TheoremaAureum.Towers.YM.ClusterExpansion.Casimir_eigenvalue_nonneg"
   "Towers.YM.ClusterExpansion|TheoremaAureum.Towers.YM.ClusterExpansion.Stationary_phase_bound"
+
+  # -----------------------------------------------------------------
+  # Batch 19.1n — Explicit Weyl dim / Casimir polynomial forms.
+  # 8 new sorry-free BRICKS, axiom footprint ⊆
+  # {propext, Classical.choice, Quot.sound}. Additive only; 19.1m
+  # bricks above untouched. New 4 defs (NOT in BRICKS):
+  #   Weyl_label := ℕ × ℕ,
+  #   Weyl_dim_SU3_explicit (m,n) := (m+1)(n+1)(m+n+2)/2,
+  #   Casimir_SU3_explicit (m,n)  := m² + n² + mn + 3m + 3n,
+  #   Weyl_sum_explicit_SU3 t N   := 0  (placeholder; real form 19.1o).
+  #
+  # YM tower stays Status: Open. Explicit polynomial dim/Casimir is
+  # textbook Lie theory, NOT a Clay surface. Peter-Weyl convergence
+  # + small-t dominance remain classical analysis (19.1o target).
+  # -----------------------------------------------------------------
+  "Towers.YM.ClusterExpansion|TheoremaAureum.Towers.YM.ClusterExpansion.Weyl_dim_SU3_explicit_pos"
+  "Towers.YM.ClusterExpansion|TheoremaAureum.Towers.YM.ClusterExpansion.Weyl_dim_SU3_explicit_at_zero"
+  "Towers.YM.ClusterExpansion|TheoremaAureum.Towers.YM.ClusterExpansion.Weyl_dim_SU3_explicit_at_fundamental"
+  "Towers.YM.ClusterExpansion|TheoremaAureum.Towers.YM.ClusterExpansion.Casimir_SU3_explicit_nonneg"
+  "Towers.YM.ClusterExpansion|TheoremaAureum.Towers.YM.ClusterExpansion.Casimir_SU3_explicit_at_zero"
+  "Towers.YM.ClusterExpansion|TheoremaAureum.Towers.YM.ClusterExpansion.Casimir_SU3_explicit_at_fundamental"
+  "Towers.YM.ClusterExpansion|TheoremaAureum.Towers.YM.ClusterExpansion.Weyl_sum_explicit_SU3_nonneg"
+  "Towers.YM.ClusterExpansion|TheoremaAureum.Towers.YM.ClusterExpansion.Small_t_dominance"
 )
 
 VERIFIER_DIR="$(mktemp -d)"

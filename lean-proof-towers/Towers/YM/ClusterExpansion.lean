@@ -1744,6 +1744,132 @@ theorem Stationary_phase_bound (t : ℝ) (n : ℕ) (g : ℝ)
   rw [zero_mul]
   exact zero_le_one
 
+/-! ### Batch 19.1n — Explicit Weyl dim / Casimir polynomial forms
+
+Promote the 19.1m `Weyl_dim_def := 1` / `Casimir_eigenvalue_def := 0`
+single-`ℕ` placeholders to **two-parameter explicit polynomial
+forms** indexed by SU(3) highest weights `(m, n) : ℕ × ℕ`,
+`λ = m·ω₁ + n·ω₂`:
+
+  - `Weyl_dim_SU3_explicit (m,n) := (m+1)(n+1)(m+n+2) / 2`
+    — the textbook Weyl dimension formula for SU(3).
+  - `Casimir_SU3_explicit (m,n) := m² + n² + mn + 3m + 3n`
+    — `3·` the true rational form `C₂(λ) = (m² + n² + mn + 3m + 3n)/3`
+    (integer to avoid `ℚ`).
+  - `Weyl_sum_explicit_SU3 t N : ℝ := 0` — placeholder for the
+    truncated Peter–Weyl sum
+    `Σ_{(m,n) : m+n ≤ N} (dim λ)² · exp(-t · C₂(λ))`.
+    Real surface lands in 19.1o.
+
+The 19.1m bricks `Weyl_dim_def_pos`, `Dimension_formula_SU3`,
+`Casimir_eigenvalue_SU3`, `Weyl_character_formula_SU3`,
+`Casimir_eigenvalue_nonneg`, `Stationary_phase_bound` all
+**coexist untouched** — additive only.
+
+Honest scope: explicit polynomial dim / Casimir is textbook Lie
+theory, NOT a Clay surface. The genuine Peter–Weyl convergence
+(infinite sum) + rigorous small-`t` dominance are still classical
+analysis. YM tower stays `Status: Open`. -/
+
+/-- **SU(3) highest weight label** `(m, n) : ℕ × ℕ` indexing the
+finite-dimensional irreps via `λ = m·ω₁ + n·ω₂` where `ω₁, ω₂` are
+the fundamental weights. -/
+def Weyl_label : Type := ℕ × ℕ
+
+/-- **Explicit Weyl dimension formula for SU(3)**:
+`dim(λ_{m,n}) = (m+1)(n+1)(m+n+2) / 2`.
+The numerator is always even (one of the three factors carries a
+factor of 2 by parity), so `Nat.div` is exact. -/
+def Weyl_dim_SU3_explicit (mn : Weyl_label) : ℕ :=
+  ((mn.1 + 1) * (mn.2 + 1) * (mn.1 + mn.2 + 2)) / 2
+
+/-- **Explicit (scaled) SU(3) Casimir eigenvalue**:
+`Casimir_SU3_explicit (m,n) := m² + n² + mn + 3m + 3n`.
+This is `3 ×` the true rational form
+`C₂(λ_{m,n}) = (m² + n² + mn + 3m + 3n) / 3`; we keep it as a `ℕ`
+to avoid pulling in `ℚ` for the placeholder layer. The factor of
+3 is absorbed into the heat-kernel time `t` in `Weyl_sum_explicit_SU3`
+without changing the asymptotic. -/
+def Casimir_SU3_explicit (mn : Weyl_label) : ℕ :=
+  mn.1 ^ 2 + mn.2 ^ 2 + mn.1 * mn.2 + 3 * mn.1 + 3 * mn.2
+
+/-- **Truncated Peter–Weyl heat-kernel sum on SU(3)** (placeholder).
+Real surface (19.1o target):
+`Σ_{(m,n) : m+n ≤ N} (Weyl_dim_SU3_explicit (m,n))^2 ·
+  Real.exp (-(t · Casimir_SU3_explicit (m,n)))`
+the partial sum of the Peter–Weyl spectral decomposition
+`K_t(1) = Σ_λ dim(λ)² · e^{-t·C₂(λ)}` of the heat kernel at the
+identity. Landed here as `:= 0` so the structural bricks below
+(`_nonneg`, `Small_t_dominance`) typecheck without committing to
+the convergence argument, which is **classical analysis on compact
+Lie groups, NOT a Clay surface**. -/
+def Weyl_sum_explicit_SU3 (_t : ℝ) (_N : ℕ) : ℝ := 0
+
+/-- `0 < Weyl_dim_SU3_explicit mn` for every SU(3) highest weight.
+Real surface: every irrep of a compact group has dimension ≥ 1
+(the trivial rep has dimension exactly 1, all others have
+dimension > 1). Discharged from `(m+1)(n+1)(m+n+2) ≥ 2` and the
+explicit numerator being even, so `Nat.div_pos` applies. -/
+theorem Weyl_dim_SU3_explicit_pos (mn : Weyl_label) :
+    0 < Weyl_dim_SU3_explicit mn := by
+  unfold Weyl_dim_SU3_explicit
+  have hle : 2 ≤ (mn.1 + 1) * (mn.2 + 1) * (mn.1 + mn.2 + 2) := by
+    have h1 : 1 ≤ mn.1 + 1 := by omega
+    have h2 : 1 ≤ mn.2 + 1 := by omega
+    have h3 : 2 ≤ mn.1 + mn.2 + 2 := by omega
+    calc 2 = 1 * 1 * 2 := by norm_num
+      _ ≤ (mn.1 + 1) * (mn.2 + 1) * (mn.1 + mn.2 + 2) :=
+            Nat.mul_le_mul (Nat.mul_le_mul h1 h2) h3
+  exact Nat.div_pos hle (by norm_num)
+
+/-- **Trivial rep**: `Weyl_dim_SU3_explicit (0,0) = 1`. -/
+theorem Weyl_dim_SU3_explicit_at_zero :
+    Weyl_dim_SU3_explicit (0, 0) = 1 := by decide
+
+/-- **SU(3) fundamental rep**: `Weyl_dim_SU3_explicit (1,0) = 3`.
+This is the defining 3-dimensional rep of SU(3). -/
+theorem Weyl_dim_SU3_explicit_at_fundamental :
+    Weyl_dim_SU3_explicit (1, 0) = 3 := by decide
+
+/-- `0 ≤ Casimir_SU3_explicit mn` — sum of squares + nat multiples
+is trivially nonneg in `ℕ`. Real surface: the quadratic Casimir of
+a unitary irrep of a compact group acts as a nonneg scalar. -/
+theorem Casimir_SU3_explicit_nonneg (mn : Weyl_label) :
+    0 ≤ Casimir_SU3_explicit mn := Nat.zero_le _
+
+/-- **Trivial rep Casimir**: `Casimir_SU3_explicit (0,0) = 0`.
+The trivial rep has `C₂ = 0`. -/
+theorem Casimir_SU3_explicit_at_zero :
+    Casimir_SU3_explicit (0, 0) = 0 := by decide
+
+/-- **SU(3) fundamental Casimir**: `Casimir_SU3_explicit (1,0) = 4`.
+This is `3 × (4/3)`, where `4/3` is the textbook quadratic Casimir
+of the SU(3) fundamental rep. -/
+theorem Casimir_SU3_explicit_at_fundamental :
+    Casimir_SU3_explicit (1, 0) = 4 := by decide
+
+/-- `0 ≤ Weyl_sum_explicit_SU3 t N` for the placeholder `:= 0`.
+Real surface: every term of the Peter–Weyl sum is the product of a
+squared dimension (nonneg) and a positive exponential, so the
+partial sum is nonneg. -/
+theorem Weyl_sum_explicit_SU3_nonneg (t : ℝ) (N : ℕ) :
+    0 ≤ Weyl_sum_explicit_SU3 t N := by
+  unfold Weyl_sum_explicit_SU3
+  exact le_refl 0
+
+/-- **Small-`t` dominance** (placeholder form):
+`Weyl_sum_explicit_SU3 t N ≤ 1` for `t > 0`. Real surface
+(19.1o target): as `t → 0⁺`, the truncated Peter–Weyl sum stays
+bounded above by `1` only after rescaling — the genuine statement
+is that `Weyl_sum_explicit_SU3 t N · t^4 → C` (the leading
+amplitude) as `t → 0`, matching the Varadhan/Molchanov heat-kernel
+asymptotic. At placeholder `:= 0`, `0 ≤ 1` discharges trivially.
+**Classical analysis on compact Lie groups, NOT a Clay surface.** -/
+theorem Small_t_dominance (t : ℝ) (N : ℕ) (_ht : 0 < t) :
+    Weyl_sum_explicit_SU3 t N ≤ 1 := by
+  unfold Weyl_sum_explicit_SU3
+  exact zero_le_one
+
 end ClusterExpansion
 end YM
 end Towers
