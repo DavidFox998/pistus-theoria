@@ -49,8 +49,11 @@ interface LedgerIntegrityStatus {
   lastOkAt: string | null;
   lastOkAgeSeconds: number | null;
   lastCheckedAt: string | null;
+  lastCheckedAgeSeconds: number | null;
   staleThresholdSeconds: number;
   stale: boolean;
+  checkedStaleThresholdSeconds: number;
+  checkedStale: boolean;
   checkpointLastModified: string | null;
   checkpointAgeSeconds: number | null;
   checkpointCoverageRatio: number | null;
@@ -66,6 +69,15 @@ const DEFAULT_STALE_THRESHOLD_SECONDS = 3600;
 // enough that a months-long stall surfaces before tamper coverage
 // shrinks too far.
 const DEFAULT_CHECKPOINT_STALE_THRESHOLD_SECONDS = 2_592_000;
+// Task #99: how stale `lastCheckedAt` may get before we flag the
+// operator that the verifier itself has stopped *running* (not just
+// stopped seeing OK results). The default is computed at request
+// time as `2 × monitorIntervalSeconds` when a monitor is registered
+// (see `resolveCheckedStaleThreshold` below); this constant is the
+// hard fallback when no monitor is available (e.g. integration tests
+// that construct a `createLedgerChecker` without ever starting the
+// background timer). 600s = 2 × default 300s monitor interval.
+const DEFAULT_CHECKED_STALE_THRESHOLD_SECONDS = 600;
 
 function resolvePositiveSeconds(
   raw: string | undefined,
@@ -90,6 +102,21 @@ function resolveCheckpointStaleThresholdSeconds(
     raw,
     DEFAULT_CHECKPOINT_STALE_THRESHOLD_SECONDS,
   );
+}
+
+function resolveCheckedStaleThresholdSecondsFromEnv(
+  raw: string | undefined,
+): number | null {
+  // Returns null when unset/empty so the caller can fall back to
+  // `2 × monitorIntervalSeconds`. A bad value falls back too (null)
+  // rather than silently coercing to the hard 600s default — we want
+  // the monitor-derived default to win when the env var is junk.
+  if (raw == null) return null;
+  const trimmed = raw.trim();
+  if (trimmed === "") return null;
+  const n = Number(trimmed);
+  if (!Number.isFinite(n) || n <= 0) return null;
+  return Math.floor(n);
 }
 
 function resolveRepoRoot(): string {
@@ -136,6 +163,20 @@ export interface LedgerRouterOptions {
   secretPath?: string;
   staleThresholdSeconds?: number;
   checkpointStaleThresholdSeconds?: number;
+  /**
+   * Task #99: how stale `lastCheckedAt` may get before the integrity
+   * endpoint flags `checkedStale: true`. When omitted, the threshold
+   * is sourced from `LEDGER_CHECKED_STALE_THRESHOLD_SECONDS`. When
+   * THAT is also unset, the threshold is computed lazily at status-
+   * build time as `2 × monitorIntervalSeconds` (from the registered
+   * monitor info provider), falling back to
+   * `DEFAULT_CHECKED_STALE_THRESHOLD_SECONDS` if no monitor is
+   * registered. Distinct from `staleThresholdSeconds`, which is
+   * about `lastOkAt` (last *successful* check) — `checkedStale` is
+   * about `lastCheckedAt` (last *attempted* check) and closes the
+   * blind spot where the verifier silently stops running.
+   */
+  checkedStaleThresholdSeconds?: number;
 }
 
 export type { LedgerIntegrityStatus, FailureMode };
@@ -400,6 +441,14 @@ export function createLedgerChecker(opts: LedgerRouterOptions): LedgerChecker {
       : resolveCheckpointStaleThresholdSeconds(
           process.env.LEDGER_CHECKPOINT_STALE_THRESHOLD_SECONDS,
         );
+  const explicitCheckedStaleSeconds =
+    opts.checkedStaleThresholdSeconds != null &&
+    Number.isFinite(opts.checkedStaleThresholdSeconds) &&
+    opts.checkedStaleThresholdSeconds > 0
+      ? Math.floor(opts.checkedStaleThresholdSeconds)
+      : resolveCheckedStaleThresholdSecondsFromEnv(
+          process.env.LEDGER_CHECKED_STALE_THRESHOLD_SECONDS,
+        );
   const SIDECAR_SECRET = loadOrCreateSecret(SECRET_PATH, defaultLogger);
   const persisted = readPersistedState(
     LAST_OK_PATH,
@@ -424,6 +473,67 @@ export function createLedgerChecker(opts: LedgerRouterOptions): LedgerChecker {
     }
     const ageSeconds = Math.max(0, Math.floor((nowMs - okMs) / 1000));
     return { lastOkAgeSeconds: ageSeconds, stale: ageSeconds > STALE_THRESHOLD_SECONDS };
+  }
+
+  function resolveCheckedStaleThreshold(): number {
+    // Explicit constructor option / env var always wins.
+    if (explicitCheckedStaleSeconds != null) {
+      return explicitCheckedStaleSeconds;
+    }
+    // Otherwise, derive `2 × monitorIntervalSeconds` from the live
+    // monitor info provider so the threshold tracks whatever cadence
+    // the operator configured for the background timer. We deliberately
+    // re-resolve on every call because the monitor provider may be
+    // registered after createLedgerChecker() (see the bottom of this
+    // file) and may also change at runtime.
+    let info: LedgerMonitorInfo;
+    try {
+      info = monitorInfoProvider();
+    } catch {
+      return DEFAULT_CHECKED_STALE_THRESHOLD_SECONDS;
+    }
+    if (
+      info.enabled &&
+      info.intervalSeconds != null &&
+      Number.isFinite(info.intervalSeconds) &&
+      info.intervalSeconds > 0
+    ) {
+      return info.intervalSeconds * 2;
+    }
+    return DEFAULT_CHECKED_STALE_THRESHOLD_SECONDS;
+  }
+
+  function computeCheckedStaleness(checkedAtIso: string): {
+    lastCheckedAgeSeconds: number | null;
+    checkedStaleThresholdSeconds: number;
+    checkedStale: boolean;
+  } {
+    const thresh = resolveCheckedStaleThreshold();
+    if (!lastCheckedAt) {
+      // No prior attempted check on record — flag stale so the
+      // dashboard surfaces "verifier hasn't run" rather than a silent
+      // blank field.
+      return {
+        lastCheckedAgeSeconds: null,
+        checkedStaleThresholdSeconds: thresh,
+        checkedStale: true,
+      };
+    }
+    const checkedMs = Date.parse(lastCheckedAt);
+    const nowMs = Date.parse(checkedAtIso);
+    if (!Number.isFinite(checkedMs) || !Number.isFinite(nowMs)) {
+      return {
+        lastCheckedAgeSeconds: null,
+        checkedStaleThresholdSeconds: thresh,
+        checkedStale: true,
+      };
+    }
+    const ageSeconds = Math.max(0, Math.floor((nowMs - checkedMs) / 1000));
+    return {
+      lastCheckedAgeSeconds: ageSeconds,
+      checkedStaleThresholdSeconds: thresh,
+      checkedStale: ageSeconds > thresh,
+    };
   }
 
   function computeCheckpointMetrics(
@@ -483,6 +593,10 @@ export function createLedgerChecker(opts: LedgerRouterOptions): LedgerChecker {
     // reflects the actual on-disk file, not the placeholder we seeded
     // before stat'ing the ledger.
     const m = computeCheckpointMetrics(result.checkedAt, result.liveSize);
+    // Task #99: deliberately DO NOT re-derive checked-staleness here.
+    // The inner run already snapshotted it against the prior
+    // lastCheckedAt before advancing the persisted value, which is
+    // the semantic we want (see the buildStatusInner comment).
     return {
       ...result,
       checkpointLastModified: m.checkpointLastModified,
@@ -496,6 +610,7 @@ export function createLedgerChecker(opts: LedgerRouterOptions): LedgerChecker {
     const checkedAt = new Date().toISOString();
     const { lastOkAgeSeconds, stale } = computeStaleness(checkedAt);
     const cpInit = computeCheckpointMetrics(checkedAt, null);
+    const csInit = computeCheckedStaleness(checkedAt);
     const base: LedgerIntegrityStatus = {
       status: "ok",
       failureMode: null,
@@ -512,8 +627,11 @@ export function createLedgerChecker(opts: LedgerRouterOptions): LedgerChecker {
       lastOkAt,
       lastOkAgeSeconds,
       lastCheckedAt,
+      lastCheckedAgeSeconds: csInit.lastCheckedAgeSeconds,
       staleThresholdSeconds: STALE_THRESHOLD_SECONDS,
       stale,
+      checkedStaleThresholdSeconds: csInit.checkedStaleThresholdSeconds,
+      checkedStale: csInit.checkedStale,
       checkpointLastModified: cpInit.checkpointLastModified,
       checkpointAgeSeconds: cpInit.checkpointAgeSeconds,
       checkpointCoverageRatio: cpInit.checkpointCoverageRatio,
@@ -523,6 +641,15 @@ export function createLedgerChecker(opts: LedgerRouterOptions): LedgerChecker {
 
 
     // Always update lastCheckedAt — we ran a check regardless of outcome.
+    // NOTE (task #99): the `base` object's lastCheckedAgeSeconds /
+    // checkedStale fields were computed BEFORE this write, against
+    // the prior persisted value. That is intentional: we want the
+    // surfaced age to mean "time since the *previous* check attempt"
+    // so the dashboard can detect a stalled background monitor (if
+    // the monitor stops ticking, the dashboard poll's own writes are
+    // the only thing advancing lastCheckedAt, but each poll sees the
+    // gap to the prior poll). If we re-derived here, every response
+    // would show age ≈ 0 and `checkedStale` could never flip true.
     lastCheckedAt = checkedAt;
     writePersistedState(LAST_OK_PATH, SIDECAR_SECRET, CHECKPOINT, { lastOkAt, lastCheckedAt });
     base.lastCheckedAt = lastCheckedAt;

@@ -352,6 +352,78 @@ describe("GET /api/ledger/integrity", () => {
     }
   });
 
+  it("task #99: surfaces lastCheckedAgeSeconds + checkedStale=false on a fresh attempt", async () => {
+    const sealed = "line1\nline2\n";
+    const { size, sha } = writeHits(sealed);
+    writeCheckpoint(size, sha);
+
+    const r = await getStatus();
+    expect(r.json.status).toBe("ok");
+    // Fields are surfaced and reasonable.
+    expect(typeof r.json.checkedStaleThresholdSeconds).toBe("number");
+    expect(r.json.checkedStaleThresholdSeconds).toBeGreaterThan(0);
+    expect(r.json.lastCheckedAgeSeconds).toBeGreaterThanOrEqual(0);
+    expect(r.json.lastCheckedAgeSeconds).toBeLessThan(
+      r.json.checkedStaleThresholdSeconds,
+    );
+    expect(r.json.checkedStale).toBe(false);
+  });
+
+  it("task #99: reports checkedStale=true when lastCheckedAt is older than the configured threshold", async () => {
+    const sealed = "line1\nline2\n";
+    const { size, sha } = writeHits(sealed);
+    writeCheckpoint(size, sha);
+
+    // Pre-seed an ancient lastCheckedAt (with valid HMAC) so the
+    // sidecar load makes the very first response see a stale check
+    // age — before lastCheckedAt is rewritten to "now" later in the
+    // request. We construct a router with checkedStaleThresholdSeconds
+    // = 1 so any age above 1s flips the badge.
+    const lastOkPath = path.join(tmpDir, "hits.txt.chkstale.lastok");
+    const secretPath = `${lastOkPath}.key`;
+    const secretHex = "cd".repeat(32);
+    writeFileSync(secretPath, secretHex + "\n");
+    writeFileSync(
+      lastOkPath,
+      sealSidecar(secretHex, {
+        lastOkAt: null,
+        lastCheckedAt: "2020-01-01T00:00:00.000Z",
+        boundCheckpointSize: null,
+        boundCheckpointSha: null,
+      }),
+    );
+
+    // Build a router that exposes `buildStatus` directly so we can
+    // observe the BASE response (before the inner run rewrites
+    // lastCheckedAt for the next call). We use the higher-level
+    // createLedgerChecker for that.
+    const { createLedgerChecker } = await import("./ledger.js");
+    const checker = createLedgerChecker({
+      hitsPath,
+      checkpointPath,
+      lastOkPath,
+      secretPath,
+      checkedStaleThresholdSeconds: 1,
+    });
+    // First call: lastCheckedAt was pre-seeded to 2020-01-01 so the
+    // *snapshot* age is huge; even though the inner run advances
+    // lastCheckedAt to "now" later, the response surfaces the age as
+    // computed AFTER that advance — which means a fresh call should
+    // be fresh. We need to assert on the FIRST call's snapshot of
+    // checkedStaleThresholdSeconds and the SECOND call's age.
+    const r1 = checker.buildStatus();
+    expect(r1.checkedStaleThresholdSeconds).toBe(1);
+    // After the first buildStatus(), lastCheckedAt is "now". Sleep
+    // 1.2s so the next call sees age > threshold (1s).
+    await new Promise((res) => setTimeout(res, 2100));
+    const r2 = checker.buildStatus();
+    expect(r2.lastCheckedAgeSeconds).toBeGreaterThanOrEqual(2);
+    expect(r2.checkedStale).toBe(true);
+
+    try { unlinkSync(lastOkPath); } catch { /* ignore */ }
+    try { unlinkSync(secretPath); } catch { /* ignore */ }
+  });
+
   it("rejects a forged sidecar with a fake future lastOkAt (HMAC mismatch ⇒ discarded as null)", async () => {
     // Healthy ledger so the integrity check itself succeeds. We're
     // testing that a hand-edited sidecar — written by an attacker who

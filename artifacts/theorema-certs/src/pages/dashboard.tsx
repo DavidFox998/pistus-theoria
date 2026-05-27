@@ -1701,6 +1701,71 @@ export default function DashboardPage() {
           })()}
 
           {(() => {
+            // Task #99: surface "verifier itself hasn't even *run* in
+            // too long". Distinct from `stale` (which is about
+            // `lastOkAt` — last *successful* check) — this one is
+            // about `lastCheckedAt` (last *attempted* check) and
+            // catches the blind spot where the background monitor
+            // silently stops ticking while `lastOkAt` quietly drifts.
+            if (!ledgerIntegrity) return null;
+            const checkedStale = ledgerIntegrity.checkedStale === true;
+            const ageSec =
+              ledgerIntegrity.lastCheckedAgeSeconds ?? null;
+            const thrSec =
+              ledgerIntegrity.checkedStaleThresholdSeconds ?? null;
+            const fmt = (sec: number | null): string | null => {
+              if (sec == null) return null;
+              if (sec >= 86400) return `${Math.round(sec / 86400)}d`;
+              if (sec >= 3600) return `${Math.round(sec / 3600)}h`;
+              if (sec >= 60) return `${Math.round(sec / 60)}m`;
+              return `${sec}s`;
+            };
+            const ageLabel = fmt(ageSec);
+            const thrLabel = fmt(thrSec);
+            return (
+              <p
+                className={`text-xs font-mono ${
+                  checkedStale
+                    ? "border border-amber-500/50 bg-amber-500/10 text-amber-700 dark:text-amber-400 px-3 py-2"
+                    : "text-muted-foreground"
+                }`}
+                data-testid="text-ledger-last-checked"
+                data-checked-stale={checkedStale ? "true" : "false"}
+                title={
+                  ledgerIntegrity.lastCheckedAt
+                    ? `verifier last attempted a check at ${ledgerIntegrity.lastCheckedAt}`
+                    : "no check has ever been attempted on this deploy"
+                }
+              >
+                last attempted check:{" "}
+                <span className={checkedStale ? "" : "text-foreground"}>
+                  {ageLabel == null
+                    ? "never"
+                    : ageSec === 0
+                      ? "just now"
+                      : `${ageLabel} ago`}
+                </span>
+                {thrLabel ? (
+                  <span
+                    className="ml-2 text-muted-foreground"
+                    data-testid="text-ledger-checked-threshold"
+                  >
+                    (stale &gt; {thrLabel})
+                  </span>
+                ) : null}
+                {checkedStale ? (
+                  <span
+                    className="ml-2 font-bold uppercase tracking-wider"
+                    data-testid="badge-ledger-checked-stale"
+                  >
+                    VERIFIER NOT RUNNING — no recent attempt
+                  </span>
+                ) : null}
+              </p>
+            );
+          })()}
+
+          {(() => {
             // Task #96: checkpoint-sidecar staleness. Distinct from
             // `stale` (verifier-not-running) — this flags that the
             // committed known-good prefix hasn't been re-rolled in too

@@ -1067,6 +1067,42 @@ components:
             so the dashboard can immediately show when the verifier
             last ran (vs `checkedAt`, which is just "now"). Null only
             when no check has ever been recorded.
+        lastCheckedAgeSeconds:
+          type: ["integer", "null"]
+          description: |
+            Task #99. Server-computed age of `lastCheckedAt` at
+            `checkedAt`, in whole seconds. Null when `lastCheckedAt`
+            is null (no check has ever been recorded) or when either
+            timestamp is unparseable. Distinct from `lastOkAgeSeconds`
+            — this one tracks "how long since the verifier even
+            *attempted* a check", closing the blind spot where a
+            silently-stopped monitor would let `lastOkAt` drift
+            forever while `lastCheckedAt` (and so `lastOkAgeSeconds`)
+            quietly froze in the past.
+        checkedStaleThresholdSeconds:
+          type: integer
+          description: |
+            Task #99. Configured threshold in seconds beyond which
+            `lastCheckedAt` is treated as stale. Sourced from
+            `LEDGER_CHECKED_STALE_THRESHOLD_SECONDS` when set;
+            otherwise derived at request time as
+            `2 × monitor.intervalSeconds` (from the background timer
+            registered in this process), falling back to 600s (2×
+            the default 300s monitor interval) when no monitor is
+            registered. Distinct from `staleThresholdSeconds`, which
+            only governs `lastOkAt`.
+        checkedStale:
+          type: boolean
+          description: |
+            Task #99. True when `lastCheckedAt` is null OR
+            `lastCheckedAgeSeconds` exceeds
+            `checkedStaleThresholdSeconds`. Means the verifier itself
+            has stopped running — distinct from `stale` (last
+            *successful* check too old) and from
+            `status: mismatch` / `missing` (verifier ran and surfaced
+            a tamper). The dashboard surfaces this as a separate amber
+            badge so operators can tell "the monitor itself has gone
+            quiet" from "the monitor is running but keeps failing".
         staleThresholdSeconds:
           type: integer
           description: |
