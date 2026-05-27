@@ -114,6 +114,117 @@ const REBUILD_CANCEL_URL = `${import.meta.env.BASE_URL}api/lean/verify/rebuild/c
   /\/{2,}/g,
   "/",
 );
+const REROLL_STREAM_URL = `${import.meta.env.BASE_URL}api/ledger/checkpoint/reroll/stream`.replace(
+  /\/{2,}/g,
+  "/",
+);
+
+interface RerollResultPayload {
+  ok: boolean;
+  exitCode: number;
+  stdout: string;
+  stderr: string;
+  durationMs: number;
+  error: string | null;
+}
+
+async function streamReroll(
+  token: string,
+  refereeName: string,
+  onLine: (line: RebuildLogLine) => void,
+  signal: AbortSignal,
+): Promise<
+  | { kind: "result"; payload: RerollResultPayload }
+  | { kind: "error"; error: string; status?: number; retryAfterMs?: number }
+> {
+  let response: Response;
+  try {
+    const headers: Record<string, string> = { Authorization: `Bearer ${token}` };
+    if (refereeName) headers["X-Referee-Name"] = refereeName;
+    response = await fetch(REROLL_STREAM_URL, {
+      method: "POST",
+      headers,
+      signal,
+    });
+  } catch (err) {
+    return { kind: "error", error: err instanceof Error ? err.message : String(err) };
+  }
+
+  if (!response.ok) {
+    let detail = `HTTP ${response.status}`;
+    try {
+      const body = await response.json();
+      if (body && typeof body === "object" && typeof (body as { error?: unknown }).error === "string") {
+        detail = (body as { error: string }).error;
+      }
+    } catch {
+      // ignore
+    }
+    let retryAfterMs: number | undefined;
+    const retryAfterHeader = response.headers.get("Retry-After");
+    if (retryAfterHeader) {
+      const sec = Number(retryAfterHeader);
+      if (Number.isFinite(sec) && sec > 0) retryAfterMs = sec * 1000;
+    }
+    return { kind: "error", error: detail, status: response.status, retryAfterMs };
+  }
+
+  if (!response.body) {
+    return { kind: "error", error: "Streaming not supported by this browser." };
+  }
+
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = "";
+  let finalResult: RerollResultPayload | null = null;
+  let streamError: string | null = null;
+
+  const handleEvent = (eventName: string, dataStr: string) => {
+    let data: unknown;
+    try {
+      data = JSON.parse(dataStr);
+    } catch {
+      return;
+    }
+    if (eventName === "line" && data && typeof data === "object") {
+      const obj = data as Partial<RebuildLogLine>;
+      if ((obj.stream === "stdout" || obj.stream === "stderr") && typeof obj.line === "string") {
+        onLine({ stream: obj.stream, line: obj.line });
+      }
+    } else if (eventName === "result") {
+      finalResult = data as RerollResultPayload;
+    } else if (eventName === "error" && data && typeof data === "object") {
+      const obj = data as { error?: unknown };
+      if (typeof obj.error === "string") streamError = obj.error;
+    }
+  };
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buffer += decoder.decode(value, { stream: true });
+    let sep: number;
+    while ((sep = buffer.indexOf("\n\n")) !== -1) {
+      const raw = buffer.slice(0, sep);
+      buffer = buffer.slice(sep + 2);
+      let eventName = "message";
+      const dataLines: string[] = [];
+      for (const rawLine of raw.split("\n")) {
+        if (rawLine.startsWith(":") || rawLine.length === 0) continue;
+        if (rawLine.startsWith("event:")) {
+          eventName = rawLine.slice(6).trim();
+        } else if (rawLine.startsWith("data:")) {
+          dataLines.push(rawLine.slice(5).replace(/^ /, ""));
+        }
+      }
+      if (dataLines.length > 0) handleEvent(eventName, dataLines.join("\n"));
+    }
+  }
+
+  if (finalResult) return { kind: "result", payload: finalResult };
+  if (streamError) return { kind: "error", error: streamError };
+  return { kind: "error", error: "Stream ended without a result frame." };
+}
 
 async function streamRebuild(
   token: string,
@@ -284,6 +395,9 @@ export default function DashboardPage() {
   const rerollCheckpointMutation = useRerollLedgerCheckpoint({
     request: lockoutsAuthHeader ? { headers: lockoutsAuthHeader } : undefined,
   });
+  const [isRerollingCheckpoint, setIsRerollingCheckpoint] = useState(false);
+  const [rerollLogLines, setRerollLogLines] = useState<RebuildLogLine[]>([]);
+  const rerollAbortRef = useRef<AbortController | null>(null);
   const { data: checkpointRerollHistory } = useGetLedgerCheckpointRerollHistory({
     query: {
       queryKey: getGetLedgerCheckpointRerollHistoryQueryKey(),
@@ -2174,54 +2288,110 @@ export default function DashboardPage() {
                   </span>
                 ) : null}
                 {cpStale && rebuildToken ? (
-                  <span className="mt-2 flex flex-wrap items-center gap-2 normal-case">
-                    <button
-                      type="button"
-                      className="border border-amber-500/50 bg-amber-500/10 hover:bg-amber-500/20 text-amber-700 dark:text-amber-300 px-2 py-1 text-xs disabled:opacity-50 disabled:cursor-not-allowed"
-                      data-testid="button-reroll-checkpoint"
-                      disabled={rerollCheckpointMutation.isPending}
-                      onClick={() => {
-                        setRerollCheckpointError(null);
-                        rerollCheckpointMutation.mutate(undefined, {
-                          onSuccess: (data) => {
-                            if (data?.ok) {
+                  <span className="mt-2 flex flex-col gap-2 normal-case">
+                    <span className="flex flex-wrap items-center gap-2">
+                      <button
+                        type="button"
+                        className="border border-amber-500/50 bg-amber-500/10 hover:bg-amber-500/20 text-amber-700 dark:text-amber-300 px-2 py-1 text-xs disabled:opacity-50 disabled:cursor-not-allowed"
+                        data-testid="button-reroll-checkpoint"
+                        disabled={isRerollingCheckpoint || rerollCheckpointMutation.isPending}
+                        onClick={async () => {
+                          setRerollCheckpointError(null);
+                          setRerollLogLines([]);
+                          setIsRerollingCheckpoint(true);
+                          const controller = new AbortController();
+                          rerollAbortRef.current = controller;
+                          try {
+                            const outcome = await streamReroll(
+                              rebuildToken,
+                              refereeName,
+                              (line) =>
+                                setRerollLogLines((prev) => [...prev, line]),
+                              controller.signal,
+                            );
+                            if (outcome.kind === "result" && outcome.payload.ok) {
                               queryClient.invalidateQueries({
                                 queryKey: getGetLedgerIntegrityQueryKey(),
                               });
                               queryClient.invalidateQueries({
                                 queryKey: getGetLedgerAlertsQueryKey(),
                               });
-                            } else {
+                              queryClient.invalidateQueries({
+                                queryKey: getGetLedgerCheckpointRerollHistoryQueryKey(),
+                              });
+                            } else if (outcome.kind === "result") {
                               setRerollCheckpointError(
-                                data?.error ??
-                                  (data?.stderr ? data.stderr.trim() : null) ??
+                                outcome.payload.error ??
+                                  (outcome.payload.stderr
+                                    ? outcome.payload.stderr.trim()
+                                    : null) ??
                                   "Re-roll failed (no error returned).",
                               );
+                              queryClient.invalidateQueries({
+                                queryKey: getGetLedgerCheckpointRerollHistoryQueryKey(),
+                              });
+                            } else {
+                              setRerollCheckpointError(outcome.error);
                             }
-                          },
-                          onError: (err: unknown) => {
-                            const msg =
-                              err instanceof Error
-                                ? err.message
-                                : typeof err === "string"
-                                  ? err
-                                  : "Re-roll request failed.";
-                            setRerollCheckpointError(msg);
-                          },
-                        });
-                      }}
-                    >
-                      {rerollCheckpointMutation.isPending
-                        ? "Re-rolling..."
-                        : "Re-roll checkpoint"}
-                    </button>
-                    {rerollCheckpointError ? (
-                      <span
-                        className="text-red-700 dark:text-red-400 normal-case"
-                        data-testid="text-reroll-checkpoint-error"
+                          } finally {
+                            setIsRerollingCheckpoint(false);
+                            rerollAbortRef.current = null;
+                          }
+                        }}
                       >
-                        {rerollCheckpointError}
-                      </span>
+                        {isRerollingCheckpoint
+                          ? "Re-rolling..."
+                          : "Re-roll checkpoint"}
+                      </button>
+                      {isRerollingCheckpoint ? (
+                        <span
+                          className="font-mono text-[11px] text-muted-foreground"
+                          data-testid="text-reroll-checkpoint-progress"
+                        >
+                          Streaming reroll-checkpoint.py — {rerollLogLines.length} line
+                          {rerollLogLines.length === 1 ? "" : "s"} so far.
+                        </span>
+                      ) : null}
+                      {rerollCheckpointError ? (
+                        <span
+                          className="text-red-700 dark:text-red-400 normal-case"
+                          data-testid="text-reroll-checkpoint-error"
+                        >
+                          {rerollCheckpointError}
+                        </span>
+                      ) : null}
+                    </span>
+                    {(isRerollingCheckpoint || rerollLogLines.length > 0) ? (
+                      <div
+                        className="border border-border bg-black/90 dark:bg-black/70"
+                        data-testid="panel-reroll-live-log"
+                      >
+                        <div className="flex items-center justify-between px-3 py-1.5 border-b border-border bg-muted/30">
+                          <span className="font-mono text-[11px] uppercase tracking-wider text-muted-foreground">
+                            Live re-roll output
+                          </span>
+                          <span
+                            className="font-mono text-[11px] text-muted-foreground"
+                            data-testid="text-reroll-line-count"
+                          >
+                            {rerollLogLines.length} line
+                            {rerollLogLines.length === 1 ? "" : "s"}
+                            {isRerollingCheckpoint ? " · streaming…" : ""}
+                          </span>
+                        </div>
+                        <pre
+                          className="max-h-48 overflow-auto px-3 py-2 font-mono text-[11px] leading-relaxed text-green-300 whitespace-pre-wrap"
+                          data-testid="text-reroll-live-log"
+                        >
+                          {rerollLogLines.length === 0
+                            ? "Waiting for output…"
+                            : rerollLogLines
+                                .map((l) =>
+                                  l.stream === "stderr" ? `! ${l.line}` : l.line,
+                                )
+                                .join("\n")}
+                        </pre>
+                      </div>
                     ) : null}
                   </span>
                 ) : null}

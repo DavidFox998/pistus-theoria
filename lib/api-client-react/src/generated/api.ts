@@ -1432,6 +1432,94 @@ export const useRerollLedgerCheckpoint = <TError = ErrorType<void>,
       return useMutation(getRerollLedgerCheckpointMutationOptions(options));
     }
 
+export const getRerollLedgerCheckpointStreamUrl = () => {
+
+
+
+
+  return `/api/ledger/checkpoint/reroll/stream`
+}
+
+/**
+ * Task #142. Same auth / cooldown / in-flight semantics as
+`/ledger/checkpoint/reroll`, but streams `scripts/reroll-checkpoint.py`'s
+stdout/stderr line-by-line as Server-Sent Events so the dashboard
+can show "hashing prefix…" style progress for large ledgers
+instead of a frozen 30-second spinner.
+
+Events emitted (each `data:` line is a JSON object):
+- `event: line`   — `{ "stream": "stdout"|"stderr", "line": "..." }`
+                    including `STEP:` and `PROGRESS:` markers from
+                    the helper script
+- `event: result` — final `CheckpointRerollResult` payload (without
+                    stdout/stderr fields — those have already been
+                    streamed line-by-line)
+
+The stream ends after the `result` event. Persists an audit entry
+just like the non-streaming variant so
+`/ledger/checkpoint/reroll/history` reflects the attempt.
+
+ * @summary Stream a checkpoint re-roll's stdout/stderr live (SSE)
+ */
+export const rerollLedgerCheckpointStream = async ( options?: RequestInit): Promise<string> => {
+
+  return customFetch<string>(getRerollLedgerCheckpointStreamUrl(),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+export const getRerollLedgerCheckpointStreamMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof rerollLedgerCheckpointStream>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof rerollLedgerCheckpointStream>>, TError,void, TContext> => {
+
+const mutationKey = ['rerollLedgerCheckpointStream'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof rerollLedgerCheckpointStream>>, void> = () => {
+
+
+          return  rerollLedgerCheckpointStream(requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type RerollLedgerCheckpointStreamMutationResult = NonNullable<Awaited<ReturnType<typeof rerollLedgerCheckpointStream>>>
+
+    export type RerollLedgerCheckpointStreamMutationError = ErrorType<void>
+
+    /**
+ * @summary Stream a checkpoint re-roll's stdout/stderr live (SSE)
+ */
+export const useRerollLedgerCheckpointStream = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof rerollLedgerCheckpointStream>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof rerollLedgerCheckpointStream>>,
+        TError,
+        void,
+        TContext
+      > => {
+      return useMutation(getRerollLedgerCheckpointStreamMutationOptions(options));
+    }
+
 export const getGetLedgerCheckpointRerollHistoryUrl = () => {
 
 

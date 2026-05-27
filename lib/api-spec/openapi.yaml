@@ -479,6 +479,45 @@ paths:
         "503":
           description: Rebuilds are disabled (no rebuild token configured)
 
+  /ledger/checkpoint/reroll/stream:
+    post:
+      operationId: rerollLedgerCheckpointStream
+      tags: [ledger]
+      summary: Stream a checkpoint re-roll's stdout/stderr live (SSE)
+      description: |
+        Task #142. Same auth / cooldown / in-flight semantics as
+        `/ledger/checkpoint/reroll`, but streams `scripts/reroll-checkpoint.py`'s
+        stdout/stderr line-by-line as Server-Sent Events so the dashboard
+        can show "hashing prefix…" style progress for large ledgers
+        instead of a frozen 30-second spinner.
+
+        Events emitted (each `data:` line is a JSON object):
+        - `event: line`   — `{ "stream": "stdout"|"stderr", "line": "..." }`
+                            including `STEP:` and `PROGRESS:` markers from
+                            the helper script
+        - `event: result` — final `CheckpointRerollResult` payload (without
+                            stdout/stderr fields — those have already been
+                            streamed line-by-line)
+
+        The stream ends after the `result` event. Persists an audit entry
+        just like the non-streaming variant so
+        `/ledger/checkpoint/reroll/history` reflects the attempt.
+      responses:
+        "200":
+          description: Server-Sent Events stream of re-roll progress
+          content:
+            text/event-stream:
+              schema:
+                type: string
+        "401":
+          description: Missing or invalid referee rebuild token
+        "409":
+          description: A re-roll or Lean rebuild is already in flight
+        "429":
+          description: Per-IP brute-force lockout, or shared rebuild cooldown still active
+        "503":
+          description: Rebuilds are disabled (no rebuild token configured)
+
   /ledger/checkpoint/reroll/history:
     get:
       operationId: getLedgerCheckpointRerollHistory

@@ -676,6 +676,196 @@ router.post("/ledger/checkpoint/reroll", async (req, res) => {
   }
 });
 
+router.post("/ledger/checkpoint/reroll/stream", (req, res) => {
+  const start = Date.now();
+  const auth = checkRebuildAuth(req);
+  if (!auth.ok) {
+    applyAuthFailureHeaders(res, auth);
+    res.status(auth.status).json({ error: auth.error });
+    return;
+  }
+  if (checkpointRerollInFlight || rebuildInFlight) {
+    res.status(409).json({
+      error:
+        "Another checkpoint re-roll or Lean rebuild is already in flight. Please wait for it to finish.",
+    });
+    return;
+  }
+  const cooldown = checkRebuildCooldown();
+  if (!cooldown.ok) {
+    const retryAfterSec = Math.ceil(cooldown.retryAfterMs / 1000);
+    res.setHeader("Retry-After", String(retryAfterSec));
+    res.status(429).json({
+      error: `Rebuild/re-roll cooldown active. Please wait ${retryAfterSec}s before triggering another.`,
+    });
+    return;
+  }
+  if (!existsSync(RerollHelperPath)) {
+    req.log.error({ path: RerollHelperPath }, "reroll-checkpoint.py not found");
+    res
+      .status(500)
+      .json({ error: `reroll-checkpoint.py not found at ${RerollHelperPath}` });
+    return;
+  }
+
+  res.status(200);
+  res.setHeader("Content-Type", "text/event-stream");
+  res.setHeader("Cache-Control", "no-cache, no-transform");
+  res.setHeader("Connection", "keep-alive");
+  res.setHeader("X-Accel-Buffering", "no");
+  res.flushHeaders?.();
+
+  const sendEvent = (event: string, data: unknown) => {
+    if (res.writableEnded) return;
+    res.write(`event: ${event}\n`);
+    res.write(`data: ${JSON.stringify(data)}\n\n`);
+  };
+
+  checkpointRerollInFlight = true;
+  let child: ChildProcessWithoutNullStreams;
+  try {
+    child = spawn("python3", [RerollHelperPath], {
+      cwd: REPO_ROOT,
+      env: process.env,
+    });
+  } catch (err) {
+    checkpointRerollInFlight = false;
+    const message = err instanceof Error ? err.message : String(err);
+    req.log.error({ err: message }, "Failed to spawn reroll-checkpoint.py");
+    sendEvent("result", {
+      ok: false,
+      exitCode: -1,
+      stdout: "",
+      stderr: "",
+      durationMs: Date.now() - start,
+      error: `spawn_failed: ${message}`,
+    });
+    res.end();
+    return;
+  }
+
+  let stdout = "";
+  let stderr = "";
+  let stdoutBuf = "";
+  let stderrBuf = "";
+  let timedOut = false;
+
+  const pushLines = (stream: "stdout" | "stderr", buf: string): string => {
+    let remainder = buf;
+    let idx: number;
+    while ((idx = remainder.indexOf("\n")) !== -1) {
+      const line = remainder.slice(0, idx).replace(/\r$/, "");
+      remainder = remainder.slice(idx + 1);
+      sendEvent("line", { stream, line });
+    }
+    return remainder;
+  };
+
+  child.stdout.on("data", (chunk: Buffer) => {
+    const text = chunk.toString("utf8");
+    stdout += text;
+    stdoutBuf = pushLines("stdout", stdoutBuf + text);
+  });
+  child.stderr.on("data", (chunk: Buffer) => {
+    const text = chunk.toString("utf8");
+    stderr += text;
+    stderrBuf = pushLines("stderr", stderrBuf + text);
+  });
+
+  const heartbeat = setInterval(() => {
+    if (!res.writableEnded) res.write(`: keepalive\n\n`);
+  }, 15000);
+
+  const timer = setTimeout(() => {
+    timedOut = true;
+    child.kill("SIGKILL");
+  }, REROLL_TIMEOUT_MS);
+
+  let responded = false;
+  const finish = (payload: { ok: boolean; exitCode: number; error: string | null }) => {
+    if (responded) return;
+    responded = true;
+    clearTimeout(timer);
+    clearInterval(heartbeat);
+    checkpointRerollInFlight = false;
+    lastRebuildFinishedAt = Date.now();
+
+    if (stdoutBuf.length > 0) {
+      sendEvent("line", { stream: "stdout", line: stdoutBuf.replace(/\r$/, "") });
+      stdoutBuf = "";
+    }
+    if (stderrBuf.length > 0) {
+      sendEvent("line", { stream: "stderr", line: stderrBuf.replace(/\r$/, "") });
+      stderrBuf = "";
+    }
+
+    const durationMs = Date.now() - start;
+    const clientIp = getClientIp(req);
+    req.log.info(
+      {
+        ok: payload.ok,
+        exitCode: payload.exitCode,
+        durationMs,
+        rerolledBy: clientIp,
+        refereeName: auth.refereeName,
+        streamed: true,
+      },
+      "Ledger checkpoint reroll attempted",
+    );
+    void recordCheckpointRerollAttempt(
+      {
+        timestamp: new Date().toISOString(),
+        durationMs,
+        exitCode: payload.exitCode,
+        ok: payload.ok,
+        error: payload.error,
+        refereeName: auth.refereeName,
+        ip: clientIp || null,
+      },
+      req.log,
+    );
+
+    sendEvent("result", {
+      ok: payload.ok,
+      exitCode: payload.exitCode,
+      stdout,
+      stderr,
+      durationMs,
+      error: payload.error,
+    });
+    res.end();
+  };
+
+  child.on("error", (err) => {
+    const message = err instanceof Error ? err.message : String(err);
+    finish({ ok: false, exitCode: -1, error: `spawn_failed: ${message}` });
+  });
+
+  child.on("close", (code) => {
+    if (timedOut) {
+      finish({
+        ok: false,
+        exitCode: code ?? -1,
+        error: `timeout: reroll-checkpoint.py exceeded ${REROLL_TIMEOUT_MS}ms`,
+      });
+      return;
+    }
+    const exitCode = code ?? -1;
+    if (exitCode === 0) {
+      finish({ ok: true, exitCode, error: null });
+      return;
+    }
+    let error: string;
+    if (exitCode === 2) {
+      error =
+        "refused: existing checkpoint fails verification — investigate the tamper incident before re-rolling.";
+    } else {
+      error = `reroll-checkpoint.py exited ${exitCode}`;
+    }
+    finish({ ok: false, exitCode, error });
+  });
+});
+
 router.get("/ledger/checkpoint/reroll/history", async (req, res) => {
   try {
     const entries = await listCheckpointRerollHistory();
