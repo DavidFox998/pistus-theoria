@@ -1,8 +1,37 @@
 # The Three Hard Lemmas
 
-**Status:** open. **Repository wall:** 340 bricks, axiom footprint
+**Status:** open. **Repository wall:** 355 bricks, axiom footprint
 `⊆ {propext, Classical.choice, Quot.sound}`. **Towers:**
 `Status: Open` (`docs/ROADMAP.md` § 2, § 3).
+
+**Batch 19.1g update (2026-05-27):** the 19.1f `e = 1` slice of
+the Kotecky-Preiss criterion is lifted to the full textbook
+`K * e * Δ < 1` by **naming** the combinatorial constant `e`
+(still `:= 1` placeholder, but explicit in every statement).
++15 bricks in `Towers/YM/ClusterExpansion.lean`:
+`Combinatorial_constant_e`, `Ursell_tree_bound`,
+`Kotecky_Preiss_full`, `Small_coupling_from_KP`,
+`Decay_constant_real`, `Strict_contraction_real`,
+`Spectral_radius_lt_one_real`, `Combinatorial_constant_e_pos`,
+`Combinatorial_constant_e_eq_one`, `Decay_constant_real_pos`,
+`Decay_constant_real_eq_one`, `Strict_contraction_real_le_one`,
+`Ursell_tree_bound_simple`, `Small_coupling_KP_slack`,
+`MassGap_YM4_from_KP`. Honest scope: `Strict_contraction_real`
+proves `≤ Decay_constant_real` (unfolds to `≤ 1`), NOT `< 1`;
+strict form lives at `Towers/Attempts/ClusterExpansion.lean`
+as `sorry`-bearing `Strict_contraction_real_strict` and the
+renamed `Spectral_radius_lt_one_strict_real` (formerly
+19.1f `Spectral_radius_lt_one_real`, renamed to free the
+name for the 19.1g BRICK named-handle). The Clay-shape bridge
+`MassGap_YM4_from_KP` packages `g < g₀ → r < 1 → ∃ Δ > 0, Δ ≤
+mass_gap_def` — promoting YM out of `Status: Open` is a single
+named target: discharge `Spectral_radius_lt_one_strict_real`.
+Spec deviation: Track 2 lives in `Towers/YM/ClusterExpansion.lean`
+under the name `MassGap_YM4_from_KP` rather than a new file
+`Towers/YM/YM4.lean :: MassGap_YM4_Clay` — the existing
+`MassGap_YM4_Clay` in `Towers/YM/Spectrum.lean` is keyed on a
+different antecedent and remains untouched. YM tower stays
+`Status: Open` — see `docs/CHANGELOG.md` Batch 19.1g.
 
 **Batch 19.1f update (2026-05-27):** the K=1 base case is lifted
 to the real strict Kotecky-Preiss criterion `K * Δ < 1` (the
@@ -18,13 +47,15 @@ to the real strict Kotecky-Preiss criterion `K * Δ < 1` (the
 proves `≤ Decay_constant_from_KP` (unfolds to `≤ 1`), NOT `< 1`;
 the strict form lives at the NEW
 `Towers/Attempts/ClusterExpansion.lean` as two `sorry`-bearing
-theorems (`Strict_contraction_CE_real`, `Spectral_radius_lt_one_real`).
+theorems (`Strict_contraction_CE_real`,
+`Spectral_radius_lt_one_strict_real` — the latter renamed in
+19.1g from `Spectral_radius_lt_one_real`).
 The named bridge `MassGap_from_spectral_radius` now makes the
 implication `r < 1 → 0 < m` explicit at the Prop level — promoting
 YM out of `Status: Open` requires landing the
-`Spectral_radius_lt_one_real` sorry. YM tower stays `Status: Open`;
-`MassGap_YM4_Clay` stays a schema — see `docs/CHANGELOG.md`
-Batch 19.1f.
+`Spectral_radius_lt_one_strict_real` sorry. YM tower stays
+`Status: Open`; `MassGap_YM4_Clay` stays a schema — see
+`docs/CHANGELOG.md` Batch 19.1f.
 
 **Batch 19.1e update (2026-05-27):** the K=1 base case of the
 cluster expansion ships on top of the 19.1d skeleton (+12 bricks

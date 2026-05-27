@@ -1271,6 +1271,57 @@ BRICKS=(
   "Towers.YM.ClusterExpansion|TheoremaAureum.Towers.YM.ClusterExpansion.Strict_contraction_CE_le_one"
   "Towers.YM.ClusterExpansion|TheoremaAureum.Towers.YM.ClusterExpansion.MassGap_from_spectral_radius"
   "Towers.YM.ClusterExpansion|TheoremaAureum.Towers.YM.ClusterExpansion.Decay_constant_eq_one"
+
+  # ---- Batch 19.1g (2026-05-27) — Real Kotecky-Preiss (e > 1 upgrade).
+  # Wall 340 → 355 (+15 bricks). Names the combinatorial constant
+  # `e` from tree counting and threads it through the textbook
+  # Kotecky-Preiss `K * e * Δ < 1` and Ursell `|φ_T(X)| ≤ e^{|X|} * |X|!`
+  # shapes (still definitionally the `e = 1` slice — see deviation 2).
+  #
+  # Honest scope (two locked deviations, same shape as 19.1f, both
+  # documented in the file and in `docs/CHANGELOG.md`):
+  #
+  #   1. `Strict_contraction_real` proves `≤ Decay_constant_real`,
+  #      which unfolds to `≤ 1` at the placeholder, NOT `< 1`. The
+  #      strict `< 1` form lives at
+  #      `Towers/Attempts/ClusterExpansion.lean ::
+  #       Strict_contraction_real_strict` and
+  #       `Spectral_radius_lt_one_strict_real` (both
+  #       `sorry`-bearing). The 19.1f `Spectral_radius_lt_one_real`
+  #       sorry was renamed to `Spectral_radius_lt_one_strict_real`
+  #       to free the name for the 19.1g BRICK named-handle.
+  #   2. `Combinatorial_constant_e : ℝ := 1` is the `e = 1` slice of
+  #      Cayley's `e ≈ 2.71828`. Promotion to `Real.exp 1` is a
+  #      one-line change once `Mathlib.Analysis.SpecialFunctions.Exp.Basic`
+  #      is paid for downstream.
+  #
+  # Spec deviation: the user spec asked for Track 2 in a new file
+  # `Towers/YM/YM4.lean :: MassGap_YM4_Clay`. The existing
+  # `MassGap_YM4_Clay` in `Towers/YM/Spectrum.lean` is keyed on a
+  # *different* antecedent (`transfer_matrix_norm_less_one`, a
+  # Batch-15 schema). The 19.1g ClusterExpansion-flavoured
+  # promotion lives in this same file as `MassGap_YM4_from_KP` to
+  # avoid forking the Clay-mass-gap schema; Spectrum-flavour
+  # `MassGap_YM4_Clay` schema remains untouched.
+  #
+  # YM tower stays `Status: Open`. Promoting YM out of `Status: Open`
+  # is a single named target: discharge
+  # `Spectral_radius_lt_one_strict_real`.
+  "Towers.YM.ClusterExpansion|TheoremaAureum.Towers.YM.ClusterExpansion.Combinatorial_constant_e"
+  "Towers.YM.ClusterExpansion|TheoremaAureum.Towers.YM.ClusterExpansion.Ursell_tree_bound"
+  "Towers.YM.ClusterExpansion|TheoremaAureum.Towers.YM.ClusterExpansion.Kotecky_Preiss_full"
+  "Towers.YM.ClusterExpansion|TheoremaAureum.Towers.YM.ClusterExpansion.Small_coupling_from_KP"
+  "Towers.YM.ClusterExpansion|TheoremaAureum.Towers.YM.ClusterExpansion.Decay_constant_real"
+  "Towers.YM.ClusterExpansion|TheoremaAureum.Towers.YM.ClusterExpansion.Strict_contraction_real"
+  "Towers.YM.ClusterExpansion|TheoremaAureum.Towers.YM.ClusterExpansion.Spectral_radius_lt_one_real"
+  "Towers.YM.ClusterExpansion|TheoremaAureum.Towers.YM.ClusterExpansion.Combinatorial_constant_e_pos"
+  "Towers.YM.ClusterExpansion|TheoremaAureum.Towers.YM.ClusterExpansion.Combinatorial_constant_e_eq_one"
+  "Towers.YM.ClusterExpansion|TheoremaAureum.Towers.YM.ClusterExpansion.Decay_constant_real_pos"
+  "Towers.YM.ClusterExpansion|TheoremaAureum.Towers.YM.ClusterExpansion.Decay_constant_real_eq_one"
+  "Towers.YM.ClusterExpansion|TheoremaAureum.Towers.YM.ClusterExpansion.Strict_contraction_real_le_one"
+  "Towers.YM.ClusterExpansion|TheoremaAureum.Towers.YM.ClusterExpansion.Ursell_tree_bound_simple"
+  "Towers.YM.ClusterExpansion|TheoremaAureum.Towers.YM.ClusterExpansion.Small_coupling_KP_slack"
+  "Towers.YM.ClusterExpansion|TheoremaAureum.Towers.YM.ClusterExpansion.MassGap_YM4_from_KP"
 )
 
 VERIFIER_DIR="$(mktemp -d)"

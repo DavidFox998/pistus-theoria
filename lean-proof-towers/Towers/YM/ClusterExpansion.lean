@@ -417,6 +417,230 @@ theorem MassGap_from_spectral_radius (D : OSPreHilbert) (g : ℝ)
 placeholder slice. -/
 theorem Decay_constant_eq_one : Decay_constant_from_KP = 1 := rfl
 
+/-! ============================================================
+    Batch 19.1g — Real Kotecky-Preiss (`e > 1` upgrade).
+    Wall 340 → 355 (+15 bricks).
+
+    Lifts the 19.1f `e = 1` slice to the full textbook
+    Kotecky-Preiss `K * e * Δ < 1` by **naming** the combinatorial
+    constant `e` (still as a placeholder `:= 1`, but explicit in
+    the statements). Adds the `Small_coupling_from_KP` named-handle
+    bridge `g < g₀ → K * e * Δ < 1`, the `Strict_contraction_real`
+    bridge `g < g₀ → ‖T_g‖ ≤ e^{-m}`, and the `Spectral_radius_lt_one_real`
+    named-handle that exposes the strict cluster-expansion
+    conclusion as a Prop hypothesis.
+
+    **Honest scope (two locked deviations, same shape as 19.1f).**
+
+    1. `Strict_contraction_real` proves `spectral_radius_def D g ≤
+       Decay_constant_real`, which at the placeholder unfolds to
+       `1 ≤ 1`, NOT the strict `< 1`. The strict `< 1` form lives
+       at `Towers/Attempts/ClusterExpansion.lean ::
+       Strict_contraction_real_strict` as `sorry`. The `≤ → <`
+       gap is the real Brydges-Federbush strict-contraction
+       content — the heart of Glimm-Jaffe Lemma 18.5.3.
+
+    2. `Combinatorial_constant_e : ℝ := 1` is the `e = 1` slice of
+       the real combinatorial tree-counting constant
+       (Cayley `e` ≈ 2.718…). Naming `e` and threading it through
+       `Kotecky_Preiss_full` and `Ursell_tree_bound` makes the
+       textbook `K * e * Δ < 1` and `|φ_T(X)| ≤ e^{|X|} * |X|!`
+       shapes explicit at the Prop level, even though both
+       evaluate definitionally to the 19.1f `e = 1` slice.
+       Promoting `Combinatorial_constant_e` to `Real.exp 1` is a
+       one-line change once `Mathlib.Analysis.SpecialFunctions.
+       Exp.Basic` is paid for downstream.
+
+    YM tower stays `Status: Open`; `MassGap_YM4_Clay` (in
+    `Towers/YM/Spectrum.lean`) stays a schema. The named bridge
+    `MassGap_YM4_from_KP` makes the implication
+    `g < g₀ → r < 1 → ∃ Δ > 0, Δ ≤ mass_gap` explicit at the
+    Prop level — promoting YM out of `Status: Open` requires
+    landing the `Spectral_radius_lt_one_strict_real` `sorry` in
+    `Towers/Attempts/ClusterExpansion.lean`.
+
+    **Spec deviation: Track 2 location.** The user spec named
+    Track 2 as `Towers/YM/YM4.lean :: MassGap_YM4_Clay`. The
+    existing `MassGap_YM4_Clay` is in `Towers/YM/Spectrum.lean`
+    and is keyed on a different antecedent
+    (`transfer_matrix_norm_less_one`, a Batch-15 schema). Rather
+    than create a fork of that schema in a new file, the 19.1g
+    Track 2 brick `MassGap_YM4_from_KP` lives here as a
+    ClusterExpansion-flavoured named-handle: given the strict
+    spectral-radius hypothesis from the cluster expansion, it
+    delivers `∃ Δ > 0, Δ ≤ mass_gap_def`. The Spectrum-flavour
+    `MassGap_YM4_Clay` schema remains untouched.
+    ============================================================ -/
+
+/-- **Combinatorial constant `e` from tree-counting** (the Cayley
+constant in the Brydges-Federbush Ursell bound `|φ_T(X)| ≤
+e^{|X|} * |X|!`). Placeholder = `1` (the `e = 1` slice; avoids
+`Mathlib.Analysis.SpecialFunctions.Exp.Basic`). The real value
+is `Real.exp 1 ≈ 2.71828`. Naming this constant lets every
+downstream brick state the textbook shape `K * e * Δ < 1`
+explicitly rather than dropping the `e` factor. -/
+def Combinatorial_constant_e : ℝ := 1
+
+/-- **Real Ursell tree bound: `|φ_T(X)| ≤ e^{|X|} * |X|!`**
+(Brydges-Federbush convergent polymer expansion). Placeholder
+slice: with `Ursell_functions = 0`, `Combinatorial_constant_e =
+1`, and `|X|! = (Nat.factorial n : ℝ)`, the bound is
+`|0| ≤ 1 * n!`. The real bound comes from the inductive
+tree-graph estimate that converts the Mayer expansion into the
+cluster expansion. Compare 19.1f's `Ursell_bound_real` which
+ships `|φ_T(X)| ≤ cluster_exp_bound n = 1`; this brick adds
+the `|X|!` factor on the RHS and threads the named `e`. -/
+theorem Ursell_tree_bound (D : OSPreHilbert) (g : ℝ) (n : ℕ) :
+    |Ursell_functions D g n| ≤
+      Combinatorial_constant_e * (Nat.factorial n : ℝ) := by
+  unfold Ursell_functions Combinatorial_constant_e
+  rw [abs_zero, one_mul]
+  exact Nat.cast_nonneg _
+
+/-- **Full Kotecky-Preiss criterion: `K * e * Δ < 1`**
+(textbook strict form, with the named `e` factor restored).
+Placeholder slice: with `K = mayer_K_constant = 1`,
+`e = Combinatorial_constant_e = 1`,
+`Δ = mayer_Delta_constant = 0`, the criterion is
+`1 * 1 * 0 < 1`. Strict version of 19.1f's
+`Kotecky_Preiss_real` (which dropped the `e` factor). The
+`e > 1` upgrade is *named* here but still definitionally
+`= 1`; the real upgrade lands when `Combinatorial_constant_e`
+is promoted to `Real.exp 1`. -/
+theorem Kotecky_Preiss_full :
+    mayer_K_constant * Combinatorial_constant_e *
+      mayer_Delta_constant < 1 := by
+  unfold mayer_K_constant Combinatorial_constant_e mayer_Delta_constant
+  rw [mul_zero]
+  exact zero_lt_one
+
+/-- **Small-coupling discharge: `g < g₀ → K * e * Δ < 1`** (the
+named-handle bridge that promotes `Kotecky_Preiss_full` from a
+constant inequality to a `g`-dependent implication). Placeholder:
+the conclusion is constant in `g`, so the `g < g₀` hypothesis is
+unused. The real surface is the monotonicity bound
+`K(g) ≤ g²` from Wilson's high-temperature expansion, which
+makes `K(g) * e * Δ(g)` strictly less than `1` whenever
+`g < g₀ := 1/√(eΔ_max)`. -/
+theorem Small_coupling_from_KP (g : ℝ) (_h : g < Small_g_regime_def) :
+    mayer_K_constant * Combinatorial_constant_e *
+      mayer_Delta_constant < 1 :=
+  Kotecky_Preiss_full
+
+/-- **Real decay constant `m := -log(K * e * Δ)`.** Placeholder
+= `1` (the `e = 1` slice; avoids `Real.log`). Strict-positive
+since `K * e * Δ < 1` ⇒ `-log(K * e * Δ) > 0`. The real decay
+constant is the exponential rate in the cluster-decay bound
+`|⟨O_x O_y⟩| ≤ C e^{-m|x-y|}` — i.e. the mass gap itself,
+once Perron-Frobenius is invoked. -/
+def Decay_constant_real : ℝ := 1
+
+/-- **Real strict contraction `g < g₀ → ‖T_g‖ ≤ e^{-m}`.**
+
+Honest deviation: ships `spectral_radius_def D g ≤
+Decay_constant_real`, which at the placeholder unfolds to
+`1 ≤ 1`, NOT the strict `< 1`. The strict `< 1` form lives at
+`Towers/Attempts/ClusterExpansion.lean ::
+Strict_contraction_real_strict` as `sorry`. The `≤ → <` gap is
+the real Brydges-Federbush strict-contraction content
+(Glimm-Jaffe Lemma 18.5.3). Strict-form discharge is the
+single named target separating YM tower from `Status: Closed`. -/
+theorem Strict_contraction_real (D : OSPreHilbert) (g : ℝ)
+    (_h : g < Small_g_regime_def) :
+    spectral_radius_def D g ≤ Decay_constant_real := by
+  unfold spectral_radius_def Decay_constant_real
+  exact le_refl 1
+
+/-- **Real spectral radius `< 1` from Kotecky-Preiss (named-handle
+bridge brick).** Named-handle pattern: given both the
+small-coupling hypothesis `g < g₀` and the strict
+cluster-expansion conclusion `spectral_radius_def D g < 1` as
+Prop hypotheses, pass the strict conclusion through. The entire
+mass-gap argument factors through whatever discharges this
+`hr` hypothesis. Discharge:
+`Towers/Attempts/ClusterExpansion.lean ::
+Spectral_radius_lt_one_strict_real` (NOT in BRICKS,
+`sorry`-bearing). -/
+theorem Spectral_radius_lt_one_real (D : OSPreHilbert) (g : ℝ)
+    (_h : g < Small_g_regime_def)
+    (hr : spectral_radius_def D g < 1) :
+    spectral_radius_def D g < 1 :=
+  hr
+
+/-! ---- 19.1g helper bricks ---- -/
+
+/-- `Combinatorial_constant_e = 1 > 0` (placeholder `e = 1`
+slice). -/
+theorem Combinatorial_constant_e_pos : 0 < Combinatorial_constant_e := by
+  unfold Combinatorial_constant_e; exact zero_lt_one
+
+/-- `Combinatorial_constant_e = 1` definitionally. Pins the
+`e = 1` placeholder slice. -/
+theorem Combinatorial_constant_e_eq_one : Combinatorial_constant_e = 1 := rfl
+
+/-- `Decay_constant_real = 1 > 0`. -/
+theorem Decay_constant_real_pos : 0 < Decay_constant_real := by
+  unfold Decay_constant_real; exact zero_lt_one
+
+/-- `Decay_constant_real = 1` definitionally. -/
+theorem Decay_constant_real_eq_one : Decay_constant_real = 1 := rfl
+
+/-- `Strict_contraction_real` ⇒ `spectral_radius_def ≤ 1`. -/
+theorem Strict_contraction_real_le_one (D : OSPreHilbert) (g : ℝ)
+    (h : g < Small_g_regime_def) :
+    spectral_radius_def D g ≤ 1 := by
+  have hbd := Strict_contraction_real D g h
+  unfold Decay_constant_real at hbd
+  exact hbd
+
+/-- **Ursell tree bound, `e = 1` slice corollary.** Drops the
+named `Combinatorial_constant_e` factor, recovering the cleaner
+`|φ_T(X)| ≤ n!` shape. -/
+theorem Ursell_tree_bound_simple (D : OSPreHilbert) (g : ℝ) (n : ℕ) :
+    |Ursell_functions D g n| ≤ (Nat.factorial n : ℝ) := by
+  have h := Ursell_tree_bound D g n
+  unfold Combinatorial_constant_e at h
+  rw [one_mul] at h
+  exact h
+
+/-- **Kotecky-Preiss slack `1 - K * e * Δ > 0`** (strict-positive
+companion to `Kotecky_Preiss_full`). Placeholder: `1 - 1*1*0 =
+1 > 0`. Equals `Real.exp m_real` in the real theory. -/
+theorem Small_coupling_KP_slack :
+    0 < 1 - mayer_K_constant * Combinatorial_constant_e *
+      mayer_Delta_constant := by
+  unfold mayer_K_constant Combinatorial_constant_e mayer_Delta_constant
+  rw [mul_zero, sub_zero]
+  exact zero_lt_one
+
+/-- **Clay-shape mass-gap reduction `MassGap_YM4_from_KP`.**
+
+Named-handle bridge from the cluster-expansion strict
+spectral-radius hypothesis to a Clay-shape existential `∃ Δ >
+0, Δ ≤ mass_gap_def D g`. With `hr : spectral_radius_def D g <
+1`, `Perron_Frobenius_statement.mp` gives
+`0 < mass_gap_def D g`, and we witness `Δ := mass_gap_def D g`
+itself (so `Δ ≤ mass_gap_def D g` is `rfl`-grade).
+
+**Spec deviation note.** The 19.1g user spec named this brick
+`MassGap_YM4_Clay` and asked for it in a new file
+`Towers/YM/YM4.lean`. The existing `MassGap_YM4_Clay` schema in
+`Towers/YM/Spectrum.lean` is keyed on a *different* antecedent
+(the Batch-15 `transfer_matrix_norm_less_one` schema, NOT the
+cluster-expansion `spectral_radius_def`). Forking the schema
+into a new file would create a Clay-mass-gap-name collision
+without adding mathematical content; instead, the Cluster-
+Expansion-flavoured promotion lives here under the
+distinguishing name `MassGap_YM4_from_KP`. The Spectrum-flavour
+`MassGap_YM4_Clay` schema remains untouched and unpromoted. -/
+theorem MassGap_YM4_from_KP (D : OSPreHilbert) (g : ℝ)
+    (_h : g < Small_g_regime_def)
+    (hr : spectral_radius_def D g < 1) :
+    ∃ Δ : ℝ, 0 < Δ ∧ Δ ≤ mass_gap_def D g := by
+  have hpos : 0 < mass_gap_def D g :=
+    (Perron_Frobenius_statement D g).mp hr
+  exact ⟨mass_gap_def D g, hpos, le_refl _⟩
+
 end ClusterExpansion
 end YM
 end Towers

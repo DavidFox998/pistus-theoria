@@ -84,7 +84,7 @@ discharge = Brydges-Federbush convergent polymer expansion at
 the full `K * e * Δ < 1` (the 19.1f `Kotecky_Preiss_real`
 ships only the `e = 1`, `Δ = 0` slice). The companion stub
 `Towers/Attempts/ClusterExpansion.lean ::
-Spectral_radius_lt_one_real` carries the same `sorry` as a
+Spectral_radius_lt_one_strict_real` carries the same `sorry` as a
 ClusterExpansion-shaped surface; this T_g surface stays as the
 canonical "Perron-Frobenius for the transfer operator" sorry. -/
 theorem Perron_Frobenius_for_transfer (D : OSPreHilbert)

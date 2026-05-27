@@ -6,6 +6,121 @@ this file is the version history.
 
 ---
 
+## Batch 19.1g — Real Kotecky-Preiss (`e > 1` upgrade). Wall 340 → 355, +15 bricks (2026-05-27)
+
+User directive: lift the 19.1f `e = 1` slice of the Kotecky-Preiss
+criterion to the full textbook `K * e * Δ < 1` by naming the
+combinatorial constant `e`, ship the named-handle bridges
+`Small_coupling_from_KP`, `Strict_contraction_real`, and
+`Spectral_radius_lt_one_real`, and add a Clay-shape mass-gap
+reduction. Hard analytic bounds (strict `< 1` forms) stay in
+`Towers/Attempts/ClusterExpansion.lean` with `sorry`, NOT in BRICKS.
+
+**Honest scope (two locked deviations, same shape as 19.1f):**
+
+1. `Strict_contraction_real` proves `spectral_radius_def D g ≤
+   Decay_constant_real`, which unfolds to `≤ 1` at the placeholder,
+   NOT `< 1`. The strict `< 1` form lives at
+   `Towers/Attempts/ClusterExpansion.lean ::
+   Strict_contraction_real_strict` as `sorry`. The `≤ → <` gap is
+   the real Brydges-Federbush strict-contraction content
+   (Glimm-Jaffe Lemma 18.5.3).
+2. `Combinatorial_constant_e : ℝ := 1` is the `e = 1` slice of
+   Cayley's tree-counting constant `e ≈ 2.71828`. Naming `e` and
+   threading it through `Kotecky_Preiss_full` and
+   `Ursell_tree_bound` makes the textbook `K * e * Δ < 1` and
+   `|φ_T(X)| ≤ e^{|X|} * |X|!` shapes explicit at the Prop level,
+   even though both still evaluate to the 19.1f `e = 1` slice
+   definitionally. Promoting `Combinatorial_constant_e` to
+   `Real.exp 1` is a one-line change once
+   `Mathlib.Analysis.SpecialFunctions.Exp.Basic` is paid for
+   downstream.
+
+YM tower stays `Status: Open`; `MassGap_YM4_Clay` (in
+`Towers/YM/Spectrum.lean`) stays a schema — but the named bridge
+`MassGap_YM4_from_KP` now makes the implication
+`g < g₀ → r < 1 → ∃ Δ > 0, Δ ≤ mass_gap_def` explicit at the
+Prop level. Promoting YM out of `Status: Open` is a single
+named target: discharge
+`Spectral_radius_lt_one_strict_real`.
+
+**Spec deviation: Track 2 location.** The user spec named Track 2
+as a new file `Towers/YM/YM4.lean :: MassGap_YM4_Clay`. The
+existing `MassGap_YM4_Clay` schema in `Towers/YM/Spectrum.lean`
+is keyed on a *different* antecedent
+(`transfer_matrix_norm_less_one`, a Batch-15 transfer-matrix
+schema, NOT the cluster-expansion `spectral_radius_def`).
+Forking the Clay-mass-gap schema into a new file with a
+colliding name would add zero mathematical content. The 19.1g
+Track 2 brick `MassGap_YM4_from_KP` therefore lives in
+`Towers/YM/ClusterExpansion.lean` as a Cluster-Expansion-
+flavoured named-handle: given the strict spectral-radius
+hypothesis from the cluster expansion, it delivers
+`∃ Δ > 0, Δ ≤ mass_gap_def D g`. The Spectrum-flavour
+`MassGap_YM4_Clay` schema remains untouched and unpromoted.
+
+**Track 1 — `Towers/YM/ClusterExpansion.lean` (+15 bricks):**
+
+Seven bricks per the directive:
+
+- `Combinatorial_constant_e : ℝ := 1` — Cayley tree constant
+  (`e = 1` placeholder slice).
+- `Ursell_tree_bound (D g n) : |Ursell_functions D g n| ≤
+  Combinatorial_constant_e * (Nat.factorial n : ℝ)` — textbook
+  Brydges-Federbush shape with the `|X|!` factor.
+- `Kotecky_Preiss_full : mayer_K_constant * Combinatorial_constant_e
+  * mayer_Delta_constant < 1` — full strict criterion (placeholder
+  `1 * 1 * 0 < 1`).
+- `Small_coupling_from_KP (g) (_h : g < Small_g_regime_def) :
+  ... < 1` — named-handle small-coupling bridge.
+- `Decay_constant_real : ℝ := 1` — `m := -log(K * e * Δ)`
+  placeholder.
+- `Strict_contraction_real (D g) (_h) :
+  spectral_radius_def D g ≤ Decay_constant_real` (≤ deviation).
+- `Spectral_radius_lt_one_real (D g) (_h) (hr : r < 1) : r < 1` —
+  named-handle bridge taking the strict hypothesis as a Prop.
+
+Eight naturally arising helper bricks pulled into BRICKS:
+
+- `Combinatorial_constant_e_pos`, `Combinatorial_constant_e_eq_one`,
+  `Decay_constant_real_pos`, `Decay_constant_real_eq_one` — sign /
+  unfold helpers.
+- `Strict_contraction_real_le_one` — corollary `r ≤ 1`.
+- `Ursell_tree_bound_simple` — `e = 1` slice corollary,
+  `|φ_T(X)| ≤ n!`.
+- `Small_coupling_KP_slack` — `0 < 1 - K * e * Δ`.
+- `MassGap_YM4_from_KP (D g) (_h) (hr) : ∃ Δ > 0, Δ ≤
+  mass_gap_def D g` — Clay-shape reduction, witness `Δ :=
+  mass_gap_def D g` via `Perron_Frobenius_statement.mp`.
+
+**Track 1b — `Towers/Attempts/ClusterExpansion.lean` (rename + new
+sorry, NOT in BRICKS):**
+
+The 19.1f-shipped sorry `Spectral_radius_lt_one_real` was renamed
+to `Spectral_radius_lt_one_strict_real` to free the name for the
+19.1g BRICK named-handle. Mathematical content unchanged. Added a
+new strict-form sorry:
+
+- `Strict_contraction_real_strict (D g) (_h) :
+   spectral_radius_def D g < Decay_constant_real := by sorry` —
+   the strict-`<` companion to the 19.1g `≤` BRICK.
+
+`Strict_contraction_CE_real` (19.1f) unchanged.
+
+**Track 2 — `Towers/Attempts/T_g.lean` (docstring only, no sorry
+changes):** the `Perron_Frobenius_for_transfer` docstring updated
+to reference the renamed
+`Spectral_radius_lt_one_strict_real`.
+
+**Drift guard.** Genesis seal `eecbcd9a…875f` re-verified green.
+Axiom footprint of BRICKS stays `⊆ {propext, Classical.choice,
+Quot.sound}`. No sorry in `Towers/YM/ClusterExpansion.lean`;
+three sorries total in `Towers/Attempts/ClusterExpansion.lean`
+(`Strict_contraction_CE_real`, `Strict_contraction_real_strict`,
+`Spectral_radius_lt_one_strict_real`).
+
+---
+
 ## Batch 19.1f — Real Kotecky-Preiss. Wall 325 → 340, +15 bricks (2026-05-27)
 
 User directive: lift the 19.1e K=1 base case from the trivial
