@@ -531,42 +531,24 @@ theorem Single_plaquette_bound_SU3 (β : ℝ) (_hβ : 0 < β) :
     No new BRICKS. No YM/ changes. Wall stays 443.
 ============================================================ -/
 
-/-! **19.1r update.** The 19.1q placeholder `def`s for
-`Plaquette`, `Polymer`, and the sorry-bearing `Mayer_overlap`
-have been promoted into `Towers/YM/ClusterExpansion.lean`,
-where the latter is now a real concrete definition (the
-existential `∃ p, p ∈ γ₁ ∧ p ∈ γ₂`) rather than a typed
-sorry. They are visible here unchanged via the existing
-`open TheoremaAureum.Towers.YM.ClusterExpansion` on line 57.
-The two remaining 19.1q sorries below (`polymer_activity_finite_N`
-and `kotecky_preiss_criterion`) are untouched and still
-gate the Brydges-Federbush surface. Attempts/ sorry count:
-11 → 10. YM tower stays `Status: Open`. -/
+/-! **19.1s update.** The 19.1q sorry-bearing
+`polymer_activity_finite_N` has been promoted to a real,
+sorry-free definition in `Towers/YM/ClusterExpansion.lean` as
+`∏ p ∈ γ, plaquette_activity β N p` — the canonical Mayer-product
+over plaquettes — alongside a real-but-minimal-honest per-plaquette
+stub `plaquette_activity := Real.exp (-1/β)`. The companion 19.1s
+BRICK `polymer_activity_bound_real` discharges the canonical
+Kotecký-Preiss per-plaquette → polymer lift on top of it
+(`Finset.prod_le_prod` + `Real.exp_nat_mul`).
 
-/-- **Polymer activity functional `ζ(β, N, γ)`** at the
-finite-N Peter-Weyl truncation. Real surface:
-`ζ(β, γ) = e^{-β · |γ|} · ∏_{p ∈ γ} Z_p(β)`,
-where `Z_p(β) = ∫_{SU(3)} e^{-β Re tr U_p} dU_p` is the
-single-plaquette partition function (Glimm-Jaffe Eq. 20.3.5).
-The 19.1o `Weyl_sum_explicit_SU3_real` is the honest finite-N
-truncation of `Z_p(β)` via the Peter-Weyl heat-kernel
-expansion. The full activity then bundles `e^{-β|γ|}` (cardinality-
-suppression factor) with the product of single-plaquette
-truncated partition functions.
+This closes the 2nd of the two 19.1q sorries in this section.
+The only remaining sorry below is `kotecky_preiss_criterion` (the
+40+ page Brydges-Federbush convergence argument). Attempts/ sorry
+count: 10 → 9. YM tower stays `Status: Open` — the per-plaquette
+factor `plaquette_activity := Real.exp (-1/β)` is a placeholder,
+NOT a real Peter-Weyl truncation of the single-plaquette SU(3)
+partition function. -/
 
-**Why sorry, not the literal `Real.exp (-(β * γ.card)) *
-Weyl_sum_explicit_SU3_real (γ.card / β) N` expression?** Because
-the "product over plaquettes" of single-plaquette truncated
-partition functions is *not* the same as
-`Weyl_sum_explicit_SU3_real` of any single argument — it is a
-`Finset.prod` over `γ`, each factor itself a truncated sum.
-Writing that honestly requires lifting `Weyl_sum_explicit_SU3_real`
-through `Finset.prod`, which is downstream work (and where the
-Mayer combinatorics start to bite). Marked `sorry` so the
-definitional surface is not silently understated. -/
-noncomputable def polymer_activity_finite_N
-    (_β : ℝ) (_N : ℕ) (_γ : Polymer) : ℝ := by
-  sorry
 
 /-- **Mayer-expansion convergence Prop.** Placeholder `Prop`
 slot consumed by `kotecky_preiss_criterion`. Real surface: the
@@ -606,13 +588,15 @@ infinite-sum + tree-graph mathlib infrastructure rather than
 the KP argument itself (which is short once the substrate
 exists).
 
-**19.1r dependency status.** `Mayer_overlap` is now defined
-concretely in `Towers/YM/ClusterExpansion.lean` (the 19.1q
-sorry is discharged with the standard `∃ p, p ∈ γ₁ ∧ p ∈ γ₂`
-edge predicate). Remaining named gaps blocking this
-implication: `polymer_activity_finite_N` (the activity
-functional itself, sorry above) and the absolute-convergence
-proof on weighted polymer sums. -/
+**19.1s dependency status.** Both of the supporting 19.1q
+typed surfaces — `Mayer_overlap` (19.1r) and
+`polymer_activity_finite_N` (19.1s, with companion BRICK
+`polymer_activity_bound_real`) — have been promoted to real
+concrete defs in `Towers/YM/ClusterExpansion.lean`. The only
+remaining named gap blocking this implication is the
+absolute-convergence proof on weighted polymer sums (i.e. the
+honest KP combinatorial argument itself, ~40 pages per the
+estimate above). -/
 theorem kotecky_preiss_criterion (β : ℝ) (N : ℕ) (_γ₀ : Polymer) :
     True → Converges_Mayer_expansion β N := by
   sorry

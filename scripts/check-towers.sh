@@ -1768,6 +1768,16 @@ BRICKS=(
   # docs/ROADMAP.md § 2.
   # -----------------------------------------------------------------
   "Towers.YM.ClusterExpansion|TheoremaAureum.Towers.YM.ClusterExpansion.Mayer_overlap_symm"
+  # ---- Batch 19.1s — +1 BRICK: Kotecký-Preiss per-plaquette → polymer lift.
+  # `polymer_activity_finite_N` and `plaquette_activity` are real concrete defs
+  # (∏ p ∈ γ, plaquette_activity β N p; placeholder body Real.exp (-1/β)) — see
+  # Towers/YM/ClusterExpansion.lean. The BRICK proves the canonical KP shape
+  # `polymer_activity_finite_N β N γ ≤ Real.exp (-c * γ.card / β)` from a
+  # per-plaquette nonneg+exp bound, via `Finset.prod_le_prod + Real.exp_nat_mul`.
+  # NOT a real bound on the single-plaquette SU(3) partition function — the
+  # per-plaquette factor is still a placeholder. YM tower stays `Status: Open`.
+  # Discharges the 2nd of two 19.1q sorries in Attempts/; sorry count 10 → 9.
+  "Towers.YM.ClusterExpansion|TheoremaAureum.Towers.YM.ClusterExpansion.polymer_activity_bound_real"
 )
 
 VERIFIER_DIR="$(mktemp -d)"

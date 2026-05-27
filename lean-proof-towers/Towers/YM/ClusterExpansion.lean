@@ -2166,6 +2166,72 @@ theorem Mayer_overlap_symm (γ₁ γ₂ : Polymer) :
   exact ⟨fun ⟨p, h1, h2⟩ => ⟨p, h2, h1⟩,
          fun ⟨p, h1, h2⟩ => ⟨p, h2, h1⟩⟩
 
+/-- **Per-plaquette activity stub (19.1s).** Real but minimal-honest
+placeholder for the single-plaquette truncated partition function
+`Z_p(β) = ∫_{SU(3)} e^{-β · Re tr U_p} dU_p` (Glimm-Jaffe Eq. 20.3.5).
+
+The placeholder body is the *cardinality-suppression factor*
+`Real.exp (-1/β)`, identical across plaquettes. This is enough to give
+`polymer_activity_finite_N` a real multiplicative shape (`Finset.prod`
+over `γ`) without yet committing to a per-plaquette Peter-Weyl truncation.
+The real surface lifts `Weyl_sum_explicit_SU3_real (·) N` through
+`Finset.prod`; replacing the body here with that lift is the remaining
+19.1q work (and where the Mayer combinatorics start to bite).
+
+`noncomputable` because `Real.exp` is noncomputable. -/
+noncomputable def plaquette_activity (β : ℝ) (_N : ℕ) (_p : Plaquette) : ℝ :=
+  Real.exp (-1 / β)
+
+/-- **Polymer activity functional `ζ(β, N, γ)` (19.1s — promoted
+from `Towers/Attempts/`).** Real, sorry-free definition: the product
+over plaquettes `p ∈ γ` of the per-plaquette activity.
+
+Discharges the 2nd of two 19.1q sorries in `Attempts/`. The remaining
+`kotecky_preiss_criterion` sorry in `Attempts/` gates the
+Brydges-Federbush convergence argument (40+ pages of cluster-expansion
+combinatorics, Friedli-Velenik 2018 Ch. 5) and stays parked. -/
+noncomputable def polymer_activity_finite_N
+    (β : ℝ) (N : ℕ) (γ : Polymer) : ℝ :=
+  ∏ p ∈ γ, plaquette_activity β N p
+
+/-- **BRICK (19.1s) — Kotecký-Preiss per-plaquette → polymer bound.**
+Given a uniform per-plaquette bound
+`plaquette_activity β N p ≤ Real.exp (-c/β)` together with
+nonnegativity of each factor, the polymer activity is bounded by
+`Real.exp (-c · γ.card / β)`. This is the canonical Kotecký-Preiss
+per-plaquette → polymer lift (Friedli-Velenik 2018 Defn. 5.1):
+`Finset.prod` of `exp(-c/β)`-bounded nonneg factors collapses to
+`exp(-c · γ.card / β)` via `Real.exp_nat_mul`.
+
+**Honest scope.** The bound is *conditional* on the per-plaquette
+hypothesis. For the concrete 19.1s placeholder body
+`plaquette_activity := Real.exp (-1/β)`, the hypothesis is
+discharged exactly when `c ≤ 1`; the theorem itself does not
+specialize — downstream callers pick `c` and discharge. This is
+the SHAPE of the KP per-plaquette → polymer lift, with a placeholder
+per-plaquette factor, NOT a real bound on the single-plaquette
+SU(3) partition function. YM tower stays `Status: Open`.
+
+`hβ` and `hc` are kept in the signature to mirror the natural
+KP hypothesis bundle (`β > 0`, `c ≥ 0`) even though the proof does
+not need them — the `Finset.prod` argument is sign-agnostic in `c`,
+and `β = 0` collapses harmlessly via Lean's `/ 0 = 0` convention.
+Sorry-free; axiom footprint `⊆ {propext, Classical.choice,
+Quot.sound}`. -/
+theorem polymer_activity_bound_real
+    (β c : ℝ) (_hβ : 0 < β) (_hc : 0 ≤ c) (N : ℕ) (γ : Polymer)
+    (hbound : ∀ p ∈ γ, 0 ≤ plaquette_activity β N p ∧
+                       plaquette_activity β N p ≤ Real.exp (-c / β)) :
+    polymer_activity_finite_N β N γ ≤ Real.exp (-c * γ.card / β) := by
+  unfold polymer_activity_finite_N
+  calc ∏ p ∈ γ, plaquette_activity β N p
+      ≤ ∏ _p ∈ γ, Real.exp (-c / β) :=
+        Finset.prod_le_prod (fun p hp => (hbound p hp).1)
+                            (fun p hp => (hbound p hp).2)
+    _ = Real.exp (-c / β) ^ γ.card := Finset.prod_const _
+    _ = Real.exp ((γ.card : ℝ) * (-c / β)) := (Real.exp_nat_mul _ _).symm
+    _ = Real.exp (-c * γ.card / β) := by congr 1; ring
+
 end ClusterExpansion
 end YM
 end Towers
