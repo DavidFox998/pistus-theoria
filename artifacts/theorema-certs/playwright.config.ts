@@ -78,15 +78,21 @@ export default defineConfig({
   // a `test.describe` block).
   fullyParallel: false,
   forbidOnly: !!process.env.CI,
-  retries: process.env.CI ? 1 : 0,
+  // Task #184: the four watchdog / sidecar-ack specs that used to
+  // need retry-on-flake under parallel workers were rewritten to
+  // drive `page.clock` directly instead of waiting on the 1s tick +
+  // the 30s `refetchInterval` + a real page reload, so retries on
+  // CI are no longer covering for a real flake — they would only
+  // mask a genuine regression. Keep at 0 in both environments.
+  retries: 0,
   workers: Number(process.env.PLAYWRIGHT_WORKERS ?? "2"),
-  // Task #166: under parallel workers a few of the slower
-  // watchdog / sidecar-ack specs occasionally brush the default 30s
-  // per-test ceiling (they each wait on a 5s monitor tick + a
-  // dashboard re-poll + a forced server restart). Bumping to 45s
-  // gives the CPU-contention case headroom without masking real
-  // hangs — anything legitimately stuck still fails fast.
-  timeout: 45_000,
+  // Task #184: back to the Playwright default (30s) now that those
+  // four specs no longer wall-clock-sleep through the monitor +
+  // refetch cycle. Each of them runs in well under 10s on a warm
+  // machine with the fake-clock fast-forward, so the default ceiling
+  // is plenty of headroom even under 2-worker CPU contention while
+  // still catching real hangs fast.
+  timeout: 30_000,
   reporter: "list",
   use: {
     baseURL:

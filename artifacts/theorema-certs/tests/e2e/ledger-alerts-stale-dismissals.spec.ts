@@ -75,10 +75,24 @@ async function installMock(
   });
 }
 
+/**
+ * Task #184: the dashboard's `useGetLedgerAlerts` query has a 30s
+ * `refetchInterval` on the live rotation (see dashboard.tsx). Rather
+ * than tearing down + cold-loading the SPA again with `page.reload()`
+ * between phases, install Playwright's virtual clock and fast-forward
+ * past one refetch tick — same observable result, but the test does
+ * not actually sleep and does not pay the Vite SPA boot cost twice.
+ * 31s is just past the 30s `refetchInterval`, which guarantees
+ * exactly one refetch fires.
+ */
+const ALERTS_REFETCH_TICK_MS = 31_000;
+
 test.describe("dashboard: ledger alerts 'stale dismissals cleaned up' suffix", () => {
   test("renders the plural suffix when ackGcDropped > 1, and singular when ==1", async ({
     page,
   }) => {
+    await page.clock.install({ time: Date.now() });
+
     // Phase 1: plural (3 stale dismissals cleaned up).
     await installMock(page, 3);
     await page.goto("/");
@@ -92,10 +106,10 @@ test.describe("dashboard: ledger alerts 'stale dismissals cleaned up' suffix", (
     await expect(counter).toContainText("3 stale dismissals cleaned up");
 
     // Phase 2: singular (exactly 1) — proves the pluralization branch
-    // toggles correctly on the next render.
+    // toggles correctly on the next refetch.
     await page.unroute(LEDGER_ALERTS_URL);
     await installMock(page, 1);
-    await page.reload();
+    await page.clock.fastForward(ALERTS_REFETCH_TICK_MS);
     await expect(panel).toBeVisible();
     await expect(counter).toContainText("1 stale dismissal cleaned up");
     // Must not also be matching the plural form.
@@ -105,6 +119,8 @@ test.describe("dashboard: ledger alerts 'stale dismissals cleaned up' suffix", (
   test("omits the suffix entirely when ackGcDropped == 0", async ({
     page,
   }) => {
+    await page.clock.install({ time: Date.now() });
+
     // Start with a positive count so we know the suffix branch fires...
     await installMock(page, 2);
     await page.goto("/");
@@ -112,10 +128,11 @@ test.describe("dashboard: ledger alerts 'stale dismissals cleaned up' suffix", (
     const counter = page.locator('[data-testid="text-ledger-alerts-count"]');
     await expect(counter).toContainText("2 stale dismissals cleaned up");
 
-    // ...then flip to 0 and confirm the suffix disappears on next render.
+    // ...then flip to 0 and confirm the suffix disappears on the next
+    // refetch tick (no SPA reload required).
     await page.unroute(LEDGER_ALERTS_URL);
     await installMock(page, 0);
-    await page.reload();
+    await page.clock.fastForward(ALERTS_REFETCH_TICK_MS);
     await expect(counter).toBeVisible();
     await expect(counter).toContainText("1 entry");
     await expect(counter).not.toContainText("stale dismissal");

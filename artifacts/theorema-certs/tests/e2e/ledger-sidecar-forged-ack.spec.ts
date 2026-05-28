@@ -55,12 +55,27 @@ import { createLedgerChecker } from "../../../api-server/src/routes/ledger.js";
  * The dashboard authenticates the ack POST with the token it pulls
  * from `localStorage["lean-rebuild-token"]`, so we seed that via
  * `page.addInitScript` before navigating.
+ *
+ * Task #184: the two "simulated restart" phases used to call
+ * `page.reload()` to make the dashboard pick up the rebooted fixture
+ * server. That paid the Vite SPA cold-start cost twice per test on
+ * top of the real express restart, which pushed the spec into the
+ * 30s default per-test timeout under parallel-worker CPU contention.
+ * Replaced with `page.clock.fastForward("31s")` so the dashboard's
+ * 30s integrity `refetchInterval` fires inside the SAME page session
+ * — the `installForwarders` route reads `getActive()` on every
+ * request, so the refetch lands on the rebooted fixture without any
+ * reload, and the assertions hold against the same observable state.
  */
 
 const LEDGER_INTEGRITY_URL = "**/api/ledger/integrity*";
 const LEDGER_ACK_URL = "**/api/ledger/sidecar-forged-ack";
 const FIXTURE_TOKEN = "fixture-referee-token";
 const REBUILD_TOKEN_STORAGE_KEY = "lean-rebuild-token";
+// 31s — just past the 30s `refetchInterval` on
+// `useGetLedgerIntegrity`, so a single fastForward triggers exactly
+// one /integrity refetch through the page.route forwarder.
+const INTEGRITY_REFETCH_TICK_MS = 31_000;
 
 function sha256(buf: Buffer | string): string {
   return createHash("sha256").update(buf).digest("hex");
@@ -244,6 +259,12 @@ test.describe("dashboard: sidecar tamper banner Acknowledge button (task #138)",
     });
 
     try {
+      // Install Playwright's virtual clock so the two simulated
+      // restart phases below can advance past the dashboard's 30s
+      // integrity refetchInterval without sleeping. Anchor at real
+      // `Date.now()` so any baked-in age math in the rendered card
+      // stays sensible.
+      await page.clock.install({ time: Date.now() });
       await installForwarders(page, () => active);
 
       // Seed the referee token in localStorage so the dashboard
@@ -311,7 +332,10 @@ test.describe("dashboard: sidecar tamper banner Acknowledge button (task #138)",
         secretPath,
       });
 
-      await page.reload();
+      // Trigger the dashboard's 30s integrity refetch — the
+      // forwarder reads `getActive()` per request, so the refetch
+      // lands on the newly-rebooted fixture without any SPA reload.
+      await page.clock.fastForward(INTEGRITY_REFETCH_TICK_MS);
       await expect(panel).toBeVisible();
       await expect(panel).toHaveAttribute("data-acknowledged", "true");
       await expect(
@@ -333,7 +357,10 @@ test.describe("dashboard: sidecar tamper banner Acknowledge button (task #138)",
         secretPath,
       });
 
-      await page.reload();
+      // Same trick: advance the page clock past the integrity
+      // refetchInterval so the dashboard re-polls the (now-fresh)
+      // fixture and the changed payload sha drops the stale ack.
+      await page.clock.fastForward(INTEGRITY_REFETCH_TICK_MS);
       await expect(panel).toBeVisible();
       await expect(panel).toHaveAttribute("data-acknowledged", "false");
       await expect(

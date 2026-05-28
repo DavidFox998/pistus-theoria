@@ -216,6 +216,13 @@ test.describe("dashboard: sidecar tamper acknowledged badge surfaces the referee
     });
 
     try {
+      // Task #184: install the Playwright virtual clock for parity
+      // with `ledger-sidecar-forged-ack.spec.ts`. This spec doesn't
+      // simulate a restart, but the install also stops the
+      // dashboard's 1s `setNowMs` interval from waking the page on
+      // its own under parallel-worker CPU contention, so the test
+      // stays well under 10s even on a hot box.
+      await page.clock.install({ time: Date.now() });
       await installForwarders(page, () => active);
 
       // Seed the bearer token that the in-fixture named-token map
