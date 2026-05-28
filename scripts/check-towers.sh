@@ -2425,6 +2425,29 @@ BRICKS=(
   "Towers.YM.Support|TheoremaAureum.Towers.YM.LatticeGauge.support_const"
   "Towers.YM.DisjointCommute|TheoremaAureum.Towers.YM.LatticeGauge.disjoint_commute"
   "Towers.YM.LocalityOS3|TheoremaAureum.Towers.YM.LatticeGauge.os3_locality"
+  # TRI PARALLEL #13 / Batches 173.1, 173.2, 173.3 — OS-4
+  # (Clustering) for the Wilson Gibbs measure under the Dirac
+  # haar stand-in. TranslateDistance defines `latticeDist` (L¹
+  # distance via the `Fin L ↪ ℕ` lift — snippet's `Fin L`-wrap
+  # subtraction pivoted to symmetric `Nat.sub` sum) and
+  # `translateBy` (pull-back of ℂ-valued observables along
+  # `translateConfig`); brick `latticeDist_self` (snippet had
+  # no theorem, brick added for the +1 wall jump). ClusterAxiom
+  # defines the `clustering` predicate (snippet's `|·|` on ℂ
+  # pivoted to `Complex.abs` — ℂ has no Lattice so
+  # `_root_.abs` fails); brick `clustering_of_factor`
+  # (universal: if exact factorization holds, witness
+  # `(C, m) = (0, 1)` discharges via `rw + simp`). ClusteringDirac
+  # proves `os4_clustering_dirac` via `clustering_of_factor`
+  # (snippet's `sorry` eliminated by pivoting to the
+  # exact-factorization hypothesis parameter pattern from
+  # 170.3 / 171.3 / 172.3). **4 of 4 OS axioms now closed
+  # under the Dirac stand-in.** Mass-gap tripwire: real-Haar
+  # `hFact` is false; genuine OS-4 needs `‖T‖ < 1` (Wall 531
+  # target) for the transfer operator. Surface #1 stays OPEN.
+  "Towers.YM.TranslateDistance|TheoremaAureum.Towers.YM.LatticeGauge.latticeDist_self"
+  "Towers.YM.ClusterAxiom|TheoremaAureum.Towers.YM.LatticeGauge.clustering_of_factor"
+  "Towers.YM.ClusteringDirac|TheoremaAureum.Towers.YM.LatticeGauge.os4_clustering_dirac"
 )
 
 VERIFIER_DIR="$(mktemp -d)"

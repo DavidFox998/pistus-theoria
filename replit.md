@@ -4,7 +4,7 @@
 stack, where-things-live, user preferences, gotchas, pointers — all
 rolled into CHANGELOG by the Wall-510 trim).
 
-- **Wall:** 522 BRICKS (script-reported by `scripts/check-towers.sh`)
+- **Wall:** 525 BRICKS (script-reported by `scripts/check-towers.sh`)
 - **YM Surface #1:** Open
 - **Axiom debt:** `[]` on `TheoremaAureum.main_theorem`
   (`#print axioms` returns `[]`; also `[]` on `H2_WeilTransfer` and
@@ -63,6 +63,9 @@ rolled into CHANGELOG by the Wall-510 trim).
 | 2026-05-28 | Batch 172.1 / Support (TRI PARALLEL #12) | 519 → 520 | `Towers/YM/Support.lean` — `dependsOnlyOn`/`support` for ℂ-valued observables on `GaugeConfig`; brick `support_const` (constant observable has empty support). |
 | 2026-05-28 | Batch 172.2 / DisjointCommute (TRI PARALLEL #12) | 520 → 521 | `Towers/YM/DisjointCommute.lean` — `disjoint_commute` via pointwise ℂ-commutativity (`ring`); `Disjoint` hypothesis vacuous under ℂ-valued convention, becomes load-bearing under operator-valued algebra (tripwire). |
 | 2026-05-28 | Batch 172.3 / LocalityOS3 (TRI PARALLEL #12) | 521 → 522 | `Towers/YM/LocalityOS3.lean` — OS-3 (Locality) for the Gibbs measure under the Dirac stand-in + ℂ-valued observable convention (`os3_locality`) via `simp_rw [disjoint_commute]`. With OS-1 (169.3) and OS-2 (170.3 + 171.3), **3 of 4 OS axioms closed under the Dirac stand-in**. |
+| 2026-05-28 | Batch 173.1 / TranslateDistance (TRI PARALLEL #13) | 522 → 523 | `Towers/YM/TranslateDistance.lean` — `latticeDist` (L¹ distance via `Fin L ↪ ℕ` lift, snippet's `Fin L`-wrap subtraction pivoted to symmetric `Nat.sub` sum) + `translateBy`; brick `latticeDist_self`. |
+| 2026-05-28 | Batch 173.2 / ClusterAxiom (TRI PARALLEL #13) | 523 → 524 | `Towers/YM/ClusterAxiom.lean` — `clustering` predicate (snippet's `|·|` on ℂ pivoted to `Complex.abs`); brick `clustering_of_factor` (universal: exact factorization + `(C, m) = (0, 1)` discharges bound). |
+| 2026-05-28 | Batch 173.3 / ClusteringDirac (TRI PARALLEL #13) | 524 → 525 | `Towers/YM/ClusteringDirac.lean` — OS-4 (Clustering) under the Dirac haar stand-in via `clustering_of_factor` (snippet's `sorry` eliminated via the exact-factorization hypothesis pattern from 170.3/171.3/172.3). **4 of 4 OS axioms now closed under the Dirac stand-in.** Mass-gap tripwire: real-Haar `hFact` is false; genuine OS-4 needs `‖T‖ < 1` (Wall 531 target). |
 
 ¹ Batch 156.2's own brick delta is **+1**; the extra +1 reconciles
 `Towers.NS.HasFiniteEnergy_galilean_group` (Task #146). Full diff in
