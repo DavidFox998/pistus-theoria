@@ -97,12 +97,29 @@ function buildLedgerAlertsBody(alertId: string) {
   // Pad with a generous number of filler rows so the target row is
   // genuinely off-screen at page load, making the scrollIntoView
   // assertion meaningful (otherwise it could pass trivially).
+  // NB: the `delivery` field must carry BOTH transports
+  // (`webhook` AND `email`) — the dashboard's
+  // `droppedCount = ledgerAlertsData.alerts.filter(a =>
+  //   a.delivery.webhook.status === "dropped_backpressure" ||
+  //   a.delivery.email.status === "dropped_backpressure")`
+  // reads `a.delivery.email.status` unconditionally, so a
+  // fixture missing `email` throws `Cannot read properties of
+  // undefined (reading 'status')` and leaves the whole
+  // `panel-ledger-alerts` body (incl. the
+  // `checkbox-show-acknowledged-alerts` toggle this spec
+  // depends on) unrendered. The required `subject` field
+  // (task #144 / #161) is included for the same reason.
+  const okDelivery = {
+    webhook: { status: "ok" as const, error: null },
+    email: { status: "ok" as const, error: null },
+  };
   const fillers = Array.from({ length: 40 }, (_, i) => ({
     id: `filler-alert-${i}`,
     acknowledgedAt: null,
     timestamp: ts,
     workflow: `filler-workflow-${i}`,
     message: `Filler alert ${i} — padding so the target alert row starts off-screen`,
+    subject: `Filler alert ${i}`,
     failureMode: "truncation",
     recovery: null,
     hitsPath: "data/hits.txt",
@@ -112,7 +129,7 @@ function buildLedgerAlertsBody(alertId: string) {
     expectedSha:
       "0000000000000000000000000000000000000000000000000000000000000000",
     source: "kernel._verify_checkpoint",
-    delivery: { webhook: { status: "ok", error: null } },
+    delivery: okDelivery,
   }));
   return {
     alerts: [
@@ -123,6 +140,7 @@ function buildLedgerAlertsBody(alertId: string) {
         timestamp: ts,
         workflow: "zeta-burst-101-10000",
         message: "Target alert — the suppressed link should jump here.",
+        subject: "Target alert",
         failureMode: "truncation",
         recovery: null,
         hitsPath: "data/hits.txt",
@@ -132,7 +150,7 @@ function buildLedgerAlertsBody(alertId: string) {
         expectedSha:
           "0000000000000000000000000000000000000000000000000000000000000000",
         source: "kernel._verify_checkpoint",
-        delivery: { webhook: { status: "ok", error: null } },
+        delivery: okDelivery,
       },
     ],
     limit: 50,

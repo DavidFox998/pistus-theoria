@@ -49,17 +49,20 @@ const MANAGED_API_PORT = Number(
  * `buildStatusInner()` unconditionally overwrites
  * `lastOkSidecarStatus = "ok"` on every /integrity call (see the
  * comment block above the test for the full root-cause analysis).
- * `ledger-monitor-suppressed.spec.ts` stays ignored under managed
- * mode: its second + third cases depend on the dashboard's
- * `panel-ledger-alerts` toggle becoming visible, which currently
- * requires real api-server state the managed fixture doesn't seed.
- * Tracked for follow-up; not in scope for the merge-gate
- * stabilisation pass.
+ * Task #182 reclaimed `ledger-monitor-suppressed.spec.ts` by fixing
+ * the underlying fixture bug: the spec's mocked
+ * `/api/lean/ledger-alerts` payload was missing
+ * `delivery.email` (and the required `subject` field), so the
+ * dashboard's `droppedCount` filter threw `Cannot read properties of
+ * undefined (reading 'status')` on `a.delivery.email.status`, which
+ * killed the whole `panel-ledger-alerts` body and with it the
+ * `checkbox-show-acknowledged-alerts` toggle the 2nd + 3rd cases
+ * depend on. With both transports + `subject` added to the fixture,
+ * all three cases pass deterministically under managed mode.
  */
-const MANAGED_TEST_IGNORE = process.env
-  .PLAYWRIGHT_DISABLE_MANAGED_IGNORE
+const MANAGED_TEST_IGNORE = process.env.PLAYWRIGHT_DISABLE_MANAGED_IGNORE
   ? []
-  : ["**/ledger-monitor-suppressed.spec.ts"];
+  : [];
 
 export default defineConfig({
   testDir: "./tests/e2e",
