@@ -50,6 +50,13 @@ const REBUILD_HISTORY_REFEREE_FILTER_STORAGE_KEY =
   "lean-rebuild-history-referee-filter";
 const REROLL_HISTORY_REFEREE_FILTER_STORAGE_KEY =
   "lean-checkpoint-reroll-history-referee-filter";
+const LEDGER_ALERTS_KIND_FILTER_STORAGE_KEY =
+  "lean-ledger-alerts-kind-filter";
+type LedgerAlertsKindFilter = "all" | "tamper" | "monitor";
+const isLedgerAlertsKindFilter = (
+  v: string | null,
+): v is LedgerAlertsKindFilter =>
+  v === "all" || v === "tamper" || v === "monitor";
 const REFEREE_NAME_PATTERN = /^[A-Za-z0-9 _.\-]{1,64}$/;
 
 const STALE_THRESHOLD_DAYS = 30;
@@ -389,6 +396,42 @@ export default function DashboardPage() {
     },
   );
   const [showAcknowledgedAlerts, setShowAcknowledgedAlerts] = useState(false);
+  const [alertsKindFilter, setAlertsKindFilterState] =
+    useState<LedgerAlertsKindFilter>(() => {
+      try {
+        const stored = window.localStorage.getItem(
+          LEDGER_ALERTS_KIND_FILTER_STORAGE_KEY,
+        );
+        return isLedgerAlertsKindFilter(stored) ? stored : "all";
+      } catch {
+        return "all";
+      }
+    });
+  const setAlertsKindFilter = useCallback((value: LedgerAlertsKindFilter) => {
+    setAlertsKindFilterState(value);
+    try {
+      if (value === "all") {
+        window.localStorage.removeItem(LEDGER_ALERTS_KIND_FILTER_STORAGE_KEY);
+      } else {
+        window.localStorage.setItem(
+          LEDGER_ALERTS_KIND_FILTER_STORAGE_KEY,
+          value,
+        );
+      }
+    } catch {
+      // ignore (private mode, etc.)
+    }
+  }, []);
+  const isMonitorAlert = useCallback(
+    (a: {
+      failureMode?: string | null;
+      previousFailureMode?: string | null;
+    }): boolean =>
+      a.failureMode === "monitor_stalled" ||
+      (a.failureMode === "recovered" &&
+        a.previousFailureMode === "monitor_stalled"),
+    [],
+  );
   const ackAlertMutation = useAckLedgerAlert({
     request: lockoutsAuthHeader ? { headers: lockoutsAuthHeader } : undefined,
   });
@@ -1680,12 +1723,50 @@ export default function DashboardPage() {
                 className="border border-border bg-muted/20"
                 data-testid="panel-ledger-alerts"
               >
-                <div className="flex items-center justify-between px-3 py-1.5 border-b border-border bg-muted/30 gap-3">
+                <div className="flex items-center justify-between px-3 py-1.5 border-b border-border bg-muted/30 gap-3 flex-wrap">
                   <span className="font-mono text-[11px] uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
                     <Activity className="w-3 h-3" />
                     Recent ledger alerts
                   </span>
-                  <span className="flex items-center gap-3">
+                  <span className="flex items-center gap-3 flex-wrap">
+                    {ledgerAlertsData ? (
+                      <span
+                        className="inline-flex border border-border rounded-sm overflow-hidden"
+                        role="group"
+                        aria-label="Filter ledger alerts by kind"
+                        data-testid="group-ledger-alerts-kind-filter"
+                      >
+                        {(
+                          [
+                            { value: "all", label: "All" },
+                            { value: "tamper", label: "Tamper" },
+                            { value: "monitor", label: "Monitor" },
+                          ] as Array<{
+                            value: LedgerAlertsKindFilter;
+                            label: string;
+                          }>
+                        ).map((opt) => {
+                          const active = alertsKindFilter === opt.value;
+                          return (
+                            <button
+                              key={opt.value}
+                              type="button"
+                              onClick={() => setAlertsKindFilter(opt.value)}
+                              className={`font-mono text-[11px] px-2 py-0.5 ${
+                                active
+                                  ? "bg-primary text-primary-foreground"
+                                  : "bg-muted/30 hover:bg-muted/50 text-muted-foreground"
+                              }`}
+                              aria-pressed={active}
+                              data-testid={`btn-ledger-alerts-kind-${opt.value}`}
+                              data-active={active ? "true" : undefined}
+                            >
+                              {opt.label}
+                            </button>
+                          );
+                        })}
+                      </span>
+                    ) : null}
                     {ledgerAlertsData ? (
                       <label
                         className="font-mono text-[11px] text-muted-foreground inline-flex items-center gap-1.5 cursor-pointer select-none"
@@ -1706,14 +1787,30 @@ export default function DashboardPage() {
                     <span
                       className="font-mono text-[11px] text-muted-foreground"
                       data-testid="text-ledger-alerts-count"
+                      data-kind-filter={alertsKindFilter}
                     >
                       {ledgerAlertsError
                         ? "error"
                         : ledgerAlertsData
                           ? (() => {
-                              const visible = ledgerAlertsData.alerts.filter(
-                                (a) => showAcknowledgedAlerts || !a.acknowledgedAt,
-                              ).length;
+                              const matchesKind = (a: {
+                                failureMode?: string | null;
+                                previousFailureMode?: string | null;
+                              }): boolean => {
+                                if (alertsKindFilter === "all") return true;
+                                const monitor = isMonitorAlert(a);
+                                return alertsKindFilter === "monitor"
+                                  ? monitor
+                                  : !monitor;
+                              };
+                              const ackVisible = ledgerAlertsData.alerts.filter(
+                                (a) =>
+                                  showAcknowledgedAlerts || !a.acknowledgedAt,
+                              );
+                              const visible = ackVisible.filter(matchesKind)
+                                .length;
+                              const hiddenByKind =
+                                ackVisible.length - visible;
                               const ackCount = ledgerAlertsData.alerts.filter(
                                 (a) => a.acknowledgedAt,
                               ).length;
@@ -1724,8 +1821,21 @@ export default function DashboardPage() {
                                   a.delivery.email.status ===
                                     "dropped_backpressure",
                               ).length;
-                              const base = `${visible} entr${visible === 1 ? "y" : "ies"}`;
+                              const kindLabel =
+                                alertsKindFilter === "tamper"
+                                  ? "tamper only"
+                                  : alertsKindFilter === "monitor"
+                                    ? "monitor only"
+                                    : null;
+                              const base = kindLabel
+                                ? `${visible} entr${visible === 1 ? "y" : "ies"} (${kindLabel})`
+                                : `${visible} entr${visible === 1 ? "y" : "ies"}`;
                               const suffixes: string[] = [];
+                              if (hiddenByKind > 0 && kindLabel) {
+                                suffixes.push(
+                                  `${hiddenByKind} hidden by filter`,
+                                );
+                              }
                               if (ackCount > 0 && !showAcknowledgedAlerts) {
                                 suffixes.push(`${ackCount} ack'd hidden`);
                               }
@@ -1828,22 +1938,37 @@ export default function DashboardPage() {
                   </p>
                 ) : ledgerAlertsData ? (
                   (() => {
-                    const visibleAlerts = ledgerAlertsData.alerts.filter(
+                    const ackVisibleAlerts = ledgerAlertsData.alerts.filter(
                       (a) => showAcknowledgedAlerts || !a.acknowledgedAt,
                     );
+                    const visibleAlerts = ackVisibleAlerts.filter((a) => {
+                      if (alertsKindFilter === "all") return true;
+                      const monitor = isMonitorAlert(a);
+                      return alertsKindFilter === "monitor"
+                        ? monitor
+                        : !monitor;
+                    });
                     if (visibleAlerts.length === 0) {
                       const allAcked =
                         ledgerAlertsData.alerts.length > 0 &&
-                        !showAcknowledgedAlerts;
+                        !showAcknowledgedAlerts &&
+                        ackVisibleAlerts.length === 0;
+                      const hiddenByKind =
+                        alertsKindFilter !== "all" &&
+                        ackVisibleAlerts.length > 0;
                       return (
                         <p
                           className="px-3 py-2 font-mono text-[11px] text-green-700 dark:text-green-400 flex items-center gap-1.5"
                           data-testid="text-ledger-alerts-empty"
                         >
                           <CheckCircle2 className="w-3 h-3" />
-                          {allAcked
-                            ? "All alerts acknowledged. No outstanding incidents."
-                            : "No alerts on record."}
+                          {hiddenByKind
+                            ? alertsKindFilter === "tamper"
+                              ? "No tamper alerts match the current filter."
+                              : "No monitor alerts match the current filter."
+                            : allAcked
+                              ? "All alerts acknowledged. No outstanding incidents."
+                              : "No alerts on record."}
                         </p>
                       );
                     }
