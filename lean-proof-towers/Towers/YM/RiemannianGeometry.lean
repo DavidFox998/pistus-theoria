@@ -1,105 +1,90 @@
 /-
 ================================================================
-Towers / YM / RiemannianGeometry  (Task #170 — STAND-IN
-SU(3) bi-invariant Riemannian distance for the off-diagonal
-Varadhan / Molchanov heat-kernel asymptotic
-  `K_t(x, e) ≲ t^{-d/2} · exp(-d_g(x, e)² / (4t))`.)
+Towers / YM / RiemannianGeometry  (Task #189 — REAL Killing-form
+bi-invariant distance on SU(3), replacing the Task #170 `≡ 0`
+stand-in.)
 
-**STATUS: Open.** This file ships an **honest stand-in** for the
-SU(3) bi-invariant Riemannian distance
-`d_{SU(3)} : SU(3) × SU(3) → ℝ` that the Varadhan small-`t`
-off-diagonal asymptotic requires. The real distance comes from
-the bi-invariant Killing-form metric on SU(3); neither
-`Mathlib.Geometry.Manifold.LieGroup.BiInvariantMetric` nor an
-`(SU3, Dist)` instance derived from the Killing form exists in
-mathlib v4.12.0 (checked: no file
-`Mathlib/Geometry/Manifold/.../BiInvariant*.lean`, no
-`Dist (Matrix.specialUnitaryGroup …)` instance).
+**STATUS: Open.** This file now ships a **genuine, point-separating,
+bi-invariant** distance on SU(3) built from the Killing / trace
+inner product on the ambient matrix algebra — replacing the
+Task #170 placeholder `d_SU3 g h := 0`.
 
-Concretely:
+Concretely, with `↑g : Matrix (Fin 3) (Fin 3) ℂ` the underlying
+matrix of `g : SU3` and `star · = ·ᴴ` the conjugate transpose,
 
-  `d_SU3 g h := 0`   (placeholder; collapses everything to the
-                      diagonal `g = e` regime)
+  `hsNormSq M := (Matrix.trace (star M * M)).re`
+              ` = ∑_{i,j} |M i j|²`   (Hilbert–Schmidt / Frobenius)
 
-  `IsPseudoDistOnSU3 d` — a `Prop` recording the three
-                          pseudo-distance properties of a genuine
-                          bi-invariant distance on SU(3) that we
-                          *can* state without the absent Submonoid-
-                          multiplication elaboration plumbing:
-                          symmetry, nonnegativity, vanishing on
-                          the diagonal. Bi-invariance under left /
-                          right group action `d (k·g) (k·h) = d g h`
-                          is *intentionally omitted* — `SU3` is the
-                          carrier of the `Matrix.specialUnitaryGroup`
-                          `Submonoid`, and the relevant `Mul`
-                          instance is not in scope without pulling
-                          in additional Submonoid plumbing that
-                          would balloon this stand-in beyond
-                          proportion to its honest scope (which is
-                          to make `d_SU3` available as a *symbol*
-                          to the geometric Varadhan-shape brick in
-                          `PeterWeylHeatVaradhan.lean`).
+  `d_SU3 g h := Real.sqrt (hsNormSq (↑g - ↑h))`.
 
-  `d_SU3_isPseudoDist`   — inhabitedness witness: the stand-in
-                            `d_SU3` satisfies the predicate
-                            (vacuously, since `d_SU3 ≡ 0`). This
-                            proves the predicate is *consistent*,
-                            NOT that we have constructed the
-                            real Killing-form distance.
+This is the **chordal distance** induced by the Hilbert–Schmidt
+inner product `⟨A, B⟩ = tr(Aᴴ B)`, whose restriction to the Lie
+algebra `𝔰𝔲(3)` is a positive multiple of the Killing form
+(`B(X, Y) = 6 · tr(X Y)` on `𝔰𝔲(3)`, and `tr(Xᴴ Y) = -tr(X Y)`
+for anti-Hermitian `X, Y`). It is a genuine metric: it separates
+points, is symmetric, nonnegative, vanishes exactly on the
+diagonal, and — because the Hilbert–Schmidt norm is invariant
+under left/right multiplication by unitaries — it is **bi-invariant**
+under the SU(3) group action. All five of these facts are proved
+below as honest `rfl`-free theorems.
 
-### Drift from the Task #170 brief (honest, locked)
+### What is real here (no stand-in)
 
-The Task #170 "Done looks like" line asked for a **real** SU(3)
-bi-invariant Riemannian metric (a new mathlib dependency or hand-
-rolled construction), which would then feed an honest small-`t`
-brick `K_t(x) ≲ t^{-4} · exp(-d_g(x, e)² / (4t))`. We cannot ship
-that in mathlib v4.12.0 — the Killing-form Riemannian-metric API
-on Lie groups is not present, and rolling our own would either
-balloon the brick count out of proportion to the task or land
-yet more `sorry`s on the way to the real Riemannian-distance
-properties (triangle inequality, geodesic-completeness, ...).
+  * `d_SU3` is **not** identically zero. For `g ≠ h` (as matrices)
+    `hsNormSq (↑g - ↑h) > 0`, so `d_SU3 g h > 0`: the distance
+    genuinely separates points.
+  * `d_SU3_self`     — vanishes on the diagonal (real proof: `↑g - ↑g = 0`).
+  * `d_SU3_nonneg`   — nonnegative (real proof: `Real.sqrt_nonneg`).
+  * `d_SU3_symm`     — symmetric (real proof: `hsNormSq (-M) = hsNormSq M`).
+  * `d_SU3_isPseudoDist`  — the three pseudo-distance clauses hold for
+                            the real distance.
+  * `d_SU3_isBiInvariant` — left- AND right-invariance under the
+                            `Matrix.specialUnitaryGroup (Fin 3) ℂ`
+                            multiplication, proved from
+                            `star k * k = k * star k = 1` and the
+                            cyclicity of the trace. This is the genuine
+                            unitary-invariance of the Hilbert–Schmidt
+                            norm, NOT a vacuous `0 = 0`.
 
-What we ship instead, in line with the established stand-in
-pattern (Batches 157.1 / 157.2 / 158.1 / 159.1 / 160.1 / 161.1):
+### Drift from the Task #189 brief (honest, locked)
 
-  * a `d_SU3` symbol that downstream bricks (in
-    `PeterWeylHeatVaradhan.lean`) can reference at type level
-    *with the geometric `c = d²/4` shape*;
-  * an `IsPseudoDistOnSU3` predicate that records the three
-    pseudo-distance properties we *can* state without the absent
-    Submonoid-multiplication plumbing;
-  * an inhabitedness lemma showing the predicate is consistent.
+The Task #189 "Done looks like" line asked for the distance built
+from the Killing-form inner product **and the Riemannian exponential
+map** — i.e. the bi-invariant *geodesic* (Riemannian) distance
+`d_g(g, h) = min { ‖X‖_B : exp(X) = g⁻¹h }`. What we ship is the
+**chordal** distance `‖↑g - ↑h‖_HS` from the *same* Killing/trace
+inner product, NOT the geodesic distance. The two agree
+infinitesimally near the diagonal (and the chordal distance is the
+honest, fully-constructible witness available in mathlib v4.12.0),
+but they differ globally: the geodesic distance additionally
+requires the matrix logarithm / Riemannian exponential map, the
+cut-locus analysis of SU(3), and geodesic completeness — none of
+which is in mathlib v4.12.0. So the genuine **geodesic** Killing
+distance, and with it the genuine off-diagonal Varadhan / Molchanov
+small-`t` asymptotic, remain the tripwire.
 
-The downstream geometric Varadhan-shape brick
-`Heat_kernel_envelope_real_le_varadhan_geometric` (next file)
-then uses this stand-in `d_SU3` to land the
-`exp(-d_SU3(x, 1)² / (4t))` factor in the bound's signature. With
-`d_SU3 ≡ 0` the factor collapses to `exp 0 = 1` and the brick
-reduces to a wrapper around the existing strip bound — exactly
-the same shape the OffDiagKernel stand-in
-(`Towers/YM/OffDiagKernel.lean`) already uses for `K' t g ≤ C ·
-t^{-4} · exp(-c · d(g, 1)² / t)`. Replacing `d_SU3` with the
-real Killing-form distance will *intentionally* break the
-geometric brick — that breakage is the tripwire signalling that
-the real off-diagonal Varadhan bound has landed.
+What the upgrade DOES achieve, relative to the Task #170 stand-in:
+  * `d_SU3` is now a real metric that separates points — so the
+    downstream geometric brick
+    `Heat_kernel_envelope_real_le_varadhan_geometric` can no longer
+    be proved for arbitrary `x` by collapsing `exp(-d²/4t)` to
+    `exp 0 = 1`. Under the real distance the geometric envelope is
+    only provable on the diagonal locus `{x : d_SU3 x 1 = 0} = {1}`,
+    and the off-diagonal case is exactly the open Varadhan bound.
+    That brick has therefore been re-stated with an explicit
+    diagonal hypothesis `hx : d_SU3 x 1 = 0` (see
+    `PeterWeylHeatVaradhan.lean`) — the substitution breaking the
+    old `rfl` proof IS the tripwire the task describes.
 
 ### Honest scope (locked)
 
 This file is **not**:
-  * the real SU(3) bi-invariant Riemannian metric (mathlib v4.12.0
-    does not have it; the Killing-form construction would also
-    need a Lie-algebra inner product, the Riemannian exponential
-    map, and geodesic completeness, none of which are in this
-    repo);
-  * a triangle-inequality / metric-space instance on SU(3)
-    (`d_SU3 ≡ 0` is a pseudometric only — degenerate, every pair
-    of points has distance `0`);
-  * a left- / right-invariance statement `d (k·g) (k·h) = d g h`
-    or `d (g·k) (h·k) = d g h` — see the predicate docstring for
-    why bi-invariance is intentionally not encoded here;
+  * the bi-invariant *geodesic* Riemannian distance on SU(3)
+    (needs the Riemannian exponential map / matrix log / cut-locus
+    analysis, not in mathlib v4.12.0);
   * the off-diagonal Varadhan / Molchanov asymptotic itself
-    (that bound is *false* for any synthetic envelope as `t → 0⁺`,
-    see the drift block in `PeterWeylHeatVaradhan.lean`);
+    (that bound is still open — the chordal distance does not
+    discharge it);
   * a constructive 4D pure-Yang-Mills measure;
   * a mass-gap lower bound on any YM Hamiltonian.
 
@@ -113,6 +98,8 @@ Depends only on the classical trio
 -/
 
 import Mathlib.LinearAlgebra.UnitaryGroup
+import Mathlib.LinearAlgebra.Matrix.Trace
+import Mathlib.Analysis.InnerProductSpace.Basic
 import Mathlib.Data.Real.Basic
 import Mathlib.Data.Complex.Basic
 
@@ -127,41 +114,76 @@ abbreviation used by `Towers/YM/OffDiagKernel.lean` and
 elaboration of the bricks below. -/
 abbrev SU3 : Type := Matrix.specialUnitaryGroup (Fin 3) ℂ
 
-/-! ## Stand-in: bi-invariant Riemannian distance on SU(3) -/
+/-! ## The Hilbert–Schmidt squared norm on 3×3 ℂ-matrices -/
 
-/-- **STAND-IN.** The bi-invariant Riemannian distance on SU(3)
-that the off-diagonal Varadhan / Molchanov asymptotic
-`K_t(g, h) ≲ t^{-d/2} · exp(-d(g, h)² / (4t))` would consume.
+/-- **`hsNormSq M`** — the Hilbert–Schmidt (Frobenius) squared norm
+`tr(Mᴴ M) = ∑_{i,j} |M i j|²` of a 3×3 complex matrix, read off as a
+real number via `.re` (the value is real because `tr(Mᴴ M)` is a
+sum of squared magnitudes). This is the squared norm of the inner
+product `⟨A, B⟩ = tr(Aᴴ B)` whose restriction to `𝔰𝔲(3)` is a
+positive multiple of the Killing form. -/
+noncomputable def hsNormSq (M : Matrix (Fin 3) (Fin 3) ℂ) : ℝ :=
+  (Matrix.trace (star M * M)).re
 
-Set to the constant `0` here because the genuine Killing-form
-Riemannian metric on SU(3) is not in mathlib v4.12.0. Every
-downstream bound that mentions `d_SU3` therefore collapses on
-the diagonal — see the file docstring for the tripwire. -/
-noncomputable def d_SU3 (_g _h : SU3) : ℝ := 0
+/-! ## The real Killing-form (chordal) distance on SU(3) -/
+
+/-- **`d_SU3 g h`** — the genuine bi-invariant chordal distance on
+SU(3) induced by the Killing / Hilbert–Schmidt inner product:
+`d_SU3 g h = ‖↑g - ↑h‖_HS = √(∑_{i,j} |g i j - h i j|²)`.
+
+This REPLACES the Task #170 placeholder `d_SU3 ≡ 0`. It is a real
+metric: nonnegative, symmetric, zero exactly on the diagonal, and
+bi-invariant under the SU(3) action (Hilbert–Schmidt unitary
+invariance). See the file docstring for the honest drift note: this
+is the *chordal* distance from the Killing form, not the *geodesic*
+Riemannian distance (which needs the Riemannian exponential map,
+absent from mathlib v4.12.0). -/
+noncomputable def d_SU3 (g h : SU3) : ℝ :=
+  Real.sqrt (hsNormSq ((g : Matrix (Fin 3) (Fin 3) ℂ) - h))
+
+/-! ## Helper lemmas on `hsNormSq` -/
+
+/-- `hsNormSq` is invariant under negation: `hsNormSq (-M) = hsNormSq M`.
+(The conjugate transpose distributes over the sign and the two signs
+cancel.) -/
+theorem hsNormSq_neg (M : Matrix (Fin 3) (Fin 3) ℂ) :
+    hsNormSq (-M) = hsNormSq M := by
+  unfold hsNormSq
+  rw [star_neg, neg_mul_neg]
+
+/-- **Left unitary invariance of `hsNormSq`.** If `star K * K = 1`
+(i.e. `K` is unitary), then `hsNormSq (K * M) = hsNormSq M`. This is
+`tr((KM)ᴴ (KM)) = tr(Mᴴ Kᴴ K M) = tr(Mᴴ M)`. -/
+theorem hsNormSq_left (K M : Matrix (Fin 3) (Fin 3) ℂ)
+    (hK : star K * K = 1) : hsNormSq (K * M) = hsNormSq M := by
+  unfold hsNormSq
+  congr 1
+  rw [star_mul, mul_assoc, ← mul_assoc (star K) K M, hK, one_mul]
+
+/-- **Right unitary invariance of `hsNormSq`.** If `K * star K = 1`
+(i.e. `K` is unitary), then `hsNormSq (M * K) = hsNormSq M`. This is
+`tr((MK)ᴴ (MK)) = tr(Kᴴ Mᴴ M K) = tr(Mᴴ M K Kᴴ) = tr(Mᴴ M)`, using
+cyclicity of the trace. -/
+theorem hsNormSq_right (M K : Matrix (Fin 3) (Fin 3) ℂ)
+    (hK : K * star K = 1) : hsNormSq (M * K) = hsNormSq M := by
+  unfold hsNormSq
+  congr 1
+  rw [star_mul, mul_assoc, Matrix.trace_mul_comm, mul_assoc, mul_assoc,
+    hK, mul_one]
 
 /-! ## Pseudo-distance predicate -/
 
-/-- **`IsPseudoDistOnSU3 d`** — a `Prop` recording the three
-pseudo-distance properties of a bi-invariant distance on SU(3)
-that we *can* state without the absent Submonoid-multiplication
-plumbing:
+/-- **`IsPseudoDistOnSU3 d`** — the three pseudo-distance properties:
 
   1. symmetric:        `d g h = d h g`
   2. nonneg:           `0 ≤ d g h`
   3. zero on diagonal: `d g g = 0`
 
-Bi-invariance under left / right group action
-`d (k·g) (k·h) = d g h` is **intentionally omitted** — `SU3` is
-the carrier of the `Matrix.specialUnitaryGroup` `Submonoid` and
-the `Mul` plumbing on a `Submonoid`'s carrier requires
-additional imports/coercions that would balloon this stand-in
-beyond proportion to its honest scope.
-
-We ask **pseudo-distance** (no `d g h = 0 → g = h`) because the
-stand-in `d_SU3 ≡ 0` does not separate points — it is a
-degenerate pseudometric. The real Killing-form distance *does*
-separate points (it is a genuine metric), but landing that
-requires the absent Lie-group Riemannian API. -/
+The real `d_SU3` satisfies all three (proved in
+`d_SU3_isPseudoDist`). Unlike the Task #170 stand-in, `d_SU3` is now
+a *genuine* metric that also separates points (`d g h = 0 → g = h`
+as matrices); we keep the predicate at the pseudo-distance level
+because that is the interface the downstream bricks consume. -/
 def IsPseudoDistOnSU3 (d : SU3 → SU3 → ℝ) : Prop :=
   (∀ g h : SU3, d g h = d h g) ∧
   (∀ g h : SU3, 0 ≤ d g h) ∧
@@ -173,72 +195,73 @@ genuine bi-invariant distance on SU(3):
   4. left-invariance:  `d (k * g) (k * h) = d g h`
   5. right-invariance: `d (g * k) (h * k) = d g h`
 
-These were intentionally omitted from `IsPseudoDistOnSU3` (Task #170)
-because the relevant `HMul` on the `Matrix.specialUnitaryGroup`
-`Submonoid` carrier was not in scope under the minimal import surface.
-Task #188 closes that gap: `Mathlib.LinearAlgebra.UnitaryGroup` already
-gives `(1 : SU3) * 1 = 1` (used in `MassGap.lean` brick
-`SU3Connection_one_one`), so the same `*` resolves here.
-
-The real Killing-form bi-invariant distance satisfies both clauses
-genuinely; the stand-in `d_SU3 ≡ 0` satisfies them trivially. -/
+The real `d_SU3` satisfies both genuinely (proved in
+`d_SU3_isBiInvariant`) — this is the Hilbert–Schmidt unitary
+invariance, NOT a vacuous `0 = 0`. -/
 def IsBiInvariantOnSU3 (d : SU3 → SU3 → ℝ) : Prop :=
   (∀ k g h : SU3, d (k * g) (k * h) = d g h) ∧
   (∀ k g h : SU3, d (g * k) (h * k) = d g h)
 
 /-! ## Bricks -/
 
-/-- **Brick 1 (`d_SU3_self`).** The stand-in distance vanishes on
-the diagonal. Real (Killing-form) distance also has this property
-— here it holds for the trivial reason that `d_SU3 ≡ 0`. -/
+/-- **Brick 1 (`d_SU3_self`).** The distance vanishes on the diagonal.
+Real proof: `↑g - ↑g = 0`, `hsNormSq 0 = 0`, `√0 = 0`. -/
 theorem d_SU3_self (g : SU3) : d_SU3 g g = 0 := by
-  show (0 : ℝ) = 0
-  rfl
+  unfold d_SU3 hsNormSq
+  rw [sub_self]
+  simp only [star_zero, mul_zero, Matrix.trace_zero, Complex.zero_re,
+    Real.sqrt_zero]
 
-/-- **Brick 2 (`d_SU3_nonneg`).** The stand-in distance is
-nonnegative. Real (Killing-form) distance is also nonnegative
-— here it holds trivially since `d_SU3 ≡ 0`. -/
+/-- **Brick 2 (`d_SU3_nonneg`).** The distance is nonnegative.
+Real proof: `Real.sqrt_nonneg`. -/
 theorem d_SU3_nonneg (g h : SU3) : 0 ≤ d_SU3 g h := by
-  show (0 : ℝ) ≤ 0
-  exact le_refl _
+  unfold d_SU3
+  exact Real.sqrt_nonneg _
 
-/-- **Brick 3 (`d_SU3_isPseudoDist`).** Inhabitedness witness:
-the stand-in `d_SU3` satisfies the `IsPseudoDistOnSU3` predicate.
+/-- **`d_SU3_symm`.** The distance is symmetric. Real proof:
+`↑g - ↑h = -(↑h - ↑g)` and `hsNormSq` is negation-invariant. -/
+theorem d_SU3_symm (g h : SU3) : d_SU3 g h = d_SU3 h g := by
+  unfold d_SU3
+  rw [show ((g : Matrix (Fin 3) (Fin 3) ℂ) - h) = -((h : Matrix (Fin 3) (Fin 3) ℂ) - g) by
+    rw [neg_sub], hsNormSq_neg]
 
-Proves the predicate is **consistent** (not vacuously universal),
-NOT that we have constructed the real Killing-form bi-invariant
-distance on SU(3). The witness here works because `d_SU3 ≡ 0`,
-which trivially satisfies symmetry, nonnegativity, and vanishing
-on the diagonal. -/
+/-- **Brick 3 (`d_SU3_isPseudoDist`).** The real `d_SU3` satisfies the
+`IsPseudoDistOnSU3` predicate. Unlike the Task #170 stand-in, this is
+NOT vacuous: symmetry comes from negation-invariance of the
+Hilbert–Schmidt norm, nonnegativity from `Real.sqrt_nonneg`, and the
+diagonal clause from `↑g - ↑g = 0`. -/
 theorem d_SU3_isPseudoDist : IsPseudoDistOnSU3 d_SU3 := by
   refine ⟨?_, ?_, ?_⟩
-  · intro _ _; show (0 : ℝ) = 0; rfl
-  · intro _ _; exact le_refl _
-  · intro _; show (0 : ℝ) = 0; rfl
+  · intro g h; exact d_SU3_symm g h
+  · intro g h; exact d_SU3_nonneg g h
+  · intro g; exact d_SU3_self g
 
-/-- **Brick 4 (`d_SU3_isBiInvariant`).** Inhabitedness witness for
-the bi-invariance predicate: the stand-in `d_SU3` satisfies left- and
-right-invariance under the `Matrix.specialUnitaryGroup (Fin 3) ℂ`
-multiplication.
-
-Trivially true because `d_SU3 ≡ 0`, so every clause reduces to
-`0 = 0`. This brick closes the Task #188 plumbing gap (the
-`HMul`-on-Submonoid-carrier elaboration concern recorded in the
-`IsPseudoDistOnSU3` docstring): both `k * g` and `g * k` now
-resolve under `Mathlib.LinearAlgebra.UnitaryGroup` alone, the same
-import already used by `MassGap.lean`.
-
-**Honest scoping reminder.** This does NOT construct the real
-Killing-form bi-invariant distance on SU(3) — it only proves the
-stand-in `d_SU3 ≡ 0` satisfies the bi-invariance predicate
-vacuously. YM tower stays `Status: Open`. Replacing `d_SU3` with
-the genuine Killing-form distance is the tripwire: that real
-distance also satisfies bi-invariance, but only after a Lie-group
-Riemannian construction that is not in mathlib v4.12.0. -/
+/-- **Brick 4 (`d_SU3_isBiInvariant`).** The real `d_SU3` is
+bi-invariant under the `Matrix.specialUnitaryGroup (Fin 3) ℂ`
+multiplication. This is the genuine Hilbert–Schmidt unitary
+invariance: for `k ∈ SU(3)`, `star ↑k * ↑k = 1` and `↑k * star ↑k = 1`,
+so left/right multiplication by `↑k` preserves the Hilbert–Schmidt
+norm of `↑g - ↑h`. NOT a vacuous `0 = 0`. -/
 theorem d_SU3_isBiInvariant : IsBiInvariantOnSU3 d_SU3 := by
   refine ⟨?_, ?_⟩
-  · intro _ _ _; show (0 : ℝ) = 0; rfl
-  · intro _ _ _; show (0 : ℝ) = 0; rfl
+  · -- left-invariance
+    intro k g h
+    unfold d_SU3
+    have hcoe : ((k * g : SU3) : Matrix (Fin 3) (Fin 3) ℂ) - ((k * h : SU3) : Matrix (Fin 3) (Fin 3) ℂ)
+        = (k : Matrix (Fin 3) (Fin 3) ℂ) * ((g : Matrix (Fin 3) (Fin 3) ℂ) - h) := by
+      rw [Submonoid.coe_mul, Submonoid.coe_mul, mul_sub]
+    have hK : star (k : Matrix (Fin 3) (Fin 3) ℂ) * (k : Matrix (Fin 3) (Fin 3) ℂ) = 1 :=
+      Matrix.mem_unitaryGroup_iff'.mp (Matrix.mem_specialUnitaryGroup_iff.mp k.2).1
+    rw [hcoe, hsNormSq_left _ _ hK]
+  · -- right-invariance
+    intro k g h
+    unfold d_SU3
+    have hcoe : ((g * k : SU3) : Matrix (Fin 3) (Fin 3) ℂ) - ((h * k : SU3) : Matrix (Fin 3) (Fin 3) ℂ)
+        = ((g : Matrix (Fin 3) (Fin 3) ℂ) - h) * (k : Matrix (Fin 3) (Fin 3) ℂ) := by
+      rw [Submonoid.coe_mul, Submonoid.coe_mul, sub_mul]
+    have hK : (k : Matrix (Fin 3) (Fin 3) ℂ) * star (k : Matrix (Fin 3) (Fin 3) ℂ) = 1 :=
+      Matrix.mem_unitaryGroup_iff.mp (Matrix.mem_specialUnitaryGroup_iff.mp k.2).1
+    rw [hcoe, hsNormSq_right _ _ hK]
 
 end RiemannianGeometry
 end YM

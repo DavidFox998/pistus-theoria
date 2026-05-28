@@ -278,13 +278,20 @@ landed. -/
 noncomputable def varadhan_geometric_c (x : SU3) : ℝ :=
   (d_SU3 x (1 : SU3)) ^ 2 / 4
 
-/-- The stand-in geometric decay constant is zero. Trivially, since
-`d_SU3 x 1 = 0` rfl. Tripwire: replacing `d_SU3` with the real
-Killing-form distance will break this lemma (the cut-locus is not
-a single point on SU(3)). -/
-theorem varadhan_geometric_c_zero (x : SU3) :
-    varadhan_geometric_c x = 0 := by
-  unfold varadhan_geometric_c d_SU3
+/-- The geometric decay constant vanishes **on the diagonal** locus
+`{x : d_SU3 x 1 = 0}` (which, under the real chordal distance, is the
+single point `x = 1`). The canonical witness is `x = 1`, where
+`d_SU3 1 1 = 0` by `RiemannianGeometry.d_SU3_self`.
+
+**Tripwire (Task #189).** Under the Task #170 stand-in `d_SU3 ≡ 0`
+this held for *every* `x` (`rfl`). Now that `d_SU3` is the real
+Killing-form chordal distance it holds only on the diagonal — the
+off-diagonal case `d_SU3 x 1 > 0` is precisely the open off-diagonal
+Varadhan / Molchanov regime. -/
+theorem varadhan_geometric_c_one :
+    varadhan_geometric_c (1 : SU3) = 0 := by
+  unfold varadhan_geometric_c
+  rw [RiemannianGeometry.d_SU3_self]
   ring
 
 /-- **Geometric-form Varadhan-shape upper bound on the SU(3)
@@ -296,23 +303,31 @@ every `t : ℝ` with `varadhan_t_lo ≤ t ≤ varadhan_t_top` and every
 
 This is the **shape** the real off-diagonal Varadhan asymptotic
 would consume — the same `exp(-d(x, e)² / 4t)` factor and the
-same `t^{-4}` polynomial decay. Because the stand-in distance
-`d_SU3 ≡ 0` (file `Towers/YM/RiemannianGeometry.lean`), the
-`exp(-d(x, 1)² / (4t))` factor collapses to `exp 0 = 1` and the
-brick is provable from the existing strip bound
-`Heat_kernel_envelope_real_le_varadhan` plus `exp(-c/t) ≤ 1` for
-`c, t > 0`.
+same `t^{-4}` polynomial decay.
+
+**Task #189 tripwire — diagonal hypothesis.** With `d_SU3` upgraded
+to the *real* Killing-form chordal distance (file
+`Towers/YM/RiemannianGeometry.lean`), the `exp(-d(x, 1)² / (4t))`
+factor no longer collapses to `1` for arbitrary `x`: when
+`d_SU3 x 1 > 0` the right-hand side is *strictly smaller* than
+`varadhan_C / t^4`, so the bound can NO LONGER be derived from the
+strip bound — that off-diagonal case is exactly the open
+Varadhan / Molchanov asymptotic. The brick is therefore re-stated
+with an explicit diagonal hypothesis `hx : d_SU3 x 1 = 0` (the locus
+`{x : d_SU3 x 1 = 0} = {1}`), on which the factor genuinely equals
+`exp 0 = 1` and the bound reduces to the existing strip bound plus
+`exp(-c/t) ≤ 1`. The canonical witness is `x = 1` via
+`RiemannianGeometry.d_SU3_self`. The breaking of the old `rfl`-style
+proof IS the tripwire the Task #170/#189 brief describes.
 
 **Honest scope (locked).** This is NOT the real off-diagonal
 Varadhan / Molchanov asymptotic — see the file preamble and the
-`RiemannianGeometry.lean` docstring. The signature carries the
-geometric `d²/4` constant so that downstream consumers (KP
-wire-up, files 5-6 of Task #156) can be written against the
-right shape, but no claim is made that `d_SU3` is the genuine
-SU(3) Killing-form distance. YM tower stays `Status: Open`. -/
+`RiemannianGeometry.lean` docstring. The off-diagonal envelope
+(`x` with `d_SU3 x 1 > 0`) remains open. YM tower stays
+`Status: Open`. -/
 theorem Heat_kernel_envelope_real_le_varadhan_geometric
     {t : ℝ} (ht_lo : varadhan_t_lo ≤ t) (ht_top : t ≤ varadhan_t_top)
-    (x : SU3) :
+    (x : SU3) (hx : d_SU3 x (1 : SU3) = 0) :
     Heat_kernel_envelope_real t ≤
       varadhan_C *
         Real.exp (-((d_SU3 x (1 : SU3)) ^ 2 / (4 * t))) / t ^ 4 := by
@@ -323,8 +338,8 @@ theorem Heat_kernel_envelope_real_le_varadhan_geometric
       Heat_kernel_envelope_real t ≤
         varadhan_C * Real.exp (-(varadhan_c / t)) / t ^ 4 :=
     Heat_kernel_envelope_real_le_varadhan ht_lo ht_top
-  -- Step 2: the geometric exp factor collapses to `1`.
-  have hd : d_SU3 x (1 : SU3) = 0 := rfl
+  -- Step 2: the geometric exp factor collapses to `1` on the diagonal.
+  have hd : d_SU3 x (1 : SU3) = 0 := hx
   have hgeom_zero : (d_SU3 x (1 : SU3)) ^ 2 / (4 * t) = 0 := by
     rw [hd]; ring
   have hexp_geom :
