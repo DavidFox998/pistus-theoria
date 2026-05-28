@@ -2100,6 +2100,26 @@ BRICKS=(
   # -----------------------------------------------------------------
   "Towers.YM.ReflectionPositivityCore|TheoremaAureum.Towers.YM.OS.reflection_involutive"
   "Towers.YM.ReflectionPositivityCore|TheoremaAureum.Towers.YM.OS.reflection_pos_one"
+  # Batch 157.2 (2026-05-28): δ₀ ℂ-linear functional satisfies the
+  # `reflectionPos` predicate from 157.1. Honest *inhabitedness*
+  # witness for the predicate — proves consistency, NOT that any
+  # Yang-Mills or Euclidean measure satisfies OS Axiom 1. The δ₀
+  # point mass trivially survives coord-0 reflection because the
+  # reflection fixes its support. Surface #1 stays Open. Replaces
+  # the rejected `exampleMeasure_reflection_pos` template, which
+  # tried to pass a `Measure` to `reflectionPos` (a predicate on
+  # ℂ-linear functionals).
+  "Towers.YM.ReflectionPositivityMeasure|TheoremaAureum.Towers.YM.OS.reflectionPos_diracEvalLM"
+  # Batch 158.1 (2026-05-28): translate-pullback at parameter `t = 0`
+  # is the identity action on ℂ-valued test functions over
+  # `EuclideanSpace ℝ (Fin (n+1))`. Honest stand-in for the rejected
+  # `euclidAction_one` template, which depended on a non-existent
+  # `EuclideanGroup` type (and retreated to `AffineGroup k V V`,
+  # which v4.12.0 also does not provide as a 3-arg type). This file
+  # defines only the coord-0 translation subgroup — NOT the full
+  # Euclidean group, NOT rotations, NOT reflections. Does NOT prove
+  # OS Axiom 2 for any Yang-Mills measure. Surface #1 stays Open.
+  "Towers.YM.EuclideanInvarianceCore|TheoremaAureum.Towers.YM.OS.translateAction_zero"
 )
 
 VERIFIER_DIR="$(mktemp -d)"

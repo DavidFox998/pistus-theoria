@@ -153,10 +153,10 @@ plaquette / `F_μν` / mass-gap, NOT the Sobolev H¹ norm / Leray–Hopf
 solution. For per-batch prose and tactic notes see
 `docs/CHANGELOG.md`.
 
-**Current wall: 473 BRICKS** (script-reported by `scripts/check-towers.sh`).
-Last verified build: `towers-build` workflow, 2026-05-28 05:53 UTC —
-`ok: Towers library built; all 473 brick(s) passed the
-axiom-footprint check.` Run ID `towers-build_20260528_055355_674`.
+**Current wall: 475 BRICKS** (script-reported by `scripts/check-towers.sh`).
+Last verified build: `towers-build` workflow, 2026-05-28 14:18 UTC —
+`ok: Towers library built; all 475 brick(s) passed the
+axiom-footprint check.` Run ID `towers-build_20260528_141837_597`.
 
 | Date | Task / Batch | Δ Wall | Headline (full prose in `docs/CHANGELOG.md`) |
 |---|---|---|---|
@@ -169,6 +169,8 @@ axiom-footprint check.` Run ID `towers-build_20260528_055355_674`.
 | 2026-05-27 | Batch 156.2 / Task #156 file 2 of 6 | 465 → 467 ¹ | `Towers/YM/WeylDim.lean` — `dim_cubic_bound` (Varadhan scaffolding) |
 | 2026-05-27 | Batch 156.3 / Task #156 file 3 of 6 | 467 → 468 | `Towers/YM/PeterWeylHeatVaradhan.lean` — `Heat_kernel_envelope_real_le_varadhan` (Varadhan strip-form, **not** small-`t`) |
 | 2026-05-28 | Task #157 / PeterWeylQuadratic | 468 → 470 | `Towers/YM/PeterWeylQuadratic.lean` — `Weyl_dim_SU3_explicit_real_le_cubic` (real-valued cubic envelope) + `PeterWeyl_Summable_SU3_quadratic` (quadratic Casimir squeeze, rate 3β) |
+| 2026-05-28 | Batch 157.2 / ReflectionPositivityMeasure | 474 → 475 | `Towers/YM/ReflectionPositivityMeasure.lean` — `reflectionPos_diracEvalLM` (δ₀ ℂ-linear functional satisfies the `reflectionPos` predicate from 157.1; honest *inhabitedness* witness — the predicate is consistent, NOT a proof that any YM / Euclidean measure satisfies OS Axiom 1). Surface #1 stays OPEN. |
+| 2026-05-28 | Batch 158.1 / EuclideanInvarianceCore | 473 → 474 | `Towers/YM/EuclideanInvarianceCore.lean` — `translateAction_zero` (zero-translation is the identity action on coord-0; honest single-coord translation stand-in, **not** `EuclideanGroup` / `AffineGroup` — those don't exist in mathlib v4.12.0). Surface #1 stays OPEN. |
 | 2026-05-28 | Batch 157.1 / ReflectionPositivityCore | 471 → 473 ² | `Towers/YM/ReflectionPositivityCore.lean` (Option B, replaces rejected 156.6 Varadhan) — `reflection_involutive` (coord-0 spatial reflection is an involution on ℂ-valued test fns over `EuclideanSpace ℝ (Fin (n+1))`) + `reflection_pos_one` (integration against a probability measure sends `1 ↦ 1`; honest replacement for the malformed `[IsProbabilityMeasure ρ]`-on-a-linear-map template). Defines OS-positivity *predicate* `reflectionPos`; does **NOT** prove OS Axiom 1 for any YM / Euclidean measure. Surface #1 stays OPEN (Varadhan opengap parked). |
 
 ¹ Batch 156.2's own brick delta is **+1**; the extra +1 reconciles

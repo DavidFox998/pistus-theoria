@@ -78,8 +78,50 @@ restore_one() {
   local tar_file="$TARS_DIR/${name}.git.tar"
 
   if [ ! -d "$pkg_dir" ]; then
-    echo "restore-lake-git: skipped $name (working tree absent; \`lake update\` will fetch it normally)." >&2
-    return 0
+    # Working tree absent. In sandboxed environments the upstream
+    # `lake update` / `git fetch` path can fail on filesystem-level
+    # pack-writes (seen 2026-05-28 in the lake-recovery workflow:
+    # "unable to write file .git/objects/pack/...pack: No such file or
+    # directory"). When we have a committed tar for this package, we
+    # can sidestep the broken transport entirely by restoring `.git/`
+    # from tar and then doing a local `git checkout` to populate the
+    # worktree. This is exactly the path Lake itself would take after a
+    # successful fetch; the only difference is the source of objects
+    # (vendored tar vs. upstream remote).
+    if [ -f "$tar_file" ]; then
+      mkdir -p "$pkg_dir"
+      tar -xf "$tar_file" -C "$pkg_dir"
+      # Post-extract sanity check (architect review, Batch 158.1): crisper
+      # diagnostics if the tar is corrupt / partially extracted before we
+      # hand off to `git checkout`.
+      if [ ! -d "$pkg_dir/.git" ]; then
+        echo "restore-lake-git: error: $name: tar extracted but \`$pkg_dir/.git\` is absent (corrupt or partial tar)." >&2
+        return 1
+      fi
+      if ! git -C "$pkg_dir" checkout -f "$rev" >/dev/null 2>&1; then
+        echo "restore-lake-git: error: $name: \`git checkout $rev\` failed after tar extract." >&2
+        return 1
+      fi
+      local got
+      got="$(git -C "$pkg_dir" rev-parse HEAD 2>/dev/null || echo "")"
+      if [ "$got" != "$rev" ]; then
+        echo "restore-lake-git: error: after restore, $name HEAD=$got but manifest pins $rev." >&2
+        return 1
+      fi
+      echo "restore-lake-git: ok    $name @ ${rev:0:12} (restored from tar; worktree checked out from local objects)." >&2
+      return 0
+    fi
+    # Fail closed (architect review, Batch 158.1): previously this branch
+    # silently returned 0 and let `lake update` attempt a network fetch,
+    # which is exactly the path that fails in sandboxed environments
+    # with the .git/objects/pack write error. If we have no working tree
+    # AND no vendored tar, that is a build-environment bug worth surfacing
+    # loudly rather than papering over with a fetch that probably won't
+    # work either.
+    echo "restore-lake-git: error: $name has no working tree at $pkg_dir AND no vendored tar at $tar_file." >&2
+    echo "       Either restore the tar (see regeneration snippet at bottom of this script)" >&2
+    echo "       or, if this package genuinely should not be vendored, remove it from \`git_packages\` above." >&2
+    return 1
   fi
 
   if [ -d "$pkg_dir/.git" ]; then
