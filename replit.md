@@ -63,6 +63,25 @@ the Wall-510 / Wall-539 / Wall-542 trims).
   script-reported wall unchanged). Verify: see the file's
   honest-scope header.
 
+- **Wall 573 / [YM1-GR]** — `Towers/YM/GapReduction.lean` written +
+  VERIFIED (`namespace TheoremaAureum.YM_MassGap`). REDUCTION/SCAFFOLD
+  ONLY: `gap_reduction` proves that for any `A : H → H` and `m : ℝ`,
+  IF `A` is coercive (`hco : ∀ ψ, m * ‖ψ‖^2 ≤ ⟪ψ, A ψ⟫_ℝ`, taken as a
+  HYPOTHESIS) THEN `A` is bounded below (`∀ ψ, m * ‖ψ‖ ≤ ‖A ψ‖`) — via
+  Cauchy–Schwarz (`real_inner_le_norm`) + `nlinarith`. `A`, `m`, `hco`
+  are ALL free variables/hypotheses: this constructs NO Hamiltonian,
+  proves NO `m > 0` exists, and proves NO spectral gap — only the
+  trivial direction "assumed gap ⟹ bounded below" (operator-level
+  shadow of "a gap forbids soft modes"). `#print axioms
+  …gap_reduction` = `[propext, Classical.choice, Quot.sound]`
+  (classical trio) via `lake env lean`; no `sorry`. Registered as
+  [YM1-GR], NOT [YM1]; makes NO mass-gap / μ>0 / Surface-#1-CLOSED
+  claim — Surface #1 stays OPEN, YM Status: Open. The EXISTENCE of `m`
+  for the real YM transfer Hamiltonian is the open problem, untouched
+  (next: Task #208 to unblock the real `H` construction). NOT in
+  `scripts/check-towers.sh` BRICKS (lake-gated → wall unchanged).
+  Verify: see the file's honest-scope header.
+
 - **Batch 178.1 / SLinkDef** — `Towers/YM/SLinkDef.lean` written
   (`S_link` + brick `S_link_const_one`), NOT registered to
   `lakefile.lean` / `scripts/check-towers.sh` BRICKS array, no wall
