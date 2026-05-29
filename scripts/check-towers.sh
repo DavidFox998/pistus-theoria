@@ -2529,6 +2529,9 @@ BRICKS=(
   "Towers.YM.LatticeGauge|TheoremaAureum.Towers.YM.LatticeGauge.G_eq_SU3"
   "Towers.YM.LatticeGauge|TheoremaAureum.Towers.YM.LatticeGauge.GaugeConfig_eq_parametric"
   "Towers.YM.WilsonAction|TheoremaAureum.Towers.YM.LatticeGauge.wilsonAction_zero_beta"
+  "Towers.YM.WilsonAction|TheoremaAureum.Towers.YM.LatticeGauge.wilsonPlaquette_const_one"
+  "Towers.YM.WilsonAction|TheoremaAureum.Towers.YM.LatticeGauge.plaquetteEnergy_const_one"
+  "Towers.YM.WilsonAction|TheoremaAureum.Towers.YM.LatticeGauge.wilsonAction_const_one_eq_zero"
   "Towers.YM.GibbsMeasure|TheoremaAureum.Towers.YM.LatticeGauge.partitionFn_zero_beta_eq_one"
   # ============================================================
   # DEFERRED (Wall 570+): the Osterwalder-Schrader axiom surface
