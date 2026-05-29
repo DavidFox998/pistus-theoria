@@ -648,6 +648,42 @@ theorem Heat_kernel_envelope_summand_real_le_half_cubic
     pow_le_pow_left hdim_nonneg hhalf 2
   exact mul_le_mul_of_nonneg_right hsq (Real.exp_pos _).le
 
+/-! ## Summed half-cubic envelope bound — Task #217 -/
+
+/-- **Whole-sum half-cubic upper bound on the SU(3) Peter-Weyl
+heat-kernel envelope (Task #217).** For every `t > 0`,
+  `Heat_kernel_envelope_real t ≤`
+    `∑'_{(m,n)} (((m+n)+2)^3 / 2)^2 · exp(-(t · C₂(m,n)))`.
+
+This carries the per-summand half-cubic brick
+`Heat_kernel_envelope_summand_real_le_half_cubic` (Task #193) from a
+single mode to the **whole** infinite sum: the genuine envelope
+`Heat_kernel_envelope_real t = ∑'_{(m,n)} (dim λ)² · exp(-(t·C₂(λ)))`
+is bounded above by the `tsum` of the squared half-cubic antidiagonal
+envelope. The summed form is what downstream strip / spectral-gap work
+actually consumes.
+
+Proof: `tsum_le_tsum` applied to the per-summand bound, with the LHS
+series `Summable` via `PeterWeyl_Summable_SU3 ht` (Batch 19.1p-redux-a)
+and the RHS series `Summable` via the new
+`PeterWeylQuadratic.PeterWeyl_Summable_SU3_half_cubic ht` (Task #217).
+
+**Honest scope (locked).** This is a *summed envelope* inequality on the
+genuine Peter-Weyl heat-kernel envelope, NOT a Varadhan small-`t`
+asymptotic and NOT a mass-gap / spectral-gap claim. YM tower stays
+`Status: Open` in `docs/ROADMAP.md` § 2; Surface #2 stays OPEN. -/
+theorem Heat_kernel_envelope_real_le_tsum_half_cubic
+    {t : ℝ} (ht : 0 < t) :
+    Heat_kernel_envelope_real t ≤
+      ∑' (mn : ℕ × ℕ),
+        (((mn.1 : ℝ) + mn.2 + 2) ^ 3 / 2) ^ 2 *
+          Real.exp (-(t * (Casimir_SU3_explicit mn : ℝ))) := by
+  unfold Heat_kernel_envelope_real
+  exact tsum_le_tsum
+    (fun mn => Heat_kernel_envelope_summand_real_le_half_cubic t mn)
+    (PeterWeyl_Summable_SU3 ht)
+    (PeterWeylQuadratic.PeterWeyl_Summable_SU3_half_cubic ht)
+
 end PeterWeylHeatVaradhan
 end YM
 end Towers

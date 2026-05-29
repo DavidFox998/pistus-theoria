@@ -6,8 +6,8 @@ sketches, drift footnotes, env var docs, stack, where-things-live,
 user preferences, gotchas, pointers — all rolled into CHANGELOG by
 the Wall-510 / Wall-539 / Wall-542 trims).
 
-- **Wall:** 528 BRICKS (`${#BRICKS[@]}` in `scripts/check-towers.sh`;
-  521 + 7 from **Task #211** below. Was 545 pre-deferral — prior `543`
+- **Wall:** 531 BRICKS (`${#BRICKS[@]}` in `scripts/check-towers.sh`;
+  528 + 3 from **Task #217** below. Was 545 pre-deferral — prior `543`
   headline was stale by 2. See **Task #208** below for the −29-entry /
   24-module deferral.)
   - Rebase note (Task #208): the `LatticeGauge.lean` `G`/`GaugeConfig`
@@ -26,9 +26,9 @@ the Wall-510 / Wall-539 / Wall-542 trims).
 
 ## Tower Status — 2026-05-29 12:47 PDT
 
-- **GREEN: 528 bricks** (`scripts/check-towers.sh` `BRICKS`).
+- **GREEN: 531 bricks** (`scripts/check-towers.sh` `BRICKS`).
 - **Registered YM walls** (tagged, landed as files — these three are
-  the lake-gated `[YM1-*]` walls, NOT counted in the 528 BRICKS array):
+  the lake-gated `[YM1-*]` walls, NOT counted in the 531 BRICKS array):
   571-B `[YM1-LB-Core]` (`lattice_positivity`, axioms `[]`), 572
   `[YM1-LB-Real]` (`hamiltonian_pos`, classical trio), 573 `[YM1-GR]`
   (`gap_reduction`, classical trio).
@@ -52,6 +52,44 @@ the Wall-510 / Wall-539 / Wall-542 trims).
   task**, NOT Task #208 — #208 already MERGED (build-unblock + OS
   deferral). The currently in-progress task is **#214** (real
   per-plaquette polymer activity weights), a different surface.
+
+## Task #217 — lift the half-cubic heat-kernel envelope bound to the whole tsum (2026-05-29)
+
+Lifted the Task #193 per-summand bound
+`Heat_kernel_envelope_summand_real_le_half_cubic` to the WHOLE infinite
+sum. Two files touched, three additive bricks (+3 → wall 531):
+
+- **`Towers/YM/PeterWeylQuadratic.lean`** (before `end
+  PeterWeylQuadratic`):
+  - **`summable_poly6_succ_exp_neg_real`** — degree-6 1D summability
+    helper: `Summable (fun k : ℕ => ((k:ℝ)+1)^6 · exp(-(a·k)))` for
+    `a > 0` (the antidiagonal product factor).
+  - **`PeterWeyl_Summable_SU3_half_cubic`** — for `t > 0`, the squared
+    half-cubic envelope `(((m+n)+2)^3/2)^2 · exp(-(t·C₂))` over
+    `Weyl_label = ℕ × ℕ` is `Summable`. Dominated by
+    `16·(m+1)^6(n+1)^6·exp(-3t·m)·exp(-3t·n)` via `m+n+2 ≤ 2(m+1)(n+1)`
+    (so `(m+n+2)^6/4 ≤ 16(m+1)^6(n+1)^6`) and the quadratic-Casimir
+    drop `3(m+n) ≤ C₂` (`Casimir_SU3_explicit_real_ge_quadratic`,
+    dropping the `¾(m+n)²` term). Mirrors
+    `PeterWeyl_Summable_SU3_quadratic`'s structure.
+- **`Towers/YM/PeterWeylHeatVaradhan.lean`** (before `end
+  PeterWeylHeatVaradhan`):
+  - **`Heat_kernel_envelope_real_le_tsum_half_cubic`** — for `t > 0`,
+    `Heat_kernel_envelope_real t ≤ ∑' (mn : ℕ×ℕ), (((mn.1+mn.2)+2)^3/2)^2
+    · exp(-(t·C₂))`, via `tsum_le_tsum` with `PeterWeyl_Summable_SU3 ht`
+    (LHS) and `PeterWeyl_Summable_SU3_half_cubic ht` (RHS) and the
+    per-summand Task #193 bound.
+
+- **+3 BRICKS** (528 → 531) registered in `scripts/check-towers.sh`
+  `BRICKS`.
+- **Verified:** both files `lake env lean … = exit 0` (warm cache, after
+  `restore-lake-git.sh` worktree rehydrate + `lake exe cache get`; the
+  wiping `towers-build` / `check-towers.sh` NOT run per the gotcha).
+  `#print axioms` on all three = `[propext, Classical.choice,
+  Quot.sound]` (classical trio).
+- Makes NO mass-gap / μ>0 / Surface-#1 claim — pure
+  summability/comparison analysis on the envelope. Surface #1 stays
+  OPEN, YM **Status: Open**.
 
 ## Task #211 — SU(3) distance: chordal → genuine geodesic via matrix exp (2026-05-29)
 

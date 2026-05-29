@@ -2156,6 +2156,49 @@ BRICKS=(
   # (additive only — no deletions).
   "Towers.YM.PeterWeylHeatVaradhan|TheoremaAureum.Towers.YM.PeterWeylHeatVaradhan.Heat_kernel_envelope_summand_real_le_half_cubic"
   # -----------------------------------------------------------------
+  # Task #217 — Carry the sharpened half-cubic heat-kernel bound from
+  # a single mode to the whole sum (2026-05-29). Three new trio-clean
+  # bricks lifting Task #193's *per-summand* half-cubic envelope bound
+  # `Heat_kernel_envelope_summand_real_le_half_cubic` to the WHOLE
+  # infinite sum `Heat_kernel_envelope_real t` (the `tsum` form
+  # downstream strip / spectral-gap work actually consumes):
+  #
+  #   1. `summable_poly6_succ_exp_neg_real`
+  #        (`Towers/YM/PeterWeylQuadratic.lean`) — degree-6 companion
+  #        of `summable_poly_succ_exp_neg_real`: for `β > 0`,
+  #        `Summable (fun n => (n+1)^6 · exp(-(β·n)))` via binomial
+  #        expansion + seven `Real.summable_pow_mul_exp_neg_nat_mul`.
+  #        The per-factor 1D dominator for the squared half-cubic
+  #        antidiagonal envelope `(((m+n)+2)^3/2)^2`.
+  #
+  #   2. `PeterWeyl_Summable_SU3_half_cubic` (headline)
+  #        (`Towers/YM/PeterWeylQuadratic.lean`) — for `t > 0`,
+  #        `∑_{(m,n)} (((m+n)+2)^3/2)^2 · exp(-(t·C₂(m,n)))` is
+  #        `Summable`. Parallel to `PeterWeyl_Summable_SU3_quadratic`:
+  #        dominate by `16·(m+1)^6 (n+1)^6 · exp(-(3t)m)·exp(-(3t)n)`
+  #        (polynomial `m+n+2 ≤ 2(m+1)(n+1)`, quadratic Casimir
+  #        `3(m+n) ≤ C₂`), product summable via the degree-6 1D
+  #        dominator, squeezed by `Summable.of_nonneg_of_le`.
+  #
+  #   3. `Heat_kernel_envelope_real_le_tsum_half_cubic` (headline)
+  #        (`Towers/YM/PeterWeylHeatVaradhan.lean`) — for `t > 0`,
+  #        `Heat_kernel_envelope_real t ≤`
+  #          `∑'_{(m,n)} (((m+n)+2)^3/2)^2 · exp(-(t·C₂(m,n)))`,
+  #        via `tsum_le_tsum` on the per-summand brick with the LHS
+  #        `Summable` (`PeterWeyl_Summable_SU3`) and the RHS
+  #        `Summable` (`PeterWeyl_Summable_SU3_half_cubic`).
+  #
+  # **Honest scope / drift (locked).** This is a *summed envelope*
+  # inequality on the genuine Peter-Weyl heat-kernel envelope, NOT a
+  # Varadhan small-`t` asymptotic and NOT a mass-gap / spectral-gap
+  # claim. YM tower stays `Status: Open` (`docs/ROADMAP.md` § 2);
+  # Surface #2 stays OPEN; `kotecky_preiss_criterion` remains a
+  # `sorry`. mathlib v4.12.0 only. The Task #157/#173/#193 bricks are
+  # left in place unmodified (additive only — no deletions).
+  "Towers.YM.PeterWeylQuadratic|TheoremaAureum.Towers.YM.PeterWeylQuadratic.summable_poly6_succ_exp_neg_real"
+  "Towers.YM.PeterWeylQuadratic|TheoremaAureum.Towers.YM.PeterWeylQuadratic.PeterWeyl_Summable_SU3_half_cubic"
+  "Towers.YM.PeterWeylHeatVaradhan|TheoremaAureum.Towers.YM.PeterWeylHeatVaradhan.Heat_kernel_envelope_real_le_tsum_half_cubic"
+  # -----------------------------------------------------------------
   # Batch 157.1 — Reflection-positivity *predicate* (Option B,
   # probability-measure integration functional). Replaces the
   # rejected 156.6 Varadhan attempt, which was blocked on absent

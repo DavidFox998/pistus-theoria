@@ -284,6 +284,176 @@ theorem Weyl_dim_SU3_explicit_real_le_half_cubic (mn : Weyl_label) :
     nlinarith [this]
   linarith
 
+/-! ## Brick 5 — Degree-6 polynomial × geometric 1D summability (Task #217)
+
+For every `β > 0`,
+`Summable (fun n : ℕ => ((n : ℝ) + 1) ^ 6 · Real.exp (-(β · n)))`.
+
+Companion to Batch 19.1p-redux-a's degree-4
+`summable_poly_succ_exp_neg_real` in `Towers/YM/PeterWeyl.lean`; the
+degree-6 shift is what the squared half-cubic antidiagonal envelope
+`(((m+n)+2)^3/2)^2` needs as its per-factor 1D dominator (each factor of
+the product `(m+1)^6 (n+1)^6`). Proof: binomial-expand `(n+1)^6` and
+combine the seven `Real.summable_pow_mul_exp_neg_nat_mul k` summands. -/
+theorem summable_poly6_succ_exp_neg_real {β : ℝ} (hβ : 0 < β) :
+    Summable (fun n : ℕ => ((n : ℝ) + 1) ^ 6 * Real.exp (-(β * n))) := by
+  have h6 : Summable (fun n : ℕ => (n : ℝ) ^ 6 * Real.exp (-β * n)) :=
+    Real.summable_pow_mul_exp_neg_nat_mul 6 hβ
+  have h5 : Summable (fun n : ℕ => (n : ℝ) ^ 5 * Real.exp (-β * n)) :=
+    Real.summable_pow_mul_exp_neg_nat_mul 5 hβ
+  have h4 : Summable (fun n : ℕ => (n : ℝ) ^ 4 * Real.exp (-β * n)) :=
+    Real.summable_pow_mul_exp_neg_nat_mul 4 hβ
+  have h3 : Summable (fun n : ℕ => (n : ℝ) ^ 3 * Real.exp (-β * n)) :=
+    Real.summable_pow_mul_exp_neg_nat_mul 3 hβ
+  have h2 : Summable (fun n : ℕ => (n : ℝ) ^ 2 * Real.exp (-β * n)) :=
+    Real.summable_pow_mul_exp_neg_nat_mul 2 hβ
+  have h1 : Summable (fun n : ℕ => (n : ℝ) ^ 1 * Real.exp (-β * n)) :=
+    Real.summable_pow_mul_exp_neg_nat_mul 1 hβ
+  have h0 : Summable (fun n : ℕ => (n : ℝ) ^ 0 * Real.exp (-β * n)) :=
+    Real.summable_pow_mul_exp_neg_nat_mul 0 hβ
+  have hcombined :
+      Summable (fun n : ℕ =>
+        (n : ℝ) ^ 6 * Real.exp (-β * n)
+          + 6 * ((n : ℝ) ^ 5 * Real.exp (-β * n))
+          + 15 * ((n : ℝ) ^ 4 * Real.exp (-β * n))
+          + 20 * ((n : ℝ) ^ 3 * Real.exp (-β * n))
+          + 15 * ((n : ℝ) ^ 2 * Real.exp (-β * n))
+          + 6 * ((n : ℝ) ^ 1 * Real.exp (-β * n))
+          + 1 * ((n : ℝ) ^ 0 * Real.exp (-β * n))) := by
+    exact ((((((h6.add (h5.mul_left 6)).add (h4.mul_left 15)).add
+      (h3.mul_left 20)).add (h2.mul_left 15)).add (h1.mul_left 6)).add
+      (h0.mul_left 1))
+  refine hcombined.congr (fun n => ?_)
+  have hexp : Real.exp (-(β * (n : ℝ))) = Real.exp (-β * (n : ℝ)) := by
+    congr 1; ring
+  rw [hexp]
+  ring
+
+/-! ## Brick 6 (Headline) — Summability of the squared half-cubic
+antidiagonal envelope (Task #217)
+
+For every `t > 0`,
+`∑_{(m,n)} (((m+n)+2)^3/2)^2 · exp(-(t · C₂(m,n)))` is `Summable`.
+
+This is the summability needed to carry the per-summand half-cubic
+brick `Heat_kernel_envelope_summand_real_le_half_cubic` (Task #193)
+through to a `tsum`/strip bound on the genuine heat-kernel envelope
+`Heat_kernel_envelope_real t` (the summed form is what downstream
+strip / spectral-gap work consumes).
+
+Proof (parallel to `PeterWeyl_Summable_SU3_quadratic`): dominate by the
+product envelope `16 · (m+1)^6 (n+1)^6 · exp(-(3t)m) · exp(-(3t)n)`.
+  - Polynomial: `m+n+2 ≤ 2(m+1)(n+1)` (AM-GM with slack), so
+    `(((m+n)+2)^3/2)^2 = (m+n+2)^6/4 ≤ 16 (m+1)^6 (n+1)^6`.
+  - Exponential: the quadratic Casimir bound
+    `¾(m+n)² + 3(m+n) ≤ C₂` (dropping `¾(m+n)²`) gives
+    `exp(-(t·C₂)) ≤ exp(-(3t)m) · exp(-(3t)n)`.
+The product envelope is summable via the degree-6 1D dominator
+`summable_poly6_succ_exp_neg_real` at rate `3t > 0`, then squeezed by
+`Summable.of_nonneg_of_le`. -/
+theorem PeterWeyl_Summable_SU3_half_cubic {t : ℝ} (ht : 0 < t) :
+    Summable (fun mn : ℕ × ℕ =>
+      (((mn.1 : ℝ) + mn.2 + 2) ^ 3 / 2) ^ 2 *
+        Real.exp (-(t * (Casimir_SU3_explicit mn : ℝ)))) := by
+  have h3t : 0 < 3 * t := by linarith
+  -- Per-factor 1D envelope at rate `3t`.
+  have h1d :
+      Summable (fun n : ℕ => ((n : ℝ) + 1) ^ 6 * Real.exp (-(3 * t * n))) :=
+    summable_poly6_succ_exp_neg_real h3t
+  set f : ℕ → ℝ := fun n => ((n : ℝ) + 1) ^ 6 * Real.exp (-(3 * t * n))
+    with hf_def
+  have hf_nonneg : ∀ n, 0 ≤ f n := by
+    intro n
+    exact mul_nonneg (pow_nonneg (by positivity) _) (Real.exp_pos _).le
+  -- Product envelope (with amplitude 16).
+  have hprod_summable : Summable (fun mn : ℕ × ℕ => f mn.1 * f mn.2) := by
+    rw [summable_prod_of_nonneg
+      (fun mn => mul_nonneg (hf_nonneg _) (hf_nonneg _))]
+    refine ⟨fun x => ?_, ?_⟩
+    · exact h1d.mul_left (f x)
+    · have hcong : (fun x : ℕ => ∑' y, f x * f y) =
+          fun x : ℕ => f x * ∑' y, f y := by
+        funext x
+        exact tsum_mul_left
+      rw [hcong]
+      exact h1d.mul_right _
+  set env : ℕ × ℕ → ℝ := fun mn => 16 * (f mn.1 * f mn.2) with henv_def
+  have henv_summable : Summable env := by
+    simp only [henv_def]
+    exact hprod_summable.mul_left 16
+  -- Pointwise bound: summand ≤ env, routing through the QUADRATIC Casimir.
+  have hbound : ∀ mn : ℕ × ℕ,
+      (((mn.1 : ℝ) + mn.2 + 2) ^ 3 / 2) ^ 2 *
+        Real.exp (-(t * (Casimir_SU3_explicit mn : ℝ))) ≤ env mn := by
+    intro mn
+    have hm : (0 : ℝ) ≤ (mn.1 : ℝ) := Nat.cast_nonneg _
+    have hn : (0 : ℝ) ≤ (mn.2 : ℝ) := Nat.cast_nonneg _
+    -- Polynomial base inequality `m+n+2 ≤ 2(m+1)(n+1)`.
+    have hbase : (mn.1 : ℝ) + mn.2 + 2 ≤
+        2 * (((mn.1 : ℝ) + 1) * ((mn.2 : ℝ) + 1)) := by
+      nlinarith [mul_nonneg hm hn, hm, hn]
+    have hsum_nn : (0 : ℝ) ≤ (mn.1 : ℝ) + mn.2 + 2 := by linarith
+    have h6le : ((mn.1 : ℝ) + mn.2 + 2) ^ 6 ≤
+        (2 * (((mn.1 : ℝ) + 1) * ((mn.2 : ℝ) + 1))) ^ 6 :=
+      pow_le_pow_left hsum_nn hbase 6
+    have hLeq : (((mn.1 : ℝ) + mn.2 + 2) ^ 3 / 2) ^ 2 =
+        ((mn.1 : ℝ) + mn.2 + 2) ^ 6 / 4 := by ring
+    have hReq : (2 * (((mn.1 : ℝ) + 1) * ((mn.2 : ℝ) + 1))) ^ 6 =
+        64 * (((mn.1 : ℝ) + 1) ^ 6 * ((mn.2 : ℝ) + 1) ^ 6) := by ring
+    have hpoly : (((mn.1 : ℝ) + mn.2 + 2) ^ 3 / 2) ^ 2 ≤
+        16 * (((mn.1 : ℝ) + 1) ^ 6 * ((mn.2 : ℝ) + 1) ^ 6) := by
+      rw [hReq] at h6le
+      rw [hLeq]
+      linarith [h6le]
+    -- Quadratic Casimir → linear `3(m+n) ≤ C₂` (drop the ¾(m+n)² term).
+    have hcas_q := Casimir_SU3_explicit_real_ge_quadratic mn
+    have hsq_nn : 0 ≤ (3 / 4 : ℝ) * ((mn.1 : ℝ) + mn.2) ^ 2 :=
+      mul_nonneg (by norm_num) (sq_nonneg _)
+    have hcas_lin :
+        3 * ((mn.1 : ℝ) + mn.2) ≤ (Casimir_SU3_explicit mn : ℝ) := by
+      linarith
+    have hexp_bound :
+        Real.exp (-(t * (Casimir_SU3_explicit mn : ℝ))) ≤
+          Real.exp (-(t * (3 * ((mn.1 : ℝ) + mn.2)))) := by
+      apply Real.exp_le_exp.mpr
+      have hmul := mul_le_mul_of_nonneg_left hcas_lin ht.le
+      linarith
+    have hexp_split :
+        Real.exp (-(t * (3 * ((mn.1 : ℝ) + mn.2)))) =
+          Real.exp (-(3 * t * mn.1)) * Real.exp (-(3 * t * mn.2)) := by
+      rw [← Real.exp_add]; congr 1; ring
+    have hexp_nonneg :
+        (0 : ℝ) ≤ Real.exp (-(t * (Casimir_SU3_explicit mn : ℝ))) :=
+      (Real.exp_pos _).le
+    have hpoly_nonneg :
+        (0 : ℝ) ≤ 16 * (((mn.1 : ℝ) + 1) ^ 6 * ((mn.2 : ℝ) + 1) ^ 6) := by
+      positivity
+    have hstep1 :
+        (((mn.1 : ℝ) + mn.2 + 2) ^ 3 / 2) ^ 2 *
+            Real.exp (-(t * (Casimir_SU3_explicit mn : ℝ))) ≤
+          16 * (((mn.1 : ℝ) + 1) ^ 6 * ((mn.2 : ℝ) + 1) ^ 6) *
+            Real.exp (-(t * (Casimir_SU3_explicit mn : ℝ))) :=
+      mul_le_mul_of_nonneg_right hpoly hexp_nonneg
+    have hstep2 :
+        16 * (((mn.1 : ℝ) + 1) ^ 6 * ((mn.2 : ℝ) + 1) ^ 6) *
+            Real.exp (-(t * (Casimir_SU3_explicit mn : ℝ))) ≤
+          16 * (((mn.1 : ℝ) + 1) ^ 6 * ((mn.2 : ℝ) + 1) ^ 6) *
+            Real.exp (-(t * (3 * ((mn.1 : ℝ) + mn.2)))) :=
+      mul_le_mul_of_nonneg_left hexp_bound hpoly_nonneg
+    have hstep3 :
+        16 * (((mn.1 : ℝ) + 1) ^ 6 * ((mn.2 : ℝ) + 1) ^ 6) *
+            Real.exp (-(t * (3 * ((mn.1 : ℝ) + mn.2)))) = env mn := by
+      rw [hexp_split]
+      simp only [henv_def, hf_def]
+      ring
+    linarith [hstep1.trans (hstep2.trans hstep3.le)]
+  -- Squeeze.
+  have hsum_nonneg : ∀ mn : ℕ × ℕ, 0 ≤
+      (((mn.1 : ℝ) + mn.2 + 2) ^ 3 / 2) ^ 2 *
+        Real.exp (-(t * (Casimir_SU3_explicit mn : ℝ))) := fun mn =>
+    mul_nonneg (sq_nonneg _) (Real.exp_pos _).le
+  exact Summable.of_nonneg_of_le hsum_nonneg hbound henv_summable
+
 end PeterWeylQuadratic
 end YM
 end Towers
