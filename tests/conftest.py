@@ -83,6 +83,93 @@ def _snapshot_ledger_for_session():
                 _CHECKPOINT.unlink()
 
 
+@pytest.fixture(autouse=True)
+def _isolate_ledger_alert_dispatch(tmp_path_factory):
+    """Function-scoped isolation for the async ledger-alert pipeline.
+
+    `kernel._fire_ledger_alert` (reached whenever `_append_line` trips a
+    `LedgerIntegrityError`) launches a daemon thread that, at *write*
+    time, reads the module-global `kernel.ALERTS_LOG` and runs the
+    configured transports. Two side effects leak across tests without
+    this fixture:
+
+      1. A test that fires an alert but never calls
+         `kernel._await_alert_dispatch()` (the delivery-failure and
+         env-unset tamper tests) leaves a live worker in
+         `kernel._ALERT_DISPATCH_THREADS`. When a *later* test
+         monkeypatches `ALERTS_LOG` to its own tmp file and then awaits
+         dispatch, that stale worker wakes up, reads the now-current
+         `ALERTS_LOG`, and appends a SECOND entry — turning
+         `assert len(recent) == 1` into `2 == 1`
+         (`test_alert_history_records_every_invocation`). This is the
+         root cause of the recurring `kernel-numerics` failure.
+
+      2. A test that fires an alert without redirecting `ALERTS_LOG`
+         would otherwise write into the real `data/ledger-alerts.jsonl`
+         (this conftest only snapshots the checkpoint), dirtying the
+         repo across runs.
+
+    The fixture drains any stale worker BEFORE each test — with the
+    transports neutralised and the log pointed at a throwaway, so the
+    drain itself can never hit the network or pollute a real file —
+    defaults `ALERTS_LOG` to a per-test tmp file, then drains again on
+    teardown so no worker survives the test boundary. Tests that set
+    their own `ALERTS_LOG` still override it for their own body.
+    """
+    import kernel
+
+    throwaway = tmp_path_factory.mktemp("alert-drain") / "drain.jsonl"
+
+    def _drain_safely() -> None:
+        prev_log = kernel.ALERTS_LOG
+        prev_webhook = kernel._post_webhook
+        prev_email = kernel._send_email
+        kernel.ALERTS_LOG = throwaway
+        kernel._post_webhook = lambda *a, **k: None
+        kernel._send_email = lambda *a, **k: None
+        try:
+            # 10s comfortably exceeds any (now-neutralised) transport
+            # timeout, so a False return means a genuinely wedged worker,
+            # not boundary jitter.
+            drained = kernel._await_alert_dispatch(timeout=10.0)
+            with kernel._ALERT_DISPATCH_LOCK:
+                if drained:
+                    kernel._ALERT_DISPATCH_THREADS.clear()
+                    leaked: list = []
+                else:
+                    # Never drop references to a LIVE worker — that would
+                    # re-create the exact untracked-thread leak this
+                    # fixture exists to prevent. Surface it loudly instead.
+                    leaked = [
+                        t
+                        for t in kernel._ALERT_DISPATCH_THREADS
+                        if t.is_alive()
+                    ]
+        finally:
+            kernel.ALERTS_LOG = prev_log
+            kernel._post_webhook = prev_webhook
+            kernel._send_email = prev_email
+        if leaked:
+            pytest.fail(
+                "ledger alert-dispatch worker(s) still alive after a 10s "
+                f"drain: {leaked!r}. Refusing to orphan them (that would "
+                "leak alert writes into a later test). A test fired an "
+                "alert whose worker cannot complete — investigate it "
+                "rather than masking the hang."
+            )
+
+    saved_log = kernel.ALERTS_LOG
+    _drain_safely()
+    kernel.ALERTS_LOG = (
+        tmp_path_factory.mktemp("alert-log") / "ledger-alerts.jsonl"
+    )
+    try:
+        yield
+    finally:
+        _drain_safely()
+        kernel.ALERTS_LOG = saved_log
+
+
 def _atomic_restore(path: Path, data: bytes) -> None:
     """Restore `path` to `data` via sibling tempfile + os.replace.
 
