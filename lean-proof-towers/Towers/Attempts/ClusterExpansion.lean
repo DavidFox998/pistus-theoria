@@ -700,7 +700,8 @@ theorem Weyl_sum_le_heat_kernel_real (t : ℝ) (ht : 0 < t) (N : ℕ) :
     bound `Heat_kernel_envelope_real_le_varadhan` (Task #156,
     `Towers/YM/PeterWeylHeatVaradhan.lean`). Result: the truncated
     Peter-Weyl partial sum on the strip `[varadhan_t_lo,
-    varadhan_t_top] = [1, 2]` is dominated by the
+    varadhan_t_top] = [1/100, 100]` (Task #190 widening — previously
+    `[1, 2]`) is dominated by the
     `varadhan_C · exp(-(varadhan_c / t)) / t^4` Varadhan-shape RHS.
 
     Honest scope. This is a **strip** statement, not the small-`t`
@@ -742,8 +743,10 @@ theorem Weyl_sum_explicit_SU3_real_le_varadhan
     The Peter-Weyl per-plaquette activity is
       `plaquette_activity_pw β N p := Weyl_sum_explicit_SU3_real (1/β) N`.
     Setting `t = 1/β`, the Varadhan strip `varadhan_t_lo ≤ t ≤
-    varadhan_t_top` (concretely `[1, 2]`) translates to a β-strip
-      `1 / varadhan_t_top ≤ β ≤ 1 / varadhan_t_lo`  (concretely `[1/2, 1]`).
+    varadhan_t_top` (concretely `[1/100, 100]` after the Task #190
+    widening — previously `[1, 2]`) translates to a β-strip
+      `1 / varadhan_t_top ≤ β ≤ 1 / varadhan_t_lo`  (concretely
+      `[1/100, 100]` — previously `[1/2, 1]`).
     On this β-strip the truncated Peter-Weyl per-plaquette
     activity is bounded above by the Varadhan-shape RHS.
 

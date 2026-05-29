@@ -10,7 +10,8 @@ genuine SU(3) Peter-Weyl heat-kernel envelope
 (landed in `Towers/YM/PeterWeylHeat.lean` via
 `PeterWeyl_Summable_SU3`, Batch 19.1p-redux-a/b, Tasks #154/#155).
 For every `t : ℝ` in the **finite strip** `[varadhan_t_lo, varadhan_t_top]`
-(concretely `[1, 2]`), with explicit positive constants
+(concretely `[1/100, 100]` after the Task #190 widening — previously
+`[1, 2]`), with explicit positive constants
 `varadhan_c, varadhan_C`, the brick
 
   `Heat_kernel_envelope_real_le_varadhan :`
@@ -139,13 +140,22 @@ the strip avoids the small-`t` regime where `c` would have to
 match the cut-locus geometry of SU(3). -/
 noncomputable def varadhan_c : ℝ := 1
 
-/-- Strip lower endpoint `t_lo`. Concrete value `1`. Strictly
-positive — the bound is **not** a small-`t` asymptotic and does not
-extend to `t → 0⁺`. -/
-noncomputable def varadhan_t_lo : ℝ := 1
+/-- Strip lower endpoint `t_lo`. Concrete value `1/100` (Task #190
+widening — previously `1`). Strictly positive — the bound is **not**
+a small-`t` asymptotic and does not extend to `t → 0⁺`. The endpoint
+is a *fixed* positive number bounded away from `0`; lowering it from
+`1` to `1/100` enlarges the strip (and hence the downstream β-range
+`[1/t_top, 1/t_lo]`) by two orders of magnitude on the upper β edge,
+with the amplitude constant `varadhan_C` automatically re-derived
+from `Heat_kernel_envelope_real varadhan_t_lo` to keep the bound
+honest. -/
+noncomputable def varadhan_t_lo : ℝ := 1 / 100
 
-/-- Strip upper endpoint `t_top`. Concrete value `2`. -/
-noncomputable def varadhan_t_top : ℝ := 2
+/-- Strip upper endpoint `t_top`. Concrete value `100` (Task #190
+widening — previously `2`). Raising it from `2` to `100` enlarges
+the strip on the lower β edge (`1/t_top` drops from `1/2` to
+`1/100`). -/
+noncomputable def varadhan_t_top : ℝ := 100
 
 /-- Amplitude constant `C` in the Varadhan-shape bound, defined as
   `C := Heat_kernel_envelope_real varadhan_t_lo *`

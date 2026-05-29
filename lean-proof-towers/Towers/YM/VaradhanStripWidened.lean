@@ -71,7 +71,8 @@ open TheoremaAureum.Towers.YM.PeterWeylHeat
 open TheoremaAureum.Towers.YM.PeterWeylHeatVaradhan
 
 /-- **Widened strip lower endpoint.** Concrete value
-`varadhan_t_lo / 2 = 1/2`. Strictly positive but strictly less
+`varadhan_t_lo / 2 = 1/200` (tracks the Task #190 widening of
+`varadhan_t_lo` to `1/100`). Strictly positive but strictly less
 than `varadhan_t_lo`; the widening is a *slot* for a future
 genuine small-`t` refinement, **not** itself a valid lower bound
 for the strip-form Varadhan inequality (the inequality is false on
@@ -79,7 +80,8 @@ for the strip-form Varadhan inequality (the inequality is false on
 noncomputable def varadhan_t_lo_widened : ℝ := varadhan_t_lo / 2
 
 /-- **Widened strip upper endpoint.** Concrete value
-`varadhan_t_top * 2 = 4`. -/
+`varadhan_t_top * 2 = 200` (tracks the Task #190 widening of
+`varadhan_t_top` to `100`). -/
 noncomputable def varadhan_t_top_widened : ℝ := varadhan_t_top * 2
 
 /-- The widened lower endpoint is strictly positive. -/
