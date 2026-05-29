@@ -6,6 +6,32 @@ this file is the version history.
 
 ---
 
+## Tower Status snapshot — 2026-05-29 12:47 PDT
+
+- **GREEN: 528 bricks** (`scripts/check-towers.sh` BRICKS).
+- **Registered YM walls** (lake-gated `[YM1-*]`, NOT in the 528 array):
+  571-B `[YM1-LB-Core]` `lattice_positivity` (axioms `[]`), 572
+  `[YM1-LB-Real]` `hamiltonian_pos` (trio-only), 573 `[YM1-GR]`
+  `gap_reduction` (trio-only).
+- **Wall 574 `[YM1]`** scaffolded in `Towers/YM/MassGap574.lean` —
+  INVARIANT-LOCKED, carries `sorry`, NOT in BRICKS.
+- **Deferred:** 24 OS/KP modules unregistered (Task #208); await Wall
+  570+/574 with real SU(3) `H`.
+- **Surface #1: OPEN.** No `m > 0` claim while the `sorry` stands.
+- **Infra:** mathlib cache self-heal **LANDED** (Task #213 MERGED:
+  `scripts/fetch-mathlib-oleans.sh`, authoritative `cache get`, no
+  from-source fallback; follow-up #245 CANCELLED / folded into #213).
+  `hamiltonian_pos` / `gap_reduction` trio audits cached from the Wall
+  572/573 GREEN landings; live `#print axioms` re-run now possible via
+  the resilient `towers-build`.
+- **Drift corrections:** wall is **528** (not 521 — Task #211's +7
+  landed); the real Wilson transfer `H` construction is a **future
+  task**, NOT the already-merged Task #208 (#208 = build-unblock + OS
+  deferral). Currently in-progress: Task #214 (real per-plaquette
+  polymer activity weights).
+
+---
+
 ## Wall 574 / [YM1] — mass-gap TARGET scaffold (2026-05-29)
 
 | Date | Task / Batch | Δ Wall | Headline |

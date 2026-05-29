@@ -24,6 +24,35 @@ the Wall-510 / Wall-539 / Wall-542 trims).
   in any landed brick · YM and NS towers stay `Status: Open` in
   `docs/ROADMAP.md`
 
+## Tower Status — 2026-05-29 12:47 PDT
+
+- **GREEN: 528 bricks** (`scripts/check-towers.sh` `BRICKS`).
+- **Registered YM walls** (tagged, landed as files — these three are
+  the lake-gated `[YM1-*]` walls, NOT counted in the 528 BRICKS array):
+  571-B `[YM1-LB-Core]` (`lattice_positivity`, axioms `[]`), 572
+  `[YM1-LB-Real]` (`hamiltonian_pos`, classical trio), 573 `[YM1-GR]`
+  (`gap_reduction`, classical trio).
+- **Wall 574 `[YM1]`** scaffolded in `Towers/YM/MassGap574.lean`.
+  INVARIANT-LOCKED. Carries `sorry`. NOT in BRICKS, not a lakefile
+  root, does not elaborate.
+- **Deferred:** 24 OS/KP modules unregistered (Task #208). `.lean`
+  files kept on disk; await Wall 570+/574 with the real SU(3) `H`.
+- **Surface #1: OPEN.** No `m > 0` claim while the `sorry` stands.
+- **Infra:** mathlib cache self-heal **LANDED** — Task #213 MERGED
+  (`scripts/fetch-mathlib-oleans.sh`: authoritative `lake exe cache get`,
+  no from-source fallback, heals a corrupt/partial cache); follow-up
+  #245 was **CANCELLED** (folded into #213, not a separate task). Trio
+  audits for `hamiltonian_pos` / `gap_reduction` remain cached from the
+  Wall 572/573 GREEN landings (files byte-identical since); a live
+  `#print axioms` re-run is now possible via the resilient
+  `towers-build` once it completes a clean clone+cache cycle.
+- **Drift corrections:** (1) wall is **528**, not 521 (Task #211's +7
+  landed). (2) The real Wilson transfer Hamiltonian `H` construction
+  (replacing the `H = 1` stand-in in `MassGap574.lean`) is a **FUTURE
+  task**, NOT Task #208 — #208 already MERGED (build-unblock + OS
+  deferral). The currently in-progress task is **#214** (real
+  per-plaquette polymer activity weights), a different surface.
+
 ## Task #211 — SU(3) distance: chordal → genuine geodesic via matrix exp (2026-05-29)
 
 Upgraded `Towers/YM/RiemannianGeometry.lean` from the Task #189 chordal
