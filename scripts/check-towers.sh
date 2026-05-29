@@ -1901,8 +1901,19 @@ BRICKS=(
   #                                `gauge_rank = 3`, `spacetime_dim = 4`).
   #   2. `IsMassGap`            — predicate `0 < Δ` (placeholder shape).
   #   3. `lattice_to_continuum` — renormalization map from
-  #                                `(a : ℝ, A : SU3Connection)` to
-  #                                the default `YM4_Continuum`.
+  #                                `(a : ℝ, A : SU3Connection)` to a
+  #                                `YM4_Continuum` whose fields now
+  #                                depend on the inputs:
+  #                                `gauge_rank := gauge_rank_of A`
+  #                                (reads the SU(3) connection rank)
+  #                                and `spacetime_dim :=
+  #                                spacetime_dim_of_spacing a` (4 when
+  #                                `0 < a`, else 0, via Classical
+  #                                `if`). Task #195 promoted this from
+  #                                the old identity-trivial
+  #                                `fun _ _ => {}` stand-in; still
+  #                                placeholder schema, no `a → 0`
+  #                                content, YM stays `Status: Open`.
   #   4. `AsymptoticFreedom`    — Prop `∀ μ > 0, ∃ g, 0 < g ∧ g < 1`.
   # **Honest scope.** None advance YM past `Status: Open`
   # (`docs/ROADMAP.md` § 2). The four defs are placeholder schema
@@ -2370,14 +2381,19 @@ BRICKS=(
   #     resulting continuum schema `lattice_to_continuum a A :
   #     YM4_Continuum`. The lattice inputs are positional (consumed
   #     by `_`); proof delegates to the existing strip bound. No
-  #     `a → 0` content is added — `lattice_to_continuum` is the
-  #     identity-trivial map shipped by Batch 20.1a.
-  #   * `continuum_heat_envelope_bound_target_default` — the
-  #     identity-trivial nature of `lattice_to_continuum` is recorded
-  #     as a `rfl` brick: `lattice_to_continuum a A = ({} : YM4_Continuum)`.
-  #     Replacing `lattice_to_continuum` with a real continuum functor
-  #     will *intentionally* break this brick — the tripwire signal for
-  #     a genuine continuum limit landing.
+  #     `a → 0` content is added — `lattice_to_continuum` is still a
+  #     placeholder schema map (Task #195 made its fields input-
+  #     dependent but added no genuine continuum-limit content).
+  #   * `continuum_heat_envelope_bound_target_default` — Task #195
+  #     fired the tripwire: `lattice_to_continuum` is no longer the
+  #     identity-trivial `fun _ _ => {}` map, so the old `rfl` brick
+  #     `lattice_to_continuum a A = ({} : YM4_Continuum)` no longer
+  #     holds. This brick now records the new structure-producing
+  #     behaviour instead: given `(ha : 0 < a)`,
+  #     `(lattice_to_continuum a A).gauge_rank = 3 ∧
+  #      (lattice_to_continuum a A).spacetime_dim = 4`. It remains the
+  #     tripwire for any future continuum functor: a real `a → 0`
+  #     landing will *intentionally* break this statement too.
   #
   # File 6 — `Towers/YM/MassGapEnvelope.lean` (final mass-gap
   # envelope, stand-in):

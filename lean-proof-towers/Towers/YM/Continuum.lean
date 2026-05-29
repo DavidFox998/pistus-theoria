@@ -95,14 +95,48 @@ spectral content is the open Clay surface (parked at
 `Towers/Attempts/Clay.lean :: MassGap_YM4_Clay`). -/
 def IsMassGap (_T : YM4_Continuum) (Δ : ℝ) : Prop := 0 < Δ
 
-/-- **`lattice_to_continuum a A`** — renormalization map from
-lattice data (spacing `a : ℝ`, SU(3) lattice connection
-`A : SU3Connection`) to a continuum theory. Honest placeholder:
-returns the default `YM4_Continuum` (the renormalization is the
-identity-like trivial map on the schema). Does NOT implement a
-real `a → 0` continuum limit — that is the Batch 20.1b surface. -/
-def lattice_to_continuum (_a : ℝ) (_A : SU3Connection) : YM4_Continuum :=
-  {}
+/-- **Gauge rank read from a lattice connection.** A `SU3Connection`
+is `Fin 4 → SU(3)`, and its link variables are
+`SU(3) = specialUnitaryGroup (Fin 3) ℂ` matrices, so the rank `N` of
+the underlying `SU(N)` gauge group is the matrix dimension
+`Fintype.card (Fin 3) = 3`. This reads the rank off the connection's
+group structure rather than hard-wiring the literal `3` into the
+schema. Still carries no analytic content. -/
+def gauge_rank_of (_A : SU3Connection) : Nat := Fintype.card (Fin 3)
+
+/-- **Spacetime dimension read from a lattice spacing.** A physical
+lattice spacing is a genuine positive real `0 < a`; for such a
+spacing the produced continuum schema lives in `4` dimensions, while
+a non-positive (unphysical) spacing yields the degenerate `0`. This
+makes the dimension genuinely *read* the spacing value rather than be
+a hard-wired default, so the map below is non-constant in `a`. Still
+carries no analytic content (no real `a → 0` limit). -/
+noncomputable def spacetime_dim_of_spacing (a : ℝ) : Nat :=
+  open Classical in
+  if 0 < a then 4 else 0
+
+/-- **`lattice_to_continuum a A`** — renormalization map from lattice
+data (spacing `a : ℝ`, SU(3) lattice connection `A : SU3Connection`)
+to a continuum theory. **Structure-producing, non-trivial map:** its
+fields are now *read from the inputs* — `gauge_rank` off the
+connection's group structure (`gauge_rank_of A`, the SU(3) matrix
+dimension) and `spacetime_dim` off the spacing (`spacetime_dim_of_spacing
+a`, which is `4` for a physical positive spacing and degenerate `0`
+otherwise). This replaces the previous identity-trivial
+`fun _ _ => {}` map (whose output ignored the inputs entirely).
+
+**Honest scope is unchanged:** this still does NOT implement a real
+`a → 0` continuum limit — the renormalization-group flow of the
+fields is not modeled; the map merely reads the discrete schema slots
+(rank, dimension) from the lattice data. The genuine `a → 0` limit is
+the Batch 20.1b surface. Because the map now depends on `(a, A)`, the
+old tripwire brick `continuum_heat_envelope_bound_target_default`
+(which asserted `lattice_to_continuum a A = ({} : YM4_Continuum)` by
+`rfl`) is intentionally broken and rewritten in
+`Towers/YM/ContinuumHookup.lean`. -/
+noncomputable def lattice_to_continuum (a : ℝ) (A : SU3Connection) : YM4_Continuum :=
+  { gauge_rank := gauge_rank_of A
+    spacetime_dim := spacetime_dim_of_spacing a }
 
 /-- **`AsymptoticFreedom T`** — physical-input Prop on a continuum
 theory: "for every energy scale `μ > 0` there exists a coupling

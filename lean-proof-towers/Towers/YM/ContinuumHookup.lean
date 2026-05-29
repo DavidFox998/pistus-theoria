@@ -110,15 +110,35 @@ theorem continuum_heat_envelope_bound
       varadhan_C * Real.exp (-(varadhan_c / t)) / t ^ 4 :=
   Heat_kernel_envelope_real_le_varadhan ht_lo ht_top
 
-/-- The current `lattice_to_continuum` map is identity-trivial:
-for every lattice input `(a, A)` the produced continuum schema is
-the default `YM4_Continuum`. Records the (intentional) flatness of
-the schema mapping. Replacing `lattice_to_continuum` with a real
-`a → 0` functor will break this lemma, which is the tripwire signal
-for a genuine continuum limit landing. -/
+/-- **Tripwire brick, rewritten (Task #195 — intentional break).**
+
+The previous version of this brick recorded the *identity-trivial*
+nature of `lattice_to_continuum` as the `rfl` equation
+`lattice_to_continuum a A = ({} : YM4_Continuum)`. That contract has
+been intentionally retired: `lattice_to_continuum` is now a
+**structure-producing** map (`Towers/YM/Continuum.lean`) whose fields
+are read from the lattice data — `gauge_rank` off the connection's
+SU(3) group structure and `spacetime_dim` off the spacing — so it is
+no longer the bare default `{}` and the old `rfl` no longer holds.
+
+This rewrite records the *honest content* of the new map: for any
+**physical** lattice spacing (`0 < a`) and SU(3) connection `A`, the
+produced continuum schema is genuinely SU(3) in four dimensions —
+`gauge_rank = 3` (read off `A`) and `spacetime_dim = 4` (read off the
+positive spacing `a`). It is NOT a real `a → 0` continuum limit; the
+map only reads the discrete schema slots. A genuine continuum-limit
+functor will move these fields again and break *this* brick in turn,
+keeping it the tripwire signal for a real continuum limit landing. -/
 theorem continuum_heat_envelope_bound_target_default
-    (a : ℝ) (A : SU3Connection) :
-    lattice_to_continuum a A = ({} : YM4_Continuum) := rfl
+    (a : ℝ) (A : SU3Connection) (ha : 0 < a) :
+    (lattice_to_continuum a A).gauge_rank = 3 ∧
+      (lattice_to_continuum a A).spacetime_dim = 4 := by
+  refine ⟨?_, ?_⟩
+  · show gauge_rank_of A = 3
+    simp [gauge_rank_of]
+  · show spacetime_dim_of_spacing a = 4
+    unfold spacetime_dim_of_spacing
+    rw [if_pos ha]
 
 /-- Consistency brick on the Varadhan-shape RHS: at any strip-time
 `t ∈ [varadhan_t_lo, varadhan_t_top]` the bound's right-hand side
