@@ -7,9 +7,10 @@ user preferences, gotchas, pointers — all rolled into CHANGELOG by
 the Wall-510 / Wall-539 / Wall-542 trims).
 
 - **Wall:** 539 BRICKS (`${#BRICKS[@]}` in `scripts/check-towers.sh`;
-  528 + 3 from **Task #217** + 1 from **Task #218** + 7 from **Task
-  #255** below. Was 545 pre-deferral — prior `543` headline was stale
-  by 2. See **Task #208** below for the −29-entry / 24-module
+  528 + 3 from **Task #217** + 1 from **Task #218** + 3 from
+  **Task #219** + 7 from **Task #255** below. Was 545 pre-deferral — prior
+  `543` headline was stale by 2. See **Task #208** below for the −29-entry /
+  24-module
   deferral.)
   - Rebase note (Task #208): the `LatticeGauge.lean` `G`/`GaugeConfig`
     substrate was kept RESTORED (mathlib imports + defs) rather than
@@ -27,8 +28,9 @@ the Wall-510 / Wall-539 / Wall-542 trims).
 
 ## Tower Status — 2026-05-29 12:47 PDT
 
-- **GREEN: 539 bricks** (`scripts/check-towers.sh` `BRICKS`; +7 from
-  Task #255 — strict Wilson action positivity, see section below).
+- **GREEN: 539 bricks** (`scripts/check-towers.sh` `BRICKS`; +3 from
+  Task #219; +7 from Task #255 — strict Wilson action positivity, see
+  section below).
 - **Registered YM walls** (tagged, landed as files — the lake-gated
   `[YM1-*]` walls, NOT counted in the BRICKS array; now FOUR after
   Task #248 Step 5, registered in `scripts/check-towers.sh`):
@@ -96,6 +98,44 @@ the Wall-510 / Wall-539 / Wall-542 trims).
   (LatticeGauge/WilsonAction) from source against the freshly-fetched
   mathlib cache. `lake exe cache get` succeeded on a direct foreground
   run (the backgrounded fetch had been SIGKILL'd mid cache-exe compile).
+
+## Task #219 — carry the wider t-range through to continuum + mass-gap envelope (2026-05-29)
+
+Routed the Task #194 upper-widened strip bound
+`Heat_kernel_envelope_real_le_varadhan_widened_upper` (retuned amplitude
+`varadhan_C_widened`, valid `t`-window up to
+`varadhan_t_top_widened = 2·varadhan_t_top`) through the continuum schema
+slot and into the mass-gap envelope constant. Both downstream files
+previously routed through the *original* strip bound
+`Heat_kernel_envelope_real_le_varadhan`, so they did not benefit from the
+widened window. Three additive bricks (+3 → wall 535):
+
+- **`Towers/YM/ContinuumHookup.lean`** (imports + opens
+  `Towers.YM.VaradhanStripWidened`):
+  - **`continuum_heat_envelope_bound_widened_upper`** — widened-signature
+    companion of `continuum_heat_envelope_bound`: for `varadhan_t_lo ≤ t
+    ≤ varadhan_t_top_widened`, `Heat_kernel_envelope_real t ≤
+    varadhan_C_widened · exp(-(varadhan_c/t)) / t^4`. Delegates to the
+    upper-widened strip bound; lattice inputs `(a, A)` discarded.
+  - **`continuum_heat_envelope_pos_widened`** — positivity of the widened
+    RHS on the widened window.
+- **`Towers/YM/MassGapEnvelope.lean`** (imports + opens
+  `Towers.YM.VaradhanStripWidened`):
+  - **`mass_gap_envelope_constant_widened`** (def) +
+    **`mass_gap_envelope_constant_widened_pos`** — the widened envelope
+    constant `varadhan_C_widened / varadhan_t_top_widened^4 > 0`. Honest
+    positive-real constant, NO spectral content (no widened `IsMassGap`
+    closure added).
+
+- **+3 BRICKS** (532 → 535) registered in `scripts/check-towers.sh`.
+- **Verified:** `lake build Towers.YM.ContinuumHookup
+  Towers.YM.MassGapEnvelope` = exit 0 (full Towers lib green on the
+  rehydrated warm cache: `restore-lake-git.sh` + `fetch-mathlib-oleans.sh`
+  `cache get` → 4845 oleans). `#print axioms` on all three new bricks =
+  `[propext, Classical.choice, Quot.sound]` (classical trio), no `sorry`.
+- Makes NO mass-gap / μ>0 / Surface-#1/#2/#3 claim — pure plumbing of an
+  existing bounded-`t` STRIP bound through the placeholder continuum
+  schema. Surfaces #1/#2/#3 stay OPEN, YM **Status: Open**.
 
 ## Locked invariants (every batch must hold these)
 

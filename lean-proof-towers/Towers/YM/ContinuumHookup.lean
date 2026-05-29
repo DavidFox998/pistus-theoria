@@ -78,6 +78,7 @@ YM tower stays `Status: Open` in `docs/ROADMAP.md` § 2. Surface #3
 
 import Towers.YM.Continuum
 import Towers.YM.PeterWeylHeatVaradhan
+import Towers.YM.VaradhanStripWidened
 
 namespace TheoremaAureum
 namespace Towers
@@ -88,6 +89,7 @@ open TheoremaAureum.Towers.YM
 open TheoremaAureum.Towers.YM.Continuum
 open TheoremaAureum.Towers.YM.PeterWeylHeat
 open TheoremaAureum.Towers.YM.PeterWeylHeatVaradhan
+open TheoremaAureum.Towers.YM.VaradhanStripWidened
 
 /-- **Strip-form Varadhan-shape envelope bound, wired through the
 continuum schema slot.** For lattice spacing `a : ℝ` and lattice
@@ -150,6 +152,54 @@ theorem continuum_heat_envelope_pos
   have ht4 : 0 < t ^ 4 := pow_pos htpos 4
   have hnum : 0 < varadhan_C * Real.exp (-(varadhan_c / t)) :=
     mul_pos varadhan_C_pos (Real.exp_pos _)
+  exact div_pos hnum ht4
+
+/-! ## Widened upper-side continuum hookup — Task #219
+
+Carry the genuinely upper-widened strip bound
+`Heat_kernel_envelope_real_le_varadhan_widened_upper` (Task #194,
+`Towers/YM/VaradhanStripWidened.lean`) through the same continuum
+schema slot. The valid `t`-window now runs up to
+`varadhan_t_top_widened = 2 · varadhan_t_top` (strictly past the
+original strip top `varadhan_t_top`), and the RHS amplitude is the
+retuned `varadhan_C_widened`. As with the original hookup, the lattice
+inputs `(a, A)` are named in the signature but discarded by the proof:
+`lattice_to_continuum` is still the placeholder schema map, so **no
+`a → 0` content is added**. -/
+
+/-- **Widened strip-form Varadhan-shape envelope bound, wired through
+the continuum schema slot (Task #219).** Same plumbing as
+`continuum_heat_envelope_bound`, but consuming the upper-widened bound:
+for every strip-time `t` with
+`varadhan_t_lo ≤ t ≤ varadhan_t_top_widened` — i.e. `t` may now run
+strictly past the original strip top `varadhan_t_top` up to the widened
+top `varadhan_t_top_widened = 2 · varadhan_t_top` — the retuned-amplitude
+bound `Heat_kernel_envelope_real t ≤ varadhan_C_widened · exp(-c/t) / t^4`
+applies. The proof delegates to
+`Heat_kernel_envelope_real_le_varadhan_widened_upper`; the lattice
+inputs `(a, A)` are discarded (`lattice_to_continuum` adds no `a → 0`
+content). -/
+theorem continuum_heat_envelope_bound_widened_upper
+    (_a : ℝ) (_A : SU3Connection)
+    {t : ℝ} (ht_lo : varadhan_t_lo ≤ t)
+    (ht_top : t ≤ varadhan_t_top_widened) :
+    Heat_kernel_envelope_real t ≤
+      varadhan_C_widened * Real.exp (-(varadhan_c / t)) / t ^ 4 :=
+  Heat_kernel_envelope_real_le_varadhan_widened_upper ht_lo ht_top
+
+/-- Consistency brick on the widened Varadhan-shape RHS: at any
+strip-time `t ∈ [varadhan_t_lo, varadhan_t_top_widened]` the bound's
+right-hand side `varadhan_C_widened · exp(-c/t) / t^4` is strictly
+positive. Companion of `continuum_heat_envelope_pos` for the widened
+upper window. -/
+theorem continuum_heat_envelope_pos_widened
+    {t : ℝ} (ht_lo : varadhan_t_lo ≤ t)
+    (_ht_top : t ≤ varadhan_t_top_widened) :
+    0 < varadhan_C_widened * Real.exp (-(varadhan_c / t)) / t ^ 4 := by
+  have htpos : 0 < t := lt_of_lt_of_le varadhan_t_lo_pos ht_lo
+  have ht4 : 0 < t ^ 4 := pow_pos htpos 4
+  have hnum : 0 < varadhan_C_widened * Real.exp (-(varadhan_c / t)) :=
+    mul_pos varadhan_C_widened_pos (Real.exp_pos _)
   exact div_pos hnum ht4
 
 end ContinuumHookup

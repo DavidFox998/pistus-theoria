@@ -86,6 +86,7 @@ YM) all stay OPEN.
 
 import Towers.YM.Continuum
 import Towers.YM.PeterWeylHeatVaradhan
+import Towers.YM.VaradhanStripWidened
 
 namespace TheoremaAureum
 namespace Towers
@@ -94,6 +95,7 @@ namespace MassGapEnvelope
 
 open TheoremaAureum.Towers.YM.Continuum
 open TheoremaAureum.Towers.YM.PeterWeylHeatVaradhan
+open TheoremaAureum.Towers.YM.VaradhanStripWidened
 open scoped InnerProductSpace
 
 /-- **Mass-gap envelope constant.** Concrete positive real
@@ -159,6 +161,38 @@ theorem IsMassGap_mass_gap_envelope_default :
   have him : (⟪x, x⟫_ℂ).im = 0 := inner_self_im (𝕜 := ℂ) x
   rw [hr, hi, hsq, him]
   linarith [sq_nonneg ‖x‖]
+
+/-! ## Widened upper-side mass-gap envelope constant — Task #219
+
+Carry the upper-widened strip amplitude `varadhan_C_widened` and top
+endpoint `varadhan_t_top_widened` (Task #194,
+`Towers/YM/VaradhanStripWidened.lean`) into the mass-gap envelope
+constant. The widened constant is built from the widened Varadhan-shape
+RHS at `t = varadhan_t_top_widened` after the exp factor is bounded
+above by `1`, exactly mirroring `mass_gap_envelope_constant` but on the
+widened upper window. **No spectral content is added** — this is the
+same honest positive-real envelope constant, retuned to the widened
+amplitude. YM tower stays `Status: Open`. -/
+
+/-- **Widened mass-gap envelope constant.** Concrete positive real
+`varadhan_C_widened / varadhan_t_top_widened ^ 4`. The widened-upper
+companion of `mass_gap_envelope_constant`: built from the upper-widened
+strip-form Varadhan-shape RHS at `t = varadhan_t_top_widened` after the
+exp factor `exp(-(varadhan_c / varadhan_t_top_widened))` is bounded
+above by `1`. Positive because both factors are positive.
+
+This is **not** a mass-gap lower bound for any real Yang-Mills theory;
+it is a positive real envelope constant carrying no spectral content. -/
+noncomputable def mass_gap_envelope_constant_widened : ℝ :=
+  varadhan_C_widened / varadhan_t_top_widened ^ 4
+
+/-- `mass_gap_envelope_constant_widened > 0`. -/
+theorem mass_gap_envelope_constant_widened_pos :
+    0 < mass_gap_envelope_constant_widened := by
+  unfold mass_gap_envelope_constant_widened
+  have htop4 : 0 < varadhan_t_top_widened ^ 4 :=
+    pow_pos varadhan_t_top_widened_pos 4
+  exact div_pos varadhan_C_widened_pos htop4
 
 end MassGapEnvelope
 end YM

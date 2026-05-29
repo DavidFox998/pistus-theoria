@@ -2570,8 +2570,27 @@ BRICKS=(
   "Towers.YM.VaradhanStripWidened|TheoremaAureum.Towers.YM.VaradhanStripWidened.Heat_kernel_envelope_real_le_varadhan_geometric_widened_upper"
   "Towers.YM.ContinuumHookup|TheoremaAureum.Towers.YM.ContinuumHookup.continuum_heat_envelope_bound"
   "Towers.YM.ContinuumHookup|TheoremaAureum.Towers.YM.ContinuumHookup.continuum_heat_envelope_bound_target_default"
+  # Task #219 — carry the upper-widened strip bound (Task #194,
+  #   `Heat_kernel_envelope_real_le_varadhan_widened_upper`, retuned
+  #   amplitude `varadhan_C_widened`) through the continuum schema slot
+  #   and into the mass-gap envelope constant. The valid `t`-window now
+  #   runs up to `varadhan_t_top_widened = 2·varadhan_t_top`, strictly
+  #   past the original strip top `varadhan_t_top`.
+  #   * `continuum_heat_envelope_bound_widened_upper` — widened-signature
+  #     companion of `continuum_heat_envelope_bound`, delegating to the
+  #     upper-widened strip bound; lattice inputs `(a, A)` discarded
+  #     (`lattice_to_continuum` adds no `a → 0` content).
+  #   * `continuum_heat_envelope_pos_widened` — positivity of the widened
+  #     RHS `varadhan_C_widened · exp(-c/t) / t^4` on the widened window.
+  #   * `mass_gap_envelope_constant_widened_pos` — the widened mass-gap
+  #     envelope constant `varadhan_C_widened / varadhan_t_top_widened^4`
+  #     is `> 0`. Honest positive-real constant, NO spectral content.
+  #   YM tower stays `Status: Open`; Surfaces #1 / #2 / #3 stay OPEN.
+  "Towers.YM.ContinuumHookup|TheoremaAureum.Towers.YM.ContinuumHookup.continuum_heat_envelope_bound_widened_upper"
+  "Towers.YM.ContinuumHookup|TheoremaAureum.Towers.YM.ContinuumHookup.continuum_heat_envelope_pos_widened"
   "Towers.YM.MassGapEnvelope|TheoremaAureum.Towers.YM.MassGapEnvelope.mass_gap_envelope_constant_pos"
   "Towers.YM.MassGapEnvelope|TheoremaAureum.Towers.YM.MassGapEnvelope.IsMassGap_mass_gap_envelope_default"
+  "Towers.YM.MassGapEnvelope|TheoremaAureum.Towers.YM.MassGapEnvelope.mass_gap_envelope_constant_widened_pos"
   # TRI PARALLEL #8 / Batches 168.1, 168.2, 168.3 — begin YM Measure
   # surface. SU(2) lattice gauge carrier (LatticeGauge), SU(2) Wilson
   # plaquette action (WilsonAction), Dirac-stand-in Gibbs measure
