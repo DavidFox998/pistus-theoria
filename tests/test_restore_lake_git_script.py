@@ -1,5 +1,5 @@
-"""Smoke test for the wiped-worktree heal path of
-``scripts/restore-lake-git.sh`` (Task #192).
+"""Smoke tests for the recovery branches of
+``scripts/restore-lake-git.sh`` (Tasks #192, #216).
 
 Task #172 patched the script to rehydrate a Lake package's working
 tree when ``.git/`` is intact at the manifest-pinned rev but the
@@ -12,15 +12,30 @@ leaving ``.git/`` behind). The fix lives in the
 ``git checkout -- .`` to repopulate the worktree from the vendored
 objects.
 
-There was no automated test that this heal path actually fires — a
+Task #192 added the first automated test for that one heal path — a
 future refactor of the script could silently drop the deletion check
-and we'd only discover it the next time ``towers-build`` failed. This
-module builds a throwaway fixture that mimics the wiped state (a
-package directory with ``.git/`` at the pinned rev and *no*
-working-tree files), runs the real script against it, and asserts the
-tracked files come back and the script exits 0.
+and we'd only discover it the next time ``towers-build`` failed. It
+builds a throwaway fixture that mimics the wiped state (a package
+directory with ``.git/`` at the pinned rev and *no* working-tree
+files), runs the real script against it, and asserts the tracked
+files come back and the script exits 0.
 
-To keep the smoke test fast and self-contained it drives a single
+Task #216 extends that coverage to the script's other two
+failure-prone recovery branches, which had no automated test and
+would likewise only surface the next time a build failed:
+
+- **Absent worktree** (``if [ ! -d "$pkg_dir" ]``): the package
+  directory is gone entirely; the script restores ``.git/`` from the
+  committed tar, checks out the pinned rev, and exits 0.
+- **Wrong rev** (``if [ -d "$pkg_dir/.git" ]`` with ``HEAD`` at an
+  unexpected commit): the script removes the stale ``.git/``,
+  rebuilds it from tar, verifies ``HEAD`` lands on the pinned rev,
+  and exits 0.
+- **Missing worktree *and* tar**: the script must fail loudly
+  (non-zero) rather than papering over a build-environment bug with a
+  network fetch that would fail anyway.
+
+To keep the smoke tests fast and self-contained they drive a single
 small vendored package (``Cli``, ~120 KB tar) through the
 ``RESTORE_LAKE_PACKAGES_DIR`` / ``RESTORE_LAKE_TARS_DIR`` /
 ``RESTORE_LAKE_PKGS`` env-var overrides rather than the full ~20 MB
@@ -68,6 +83,26 @@ def _git(pkg_dir: Path, *args: str) -> subprocess.CompletedProcess[str]:
     )
 
 
+def _make_layout(tmp_path: Path, *, with_tar: bool = True) -> tuple[Path, Path]:
+    """Create the throwaway ``packages``/``lake-deps`` skeleton the
+    script points at via its env-var overrides.
+
+    When ``with_tar`` is true the vendored fixture tar is copied into
+    the ``lake-deps`` dir so the script's tar-extract branches can run;
+    set it false to exercise the "no vendored tar" failure path.
+
+    Returns ``(packages_dir, tars_dir)``.
+    """
+
+    packages_dir = tmp_path / "packages"
+    tars_dir = tmp_path / "lake-deps"
+    packages_dir.mkdir(parents=True)
+    tars_dir.mkdir(parents=True)
+    if with_tar:
+        shutil.copy2(SOURCE_TAR, tars_dir / f"{FIXTURE_PKG}.git.tar")
+    return packages_dir, tars_dir
+
+
 def _build_wiped_fixture(tmp_path: Path) -> tuple[Path, Path, Path]:
     """Create a throwaway lake layout whose single package mimics the
     wiped state: ``.git/`` present at the pinned rev, every tracked
@@ -76,16 +111,9 @@ def _build_wiped_fixture(tmp_path: Path) -> tuple[Path, Path, Path]:
     Returns ``(packages_dir, tars_dir, pkg_dir)``.
     """
 
-    packages_dir = tmp_path / "packages"
-    tars_dir = tmp_path / "lake-deps"
+    packages_dir, tars_dir = _make_layout(tmp_path)
     pkg_dir = packages_dir / FIXTURE_PKG
     pkg_dir.mkdir(parents=True)
-    tars_dir.mkdir(parents=True)
-
-    # The heal path re-extracts only if `.git/` is gone, so the fixture
-    # also needs the tar available at the overridden TARS_DIR for the
-    # script's other branches; copy it across.
-    shutil.copy2(SOURCE_TAR, tars_dir / f"{FIXTURE_PKG}.git.tar")
 
     # Lay down a real `.git/` at the pinned rev from the vendored tar,
     # then populate the worktree exactly as Lake would.
@@ -183,3 +211,116 @@ def test_heal_path_is_idempotent_on_intact_worktree(tmp_path):
         f"idempotent re-run failed: stdout={second.stdout!r} stderr={second.stderr!r}"
     )
     assert _git(pkg_dir, "status", "--porcelain").stdout.strip() == ""
+
+
+def test_absent_worktree_restored_from_tar(tmp_path):
+    """The ``if [ ! -d "$pkg_dir" ]`` branch: when the package
+    directory is gone entirely (e.g. a sandboxed ``lake update`` /
+    ``git fetch`` failed mid-write and left nothing behind) but the
+    vendored tar is present, the script must restore ``.git/`` from the
+    tar, ``checkout -f`` the pinned rev to populate the worktree, and
+    exit 0."""
+
+    packages_dir, tars_dir = _make_layout(tmp_path)
+    pkg_dir = packages_dir / FIXTURE_PKG
+
+    # Sanity: the package directory really is absent — this is the
+    # precondition the branch keys off of.
+    assert not pkg_dir.exists(), "fixture pkg dir should not exist yet"
+
+    result = _run_script(packages_dir, tars_dir)
+
+    assert result.returncode == 0, (
+        f"restore-lake-git.sh exited {result.returncode}; "
+        f"stdout={result.stdout!r} stderr={result.stderr!r}"
+    )
+
+    # `.git/` must be back, the worktree populated, HEAD at the pin, and
+    # the tree clean — exactly what `lake exe cache get` would expect.
+    assert (pkg_dir / ".git").is_dir(), "restore did not lay down a .git/ dir"
+    assert _git(pkg_dir, "rev-parse", "HEAD").stdout.strip() == FIXTURE_REV
+    worktree = [p.name for p in pkg_dir.iterdir() if p.name != ".git"]
+    assert worktree, "restore did not check out any worktree files"
+    assert _git(pkg_dir, "status", "--porcelain").stdout.strip() == "", (
+        "worktree should be clean after restore-from-tar"
+    )
+
+
+def _build_wrong_rev_fixture(tmp_path: Path) -> tuple[Path, Path, Path, str]:
+    """Create a throwaway layout whose package has a real ``.git/`` at
+    an *unexpected* commit (a fresh standalone repo, not the pinned
+    rev), with the vendored tar available so the rebuild path can run.
+
+    Returns ``(packages_dir, tars_dir, pkg_dir, wrong_rev)``.
+    """
+
+    packages_dir, tars_dir = _make_layout(tmp_path)
+    pkg_dir = packages_dir / FIXTURE_PKG
+    pkg_dir.mkdir(parents=True)
+
+    # A self-contained repo with its own arbitrary commit — its HEAD is
+    # guaranteed not to be the manifest-pinned rev.
+    _git(pkg_dir, "init", "-q")
+    _git(pkg_dir, "config", "user.email", "test@example.com")
+    _git(pkg_dir, "config", "user.name", "restore-lake-git test")
+    (pkg_dir / "stale.txt").write_text("stale worktree content\n")
+    _git(pkg_dir, "add", "-A")
+    _git(pkg_dir, "commit", "-q", "-m", "stale commit at wrong rev")
+
+    wrong_rev = _git(pkg_dir, "rev-parse", "HEAD").stdout.strip()
+    assert wrong_rev != FIXTURE_REV, "fixture HEAD accidentally equals the pin"
+    return packages_dir, tars_dir, pkg_dir, wrong_rev
+
+
+def test_wrong_rev_rebuilt_from_tar(tmp_path):
+    """The ``if [ -d "$pkg_dir/.git" ]`` rev-mismatch branch: when
+    ``.git/`` exists but ``HEAD`` is at an unexpected commit, the
+    script must ``rm -rf .git``, rebuild it from the vendored tar,
+    verify ``HEAD`` lands on the pinned rev, and exit 0."""
+
+    packages_dir, tars_dir, pkg_dir, wrong_rev = _build_wrong_rev_fixture(tmp_path)
+
+    # Sanity: the fixture really is at the wrong rev before we run.
+    assert _git(pkg_dir, "rev-parse", "HEAD").stdout.strip() == wrong_rev
+
+    result = _run_script(packages_dir, tars_dir)
+
+    assert result.returncode == 0, (
+        f"restore-lake-git.sh exited {result.returncode}; "
+        f"stdout={result.stdout!r} stderr={result.stderr!r}"
+    )
+
+    # HEAD must have been rebuilt to the manifest-pinned rev.
+    assert _git(pkg_dir, "rev-parse", "HEAD").stdout.strip() == FIXTURE_REV, (
+        "rev-mismatch branch did not rebuild HEAD to the pinned rev"
+    )
+    # The script should have announced the rebuild, not the no-op path.
+    assert "rebuilding from tar" in result.stderr, (
+        f"expected a rebuild warning in stderr, got: {result.stderr!r}"
+    )
+
+
+def test_missing_worktree_and_tar_fails_loudly(tmp_path):
+    """The fail-closed leg of the ``if [ ! -d "$pkg_dir" ]`` branch:
+    with neither a working tree nor a vendored tar the script must
+    exit non-zero rather than silently returning 0 and letting Lake
+    attempt a network fetch that fails in sandboxed environments."""
+
+    packages_dir, tars_dir = _make_layout(tmp_path, with_tar=False)
+    pkg_dir = packages_dir / FIXTURE_PKG
+    tar_file = tars_dir / f"{FIXTURE_PKG}.git.tar"
+
+    # Sanity: both inputs are genuinely absent.
+    assert not pkg_dir.exists(), "fixture pkg dir should not exist"
+    assert not tar_file.exists(), "fixture tar should not exist"
+
+    result = _run_script(packages_dir, tars_dir)
+
+    assert result.returncode != 0, (
+        "script must fail loudly when a package has neither worktree nor tar; "
+        f"got returncode 0. stdout={result.stdout!r} stderr={result.stderr!r}"
+    )
+    # The diagnostic must name both missing inputs so an operator can act.
+    assert "no working tree" in result.stderr and "no vendored tar" in result.stderr, (
+        f"expected a clear no-worktree/no-tar error, got: {result.stderr!r}"
+    )
