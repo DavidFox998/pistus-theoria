@@ -55,5 +55,6 @@ export * from './sidecarForgedAckHistoryRotation';
 export * from './sidecarForgedAckResult';
 export * from './sidecarSecretRotateResult';
 export * from './sidecarSecretRotateResultPersistedTo';
+export * from './sidecarStaleBindingAckResult';
 export * from './uploadUrlRequest';
 export * from './uploadUrlResponse';

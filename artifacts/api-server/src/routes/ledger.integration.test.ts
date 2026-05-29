@@ -884,6 +884,108 @@ describe("GET /api/ledger/integrity", () => {
     try { unlinkSync(secretPath); } catch { /* ignore */ }
   });
 
+  it("acknowledges a stale-checkpoint-binding incident, persists the ack across a restart, and clears a stale ack from a different checkpoint (task #204)", async () => {
+    // Boot with a valid-MAC but stale-bound sidecar AND a broken
+    // ledger so the binding stays stale (no fresh ok verify clears it).
+    const sealed = "alpha\nbeta\n";
+    const { size, sha } = writeHits(sealed);
+    writeCheckpoint(size, sha);
+
+    const lastOkPath = path.join(tmpDir, "hits.txt.staleack.lastok");
+    const secretPath = `${lastOkPath}.key`;
+    const ackPath = `${lastOkPath}.stale-binding-ack`;
+    const secretHex = "12".repeat(32);
+    // Break the ledger so no fresh ok verify overwrites the binding.
+    writeFileSync(hitsPath, "X");
+    const { createLedgerChecker } = await import("./ledger.js");
+
+    // Helper: (re)seal a stale-bound sidecar before each construction.
+    // `buildStatusInner` re-seals the live sidecar (bound to the
+    // current checkpoint, lastOkAt=null) on every poll, healing it on
+    // disk — so to deterministically exercise a *boot* against a stale
+    // binding we re-write the stale sidecar right before constructing.
+    const writeStaleSidecar = (boundSha: string): void => {
+      writeFileSync(secretPath, secretHex + "\n", { mode: 0o600 });
+      writeFileSync(
+        lastOkPath,
+        sealSidecar(secretHex, {
+          lastOkAt: new Date(Date.now() - 30_000).toISOString(),
+          lastCheckedAt: new Date(Date.now() - 30_000).toISOString(),
+          boundCheckpointSize: 999,
+          boundCheckpointSha: boundSha,
+        }),
+      );
+    };
+
+    try { unlinkSync(ackPath); } catch { /* ignore */ }
+
+    // --- Scenario A: ack records attribution + in-process badge ---
+    writeStaleSidecar("0".repeat(64));
+    const checker = createLedgerChecker({
+      hitsPath,
+      checkpointPath,
+      lastOkPath,
+      secretPath,
+    });
+    const before = checker.buildStatus();
+    expect(before.lastOkSidecarStatus).toBe("stale_checkpoint_binding");
+    expect(before.lastOkSidecarStatusAcknowledgedAt).toBeNull();
+
+    const r1 = checker.acknowledgeStaleBinding("dana");
+    expect(r1.ok).toBe(true);
+    if (r1.ok) {
+      expect(r1.alreadyAcknowledged).toBe(false);
+      expect(r1.ackedBy).toBe("dana");
+      expect(r1.boundCheckpointSha).toBe("0".repeat(64));
+    }
+    expect(existsSync(ackPath)).toBe(true);
+    const afterAck = checker.buildStatus();
+    expect(afterAck.lastOkSidecarStatus).toBe("stale_checkpoint_binding");
+    expect(afterAck.lastOkSidecarStatusAcknowledgedAt).not.toBeNull();
+    expect(afterAck.lastOkSidecarStatusAcknowledgedBy).toBe("dana");
+
+    // Re-acking the SAME incident is idempotent.
+    const r2 = checker.acknowledgeStaleBinding("erin");
+    expect(r2.ok).toBe(true);
+    if (r2.ok) expect(r2.alreadyAcknowledged).toBe(true);
+
+    // --- Scenario B: ack persists across a restart ---
+    // Re-seal the SAME stale binding (undoing the heal-on-poll above)
+    // and reconstruct: the on-disk ack file (keyed to "0"*64) must be
+    // carried over so the badge survives the restart.
+    writeStaleSidecar("0".repeat(64));
+    const checker2 = createLedgerChecker({
+      hitsPath,
+      checkpointPath,
+      lastOkPath,
+      secretPath,
+    });
+    const afterRestart = checker2.buildStatus();
+    expect(afterRestart.lastOkSidecarStatus).toBe("stale_checkpoint_binding");
+    expect(afterRestart.lastOkSidecarStatusAcknowledgedBy).toBe("dana");
+
+    // --- Scenario C: a stale ack from a previous incident clears ---
+    // Boot against a DIFFERENT stale binding (different bound sha):
+    // the prior ack must NOT carry over — the banner re-surfaces as a
+    // fresh, un-acked incident, and the stale ack file is removed.
+    writeStaleSidecar("1".repeat(64));
+    const checker3 = createLedgerChecker({
+      hitsPath,
+      checkpointPath,
+      lastOkPath,
+      secretPath,
+    });
+    const afterRotate = checker3.buildStatus();
+    expect(afterRotate.lastOkSidecarStatus).toBe("stale_checkpoint_binding");
+    expect(afterRotate.lastOkSidecarStatusAcknowledgedAt).toBeNull();
+    expect(afterRotate.lastOkSidecarStatusAcknowledgedBy).toBeNull();
+    expect(existsSync(ackPath)).toBe(false);
+
+    try { unlinkSync(lastOkPath); } catch { /* ignore */ }
+    try { unlinkSync(secretPath); } catch { /* ignore */ }
+    try { unlinkSync(ackPath); } catch { /* ignore */ }
+  });
+
   it("clears the stale-binding signal once a successful integrity verify refreshes the sidecar (task #183)", async () => {
     // Boot with a valid-MAC but stale-bound sidecar AND a healthy
     // ledger so the very first /integrity call returns `ok` and

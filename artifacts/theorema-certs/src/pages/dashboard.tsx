@@ -10,6 +10,7 @@ import {
   useGetLedgerAlerts,
   useAckLedgerAlert,
   useAckSidecarForged,
+  useAckSidecarStaleBinding,
   useRotateSidecarSecret,
   useRerollLedgerCheckpoint,
   useGetLedgerCheckpointRerollHistory,
@@ -460,6 +461,9 @@ export default function DashboardPage() {
   const ackSidecarForgedMutation = useAckSidecarForged({
     request: lockoutsAuthHeader ? { headers: lockoutsAuthHeader } : undefined,
   });
+  const ackSidecarStaleBindingMutation = useAckSidecarStaleBinding({
+    request: lockoutsAuthHeader ? { headers: lockoutsAuthHeader } : undefined,
+  });
   const rotateSidecarSecretMutation = useRotateSidecarSecret({
     request: lockoutsAuthHeader ? { headers: lockoutsAuthHeader } : undefined,
   });
@@ -526,6 +530,8 @@ export default function DashboardPage() {
   const [sidecarForgedAckError, setSidecarForgedAckError] = useState<
     string | null
   >(null);
+  const [sidecarStaleBindingAckError, setSidecarStaleBindingAckError] =
+    useState<string | null>(null);
   const [sidecarSecretRotateError, setSidecarSecretRotateError] = useState<
     string | null
   >(null);
@@ -2676,19 +2682,116 @@ export default function DashboardPage() {
             </div>
           ) : ledgerIntegrity?.lastOkSidecarStatus ===
             "stale_checkpoint_binding" ? (
-            <p
-              className="text-xs font-mono border border-amber-500/50 bg-amber-500/10 text-amber-700 dark:text-amber-400 px-3 py-2"
-              data-testid="text-ledger-sidecar-stale-binding"
+            <div
+              className="border border-amber-500/50 bg-amber-500/10 p-3 font-mono text-xs space-y-1 text-amber-700 dark:text-amber-400"
+              data-testid="panel-ledger-sidecar-stale-binding"
+              data-acknowledged={
+                ledgerIntegrity?.lastOkSidecarStatusAcknowledgedAt
+                  ? "true"
+                  : "false"
+              }
             >
-              sidecar:{" "}
-              <span className="font-bold uppercase tracking-wider">
-                stale checkpoint binding
-              </span>
-              <span className="ml-2 text-muted-foreground">
-                (HMAC verified but bound to a different checkpoint; lastOkAt
-                discarded)
-              </span>
-            </p>
+              <div
+                className="font-bold uppercase tracking-wider flex items-center gap-2 flex-wrap"
+                data-testid="text-ledger-sidecar-stale-binding"
+              >
+                <ShieldAlert className="w-3 h-3" />
+                Stale checkpoint binding
+                {ledgerIntegrity?.lastOkSidecarStatusAcknowledgedAt ? (
+                  <span
+                    className="text-[10px] uppercase tracking-wider border border-amber-500/40 bg-amber-500/20 px-1.5 py-0.5"
+                    data-testid="badge-ledger-sidecar-stale-binding-acknowledged"
+                    data-acked-by={
+                      ledgerIntegrity?.lastOkSidecarStatusAcknowledgedBy ?? ""
+                    }
+                    title={
+                      ledgerIntegrity?.lastOkSidecarStatusAcknowledgedBy
+                        ? `Acknowledged by ${ledgerIntegrity.lastOkSidecarStatusAcknowledgedBy} at ${ledgerIntegrity.lastOkSidecarStatusAcknowledgedAt}`
+                        : `Acknowledged at ${ledgerIntegrity.lastOkSidecarStatusAcknowledgedAt}`
+                    }
+                  >
+                    acknowledged
+                    {ledgerIntegrity?.lastOkSidecarStatusAcknowledgedBy ? (
+                      <span className="normal-case lowercase tracking-normal ml-1 opacity-80">
+                        · {ledgerIntegrity.lastOkSidecarStatusAcknowledgedBy}
+                      </span>
+                    ) : null}
+                  </span>
+                ) : null}
+              </div>
+              <div className="whitespace-pre-wrap text-foreground/90">
+                The persisted{" "}
+                <span className="text-foreground">data/hits.txt.lastok</span>{" "}
+                sidecar passed HMAC verification but is bound to a different
+                checkpoint than the one currently on disk. The stale lastOkAt
+                has been discarded (reset to null) so the dashboard never shows
+                a "verified ok" time that belongs to an older ledger snapshot.
+              </div>
+              <div className="text-foreground/70">
+                Recommended: re-verify the ledger from a fresh checkout to
+                re-seal the sidecar against the current checkpoint, which
+                clears this banner.
+              </div>
+              {rebuildToken ? (
+                <div className="flex items-center gap-2 pt-1 flex-wrap">
+                  <button
+                    type="button"
+                    className="border border-amber-500/40 bg-amber-500/10 hover:bg-amber-500/20 disabled:opacity-50 disabled:cursor-not-allowed px-2 py-1 text-[11px] uppercase tracking-wider text-amber-700 dark:text-amber-300"
+                    data-testid="button-ack-ledger-sidecar-stale-binding"
+                    disabled={
+                      ackSidecarStaleBindingMutation.isPending ||
+                      Boolean(
+                        ledgerIntegrity?.lastOkSidecarStatusAcknowledgedAt,
+                      )
+                    }
+                    onClick={() => {
+                      setSidecarStaleBindingAckError(null);
+                      ackSidecarStaleBindingMutation.mutate(undefined, {
+                        onSuccess: () => {
+                          void queryClient.invalidateQueries({
+                            queryKey: getGetLedgerIntegrityQueryKey(),
+                          });
+                        },
+                        onError: (err: unknown) => {
+                          const msg =
+                            err instanceof Error
+                              ? err.message
+                              : "Failed to acknowledge stale checkpoint binding banner.";
+                          setSidecarStaleBindingAckError(msg);
+                        },
+                      });
+                    }}
+                  >
+                    {ackSidecarStaleBindingMutation.isPending
+                      ? "Acknowledging…"
+                      : ledgerIntegrity?.lastOkSidecarStatusAcknowledgedAt
+                        ? "Acknowledged"
+                        : "Acknowledge"}
+                  </button>
+                  <span className="text-[10px] text-muted-foreground">
+                    Acknowledge keeps the banner sticky (with this badge) until
+                    a re-verify re-seals the sidecar against the current
+                    checkpoint.
+                  </span>
+                </div>
+              ) : (
+                <div
+                  className="text-[10px] text-muted-foreground pt-1"
+                  data-testid="hint-ack-ledger-sidecar-stale-binding-no-token"
+                >
+                  Paste a referee rebuild token in the Lean 4 Verification
+                  card to enable the Acknowledge button.
+                </div>
+              )}
+              {sidecarStaleBindingAckError ? (
+                <div
+                  className="text-[11px] text-amber-700 dark:text-amber-300"
+                  data-testid="text-ack-ledger-sidecar-stale-binding-error"
+                >
+                  {sidecarStaleBindingAckError}
+                </div>
+              ) : null}
+            </div>
           ) : null}
 
           {(() => {

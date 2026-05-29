@@ -426,6 +426,51 @@ paths:
         "503":
           description: Rebuilds are disabled (no rebuild token configured)
 
+  /ledger/sidecar-stale-binding-ack:
+    post:
+      operationId: ackSidecarStaleBinding
+      tags: [ledger]
+      summary: Acknowledge the current stale-checkpoint-binding banner
+      description: |
+        Task #204. Records that an operator has investigated and
+        dismissed the amber "stale checkpoint binding" banner driven
+        by `lastOkSidecarStatus === "stale_checkpoint_binding"`. Mirrors
+        `POST /ledger/sidecar-forged-ack`: the acknowledgement is keyed
+        by the `boundCheckpointSha` the stale `lastOkAt` was sealed
+        against and persisted to `data/hits.txt.lastok.stale-binding-ack`,
+        so the "acknowledged" badge survives server restarts as long as
+        the same stale binding is still on disk.
+
+        The banner itself stays visible (with the badge) until a
+        successful verify re-seals the sidecar against the current
+        checkpoint, or a subsequent boot reads a non-stale sidecar. A
+        fresh stale binding sealed against a different checkpoint
+        invalidates the old ack and re-surfaces the banner as a new,
+        un-acked incident.
+
+        Idempotent: re-acking is a 200 with `alreadyAcknowledged:
+        true`. Returns 409 when there is no active stale-binding
+        incident (boot read came back `ok` / `missing` / `forged`).
+
+        Requires the same `Authorization: Bearer <LEAN_REBUILD_TOKEN>`
+        header as the other admin endpoints, and is subject to the
+        same per-IP brute-force limiter.
+      responses:
+        "200":
+          description: Stale-binding incident acknowledged (or was already acknowledged)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SidecarStaleBindingAckResult"
+        "401":
+          description: Missing or invalid referee rebuild token
+        "409":
+          description: No active stale-checkpoint-binding incident to acknowledge
+        "429":
+          description: Per-IP brute-force lockout in effect
+        "503":
+          description: Rebuilds are disabled (no rebuild token configured)
+
   /ledger/sidecar-secret/rotate:
     post:
       operationId: rotateSidecarSecret
@@ -1349,6 +1394,44 @@ components:
         error:
           type: string
 
+    SidecarStaleBindingAckResult:
+      type: object
+      required: [ok]
+      description: |
+        Result of `POST /ledger/sidecar-stale-binding-ack` (task #204).
+        On success, the dashboard banner driven by
+        `lastOkSidecarStatus === "stale_checkpoint_binding"` gains an
+        "acknowledged" badge with the operator name and timestamp,
+        mirroring the forged-sidecar ack flow.
+      properties:
+        ok:
+          type: boolean
+        acknowledgedAt:
+          type: string
+          description: ISO-8601 timestamp recorded on the on-disk stale-binding-ack sidecar
+        alreadyAcknowledged:
+          type: boolean
+          description: True if the same stale-binding incident was already acked (no-op)
+        boundCheckpointSha:
+          type: ["string", "null"]
+          description: |
+            sha256 hex of the checkpoint the stale `lastOkAt` was
+            sealed against — the key the ack is bound to. Null when the
+            stale binding was sealed with no checkpoint on disk.
+        ackedBy:
+          type: ["string", "null"]
+          description: |
+            Task #204. Attribution string for the operator that
+            dismissed the banner. A matched named token from
+            `LEDGER_REBUILD_TOKENS` wins; otherwise the sanitized
+            `X-Referee-Name` request header; otherwise the literal
+            string `"anonymous"`. Persisted on the on-disk
+            stale-binding-ack sidecar so the value survives a restart
+            and shows up in `lastOkSidecarStatusAcknowledgedBy` on
+            subsequent `GET /ledger/integrity` responses.
+        error:
+          type: string
+
     SidecarSecretRotateResult:
       type: object
       required: [ok, rotatedAt, persistedTo, secretPersisted, sidecarResealed, hadForgedIncident]
@@ -1918,33 +2001,40 @@ components:
         lastOkSidecarStatusAcknowledgedAt:
           type: ["string", "null"]
           description: |
-            Task #124. ISO-8601 timestamp when an operator dismissed
-            the current forged-sidecar incident via
-            `POST /ledger/sidecar-forged-ack`. Null when the
+            Task #124 / #204. ISO-8601 timestamp when an operator
+            dismissed the current sidecar incident. For
+            `lastOkSidecarStatus === "forged"` this is the
+            `POST /ledger/sidecar-forged-ack` time (keyed by the
+            sha256 of the forged payload bytes, persisted to
+            `data/hits.txt.lastok.forged-ack`). For
+            `lastOkSidecarStatus === "stale_checkpoint_binding"` this
+            is the `POST /ledger/sidecar-stale-binding-ack` time
+            (keyed by the bound checkpoint sha, persisted to
+            `data/hits.txt.lastok.stale-binding-ack`). Null when the
             incident is still unacknowledged (or when
-            `lastOkSidecarStatus` is not `forged`). The ack is keyed
-            by the sha256 of the forged sidecar payload bytes and
-            persisted to `data/hits.txt.lastok.forged-ack`, so it
-            survives restarts as long as the same forged file is
-            still on disk; a fresh forged read with different bytes
-            invalidates it. The dashboard keeps the red banner
-            visible (with an "acknowledged" badge) until a
-            subsequent boot reads a non-forged sidecar.
+            `lastOkSidecarStatus` is `ok` / `missing`). Each ack
+            survives restarts as long as the same incident is still
+            on disk; a fresh incident sealed against different bytes /
+            a different checkpoint invalidates it. The dashboard keeps
+            the banner visible (with an "acknowledged" badge) until a
+            subsequent boot reads a clean sidecar.
         lastOkSidecarStatusAcknowledgedBy:
           type: ["string", "null"]
           description: |
-            Task #139. Attribution string for the operator that
-            dismissed the current forged-sidecar incident. A matched
+            Task #139 / #204. Attribution string for the operator
+            that dismissed the current sidecar incident (either the
+            `forged` banner via `POST /ledger/sidecar-forged-ack` or
+            the `stale_checkpoint_binding` banner via
+            `POST /ledger/sidecar-stale-binding-ack`). A matched
             named token from `LEDGER_REBUILD_TOKENS` wins; otherwise
             the sanitized `X-Referee-Name` request header recorded
-            on the original `POST /ledger/sidecar-forged-ack`;
-            otherwise the literal string `"anonymous"`
-            (shared-token deploys with no header). Null while the
-            banner is still un-acked, when `lastOkSidecarStatus` is
-            not `forged`, or on legacy ack files written before
-            task #139 landed. Persisted to
-            `data/hits.txt.lastok.forged-ack` so the value survives
-            a restart and is shown as a tooltip on the dashboard
+            on the ack call; otherwise the literal string
+            `"anonymous"` (shared-token deploys with no header). Null
+            while the banner is still un-acked, when
+            `lastOkSidecarStatus` is `ok` / `missing`, or on legacy
+            forged-ack files written before task #139 landed.
+            Persisted next to the sidecar so the value survives a
+            restart and is shown as a tooltip on the dashboard
             "acknowledged" badge.
         monitor:
           type: object

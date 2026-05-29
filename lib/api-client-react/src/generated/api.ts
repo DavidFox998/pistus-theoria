@@ -46,6 +46,7 @@ import type {
   SidecarForgedAckHistory,
   SidecarForgedAckResult,
   SidecarSecretRotateResult,
+  SidecarStaleBindingAckResult,
   UploadUrlRequest,
   UploadUrlResponse
 } from './api.schemas';
@@ -1276,6 +1277,100 @@ export const useAckSidecarForged = <TError = ErrorType<void>,
         TContext
       > => {
       return useMutation(getAckSidecarForgedMutationOptions(options));
+    }
+
+export const getAckSidecarStaleBindingUrl = () => {
+
+
+
+
+  return `/api/ledger/sidecar-stale-binding-ack`
+}
+
+/**
+ * Task #204. Records that an operator has investigated and
+dismissed the amber "stale checkpoint binding" banner driven
+by `lastOkSidecarStatus === "stale_checkpoint_binding"`. Mirrors
+`POST /ledger/sidecar-forged-ack`: the acknowledgement is keyed
+by the `boundCheckpointSha` the stale `lastOkAt` was sealed
+against and persisted to `data/hits.txt.lastok.stale-binding-ack`,
+so the "acknowledged" badge survives server restarts as long as
+the same stale binding is still on disk.
+
+The banner itself stays visible (with the badge) until a
+successful verify re-seals the sidecar against the current
+checkpoint, or a subsequent boot reads a non-stale sidecar. A
+fresh stale binding sealed against a different checkpoint
+invalidates the old ack and re-surfaces the banner as a new,
+un-acked incident.
+
+Idempotent: re-acking is a 200 with `alreadyAcknowledged:
+true`. Returns 409 when there is no active stale-binding
+incident (boot read came back `ok` / `missing` / `forged`).
+
+Requires the same `Authorization: Bearer <LEAN_REBUILD_TOKEN>`
+header as the other admin endpoints, and is subject to the
+same per-IP brute-force limiter.
+
+ * @summary Acknowledge the current stale-checkpoint-binding banner
+ */
+export const ackSidecarStaleBinding = async ( options?: RequestInit): Promise<SidecarStaleBindingAckResult> => {
+
+  return customFetch<SidecarStaleBindingAckResult>(getAckSidecarStaleBindingUrl(),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+export const getAckSidecarStaleBindingMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof ackSidecarStaleBinding>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof ackSidecarStaleBinding>>, TError,void, TContext> => {
+
+const mutationKey = ['ackSidecarStaleBinding'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof ackSidecarStaleBinding>>, void> = () => {
+
+
+          return  ackSidecarStaleBinding(requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type AckSidecarStaleBindingMutationResult = NonNullable<Awaited<ReturnType<typeof ackSidecarStaleBinding>>>
+
+    export type AckSidecarStaleBindingMutationError = ErrorType<void>
+
+    /**
+ * @summary Acknowledge the current stale-checkpoint-binding banner
+ */
+export const useAckSidecarStaleBinding = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof ackSidecarStaleBinding>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof ackSidecarStaleBinding>>,
+        TError,
+        void,
+        TContext
+      > => {
+      return useMutation(getAckSidecarStaleBindingMutationOptions(options));
     }
 
 export const getRotateSidecarSecretUrl = () => {

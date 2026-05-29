@@ -399,6 +399,43 @@ export const AckSidecarForgedResponse = zod.object({
 
 
 /**
+ * Task #204. Records that an operator has investigated and
+dismissed the amber "stale checkpoint binding" banner driven
+by `lastOkSidecarStatus === "stale_checkpoint_binding"`. Mirrors
+`POST /ledger/sidecar-forged-ack`: the acknowledgement is keyed
+by the `boundCheckpointSha` the stale `lastOkAt` was sealed
+against and persisted to `data/hits.txt.lastok.stale-binding-ack`,
+so the "acknowledged" badge survives server restarts as long as
+the same stale binding is still on disk.
+
+The banner itself stays visible (with the badge) until a
+successful verify re-seals the sidecar against the current
+checkpoint, or a subsequent boot reads a non-stale sidecar. A
+fresh stale binding sealed against a different checkpoint
+invalidates the old ack and re-surfaces the banner as a new,
+un-acked incident.
+
+Idempotent: re-acking is a 200 with `alreadyAcknowledged:
+true`. Returns 409 when there is no active stale-binding
+incident (boot read came back `ok` / `missing` / `forged`).
+
+Requires the same `Authorization: Bearer <LEAN_REBUILD_TOKEN>`
+header as the other admin endpoints, and is subject to the
+same per-IP brute-force limiter.
+
+ * @summary Acknowledge the current stale-checkpoint-binding banner
+ */
+export const AckSidecarStaleBindingResponse = zod.object({
+  "ok": zod.boolean(),
+  "acknowledgedAt": zod.string().optional().describe('ISO-8601 timestamp recorded on the on-disk stale-binding-ack sidecar'),
+  "alreadyAcknowledged": zod.boolean().optional().describe('True if the same stale-binding incident was already acked (no-op)'),
+  "boundCheckpointSha": zod.string().nullish().describe('sha256 hex of the checkpoint the stale `lastOkAt` was\nsealed against — the key the ack is bound to. Null when the\nstale binding was sealed with no checkpoint on disk.\n'),
+  "ackedBy": zod.string().nullish().describe('Task #204. Attribution string for the operator that\ndismissed the banner. A matched named token from\n`LEDGER_REBUILD_TOKENS` wins; otherwise the sanitized\n`X-Referee-Name` request header; otherwise the literal\nstring `\"anonymous\"`. Persisted on the on-disk\nstale-binding-ack sidecar so the value survives a restart\nand shows up in `lastOkSidecarStatusAcknowledgedBy` on\nsubsequent `GET \/ledger\/integrity` responses.\n'),
+  "error": zod.string().optional()
+}).describe('Result of `POST \/ledger\/sidecar-stale-binding-ack` (task #204).\nOn success, the dashboard banner driven by\n`lastOkSidecarStatus === \"stale_checkpoint_binding\"` gains an\n\"acknowledged\" badge with the operator name and timestamp,\nmirroring the forged-sidecar ack flow.\n')
+
+
+/**
  * Task #140. Generates a fresh 32-byte HMAC secret, persists it
 (the on-disk keyfile by default; the in-memory
 `LEDGER_SIDECAR_SECRET` env slot when the boot-time secret
@@ -653,8 +690,8 @@ export const GetLedgerIntegrityResponse = zod.object({
   "checkpointStale": zod.boolean().optional().describe('Task #96. True when `checkpointAgeSeconds` is null\n(checkpoint missing) OR exceeds\n`checkpointStaleThresholdSeconds`. Means the committed\nknown-good prefix hasn\'t been re-rolled in too long, so\ntamper coverage of the live ledger is shrinking. Distinct\nfrom `stale` (which means the verifier itself hasn\'t run);\nthe dashboard surfaces them as two separate warnings so\noperators don\'t confuse \"nobody has verified the ledger\nlately\" with \"the verifier ran fine but the sealed prefix\nis far behind the live file\".\n'),
   "lastOkSidecarStatus": zod.enum(['ok', 'missing', 'forged', 'stale_checkpoint_binding']).optional().describe('Task #110. Tamper-state of the persisted\n`data\/hits.txt.lastok` sidecar the last time the server\nread or wrote it. `ok` = HMAC verified and the bound\ncheckpoint matches the on-disk checkpoint. `missing` = no\nsidecar file (fresh deploy or wipe). `forged` = the file\nexisted but the HMAC was missing\/malformed\/wrong — i.e.\nsomeone wrote it without the per-deploy secret. The\nforged value is discarded (`lastOkAt` falls back to null),\nand the dashboard surfaces a red banner so operators see\na tamper attempt distinctly from a fresh-boot empty\nsidecar. `stale_checkpoint_binding` = HMAC verified but\n`boundCheckpointSha`\/`boundCheckpointSize` no longer\nmatch the on-disk checkpoint, so the persisted\n`lastOkAt` refers to a different sealed prefix. The\nvalue sticks at `forged` after a boot tamper-read until\nthe next legitimate write by this process replaces the\non-disk payload with a fresh HMAC\'d one. On boot, a\n`forged` detection also fires a one-shot alert through\nthe configured ledger-alerts sink (webhook \/ SMTP), same\npath as the integrity-mismatch alerts.\n'),
   "sidecarSecretStrictMode": zod.boolean().optional().describe('Task #137. True when the API server was booted with\n`LEDGER_SIDECAR_SECRET_STRICT_MODE` set to a truthy value\n(`1` \/ `true` \/ `yes` \/ `on`, case-insensitive), in which\ncase a group\/world-readable on-disk sidecar keyfile would\nhave prevented boot (`SidecarSecretLooseModeError`). False\nin the default lenient posture, where a loose keyfile only\nemits a startup `WARN`. Sourced from the same env parsing\nhelper (`isSidecarSecretStrictMode`) used at boot, so this\nvalue cannot drift from the runtime posture. Surfaced on\nthe Ledger Integrity dashboard card as a small badge\n(\"Strict keyfile mode: ON\" \/ \"OFF\") so operators can\nconfirm a hardened deploy at a glance without grepping\nstartup logs or inspecting env vars.\n'),
-  "lastOkSidecarStatusAcknowledgedAt": zod.string().nullish().describe('Task #124. ISO-8601 timestamp when an operator dismissed\nthe current forged-sidecar incident via\n`POST \/ledger\/sidecar-forged-ack`. Null when the\nincident is still unacknowledged (or when\n`lastOkSidecarStatus` is not `forged`). The ack is keyed\nby the sha256 of the forged sidecar payload bytes and\npersisted to `data\/hits.txt.lastok.forged-ack`, so it\nsurvives restarts as long as the same forged file is\nstill on disk; a fresh forged read with different bytes\ninvalidates it. The dashboard keeps the red banner\nvisible (with an \"acknowledged\" badge) until a\nsubsequent boot reads a non-forged sidecar.\n'),
-  "lastOkSidecarStatusAcknowledgedBy": zod.string().nullish().describe('Task #139. Attribution string for the operator that\ndismissed the current forged-sidecar incident. A matched\nnamed token from `LEDGER_REBUILD_TOKENS` wins; otherwise\nthe sanitized `X-Referee-Name` request header recorded\non the original `POST \/ledger\/sidecar-forged-ack`;\notherwise the literal string `\"anonymous\"`\n(shared-token deploys with no header). Null while the\nbanner is still un-acked, when `lastOkSidecarStatus` is\nnot `forged`, or on legacy ack files written before\ntask #139 landed. Persisted to\n`data\/hits.txt.lastok.forged-ack` so the value survives\na restart and is shown as a tooltip on the dashboard\n\"acknowledged\" badge.\n'),
+  "lastOkSidecarStatusAcknowledgedAt": zod.string().nullish().describe('Task #124 \/ #204. ISO-8601 timestamp when an operator\ndismissed the current sidecar incident. For\n`lastOkSidecarStatus === \"forged\"` this is the\n`POST \/ledger\/sidecar-forged-ack` time (keyed by the\nsha256 of the forged payload bytes, persisted to\n`data\/hits.txt.lastok.forged-ack`). For\n`lastOkSidecarStatus === \"stale_checkpoint_binding\"` this\nis the `POST \/ledger\/sidecar-stale-binding-ack` time\n(keyed by the bound checkpoint sha, persisted to\n`data\/hits.txt.lastok.stale-binding-ack`). Null when the\nincident is still unacknowledged (or when\n`lastOkSidecarStatus` is `ok` \/ `missing`). Each ack\nsurvives restarts as long as the same incident is still\non disk; a fresh incident sealed against different bytes \/\na different checkpoint invalidates it. The dashboard keeps\nthe banner visible (with an \"acknowledged\" badge) until a\nsubsequent boot reads a clean sidecar.\n'),
+  "lastOkSidecarStatusAcknowledgedBy": zod.string().nullish().describe('Task #139 \/ #204. Attribution string for the operator\nthat dismissed the current sidecar incident (either the\n`forged` banner via `POST \/ledger\/sidecar-forged-ack` or\nthe `stale_checkpoint_binding` banner via\n`POST \/ledger\/sidecar-stale-binding-ack`). A matched\nnamed token from `LEDGER_REBUILD_TOKENS` wins; otherwise\nthe sanitized `X-Referee-Name` request header recorded\non the ack call; otherwise the literal string\n`\"anonymous\"` (shared-token deploys with no header). Null\nwhile the banner is still un-acked, when\n`lastOkSidecarStatus` is `ok` \/ `missing`, or on legacy\nforged-ack files written before task #139 landed.\nPersisted next to the sidecar so the value survives a\nrestart and is shown as a tooltip on the dashboard\n\"acknowledged\" badge.\n'),
   "monitor": zod.object({
   "enabled": zod.boolean().describe('True when the background monitor is running in this\nprocess. False when\n`LEDGER_INTEGRITY_CHECK_INTERVAL_SECONDS` was set to\n`off` \/ `0` \/ etc., so the timer was never started.\n'),
   "intervalSeconds": zod.number().nullable().describe('Configured tick cadence in whole seconds. Null when the\nmonitor is disabled.\n'),

@@ -253,35 +253,42 @@ export interface LedgerIntegrityStatus {
    */
   sidecarSecretStrictMode?: boolean;
   /**
-     * Task #124. ISO-8601 timestamp when an operator dismissed
-  the current forged-sidecar incident via
-  `POST /ledger/sidecar-forged-ack`. Null when the
+     * Task #124 / #204. ISO-8601 timestamp when an operator
+  dismissed the current sidecar incident. For
+  `lastOkSidecarStatus === "forged"` this is the
+  `POST /ledger/sidecar-forged-ack` time (keyed by the
+  sha256 of the forged payload bytes, persisted to
+  `data/hits.txt.lastok.forged-ack`). For
+  `lastOkSidecarStatus === "stale_checkpoint_binding"` this
+  is the `POST /ledger/sidecar-stale-binding-ack` time
+  (keyed by the bound checkpoint sha, persisted to
+  `data/hits.txt.lastok.stale-binding-ack`). Null when the
   incident is still unacknowledged (or when
-  `lastOkSidecarStatus` is not `forged`). The ack is keyed
-  by the sha256 of the forged sidecar payload bytes and
-  persisted to `data/hits.txt.lastok.forged-ack`, so it
-  survives restarts as long as the same forged file is
-  still on disk; a fresh forged read with different bytes
-  invalidates it. The dashboard keeps the red banner
-  visible (with an "acknowledged" badge) until a
-  subsequent boot reads a non-forged sidecar.
+  `lastOkSidecarStatus` is `ok` / `missing`). Each ack
+  survives restarts as long as the same incident is still
+  on disk; a fresh incident sealed against different bytes /
+  a different checkpoint invalidates it. The dashboard keeps
+  the banner visible (with an "acknowledged" badge) until a
+  subsequent boot reads a clean sidecar.
 
      * @nullable
      */
   lastOkSidecarStatusAcknowledgedAt?: string | null;
   /**
-     * Task #139. Attribution string for the operator that
-  dismissed the current forged-sidecar incident. A matched
+     * Task #139 / #204. Attribution string for the operator
+  that dismissed the current sidecar incident (either the
+  `forged` banner via `POST /ledger/sidecar-forged-ack` or
+  the `stale_checkpoint_binding` banner via
+  `POST /ledger/sidecar-stale-binding-ack`). A matched
   named token from `LEDGER_REBUILD_TOKENS` wins; otherwise
   the sanitized `X-Referee-Name` request header recorded
-  on the original `POST /ledger/sidecar-forged-ack`;
-  otherwise the literal string `"anonymous"`
-  (shared-token deploys with no header). Null while the
-  banner is still un-acked, when `lastOkSidecarStatus` is
-  not `forged`, or on legacy ack files written before
-  task #139 landed. Persisted to
-  `data/hits.txt.lastok.forged-ack` so the value survives
-  a restart and is shown as a tooltip on the dashboard
+  on the ack call; otherwise the literal string
+  `"anonymous"` (shared-token deploys with no header). Null
+  while the banner is still un-acked, when
+  `lastOkSidecarStatus` is `ok` / `missing`, or on legacy
+  forged-ack files written before task #139 landed.
+  Persisted next to the sidecar so the value survives a
+  restart and is shown as a tooltip on the dashboard
   "acknowledged" badge.
 
      * @nullable

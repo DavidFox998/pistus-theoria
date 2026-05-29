@@ -535,13 +535,25 @@ test.describe("dashboard: ledger sidecar tamper / stale-binding banners", () => 
       '[data-testid="text-ledger-sidecar-stale-binding"]',
     );
     await expect(staleLine).toBeVisible();
-    await expect(staleLine).toContainText("sidecar:");
-    await expect(staleLine).toContainText("stale checkpoint binding");
-    // The HMAC-verified hint distinguishes this benign case from the
-    // forged-HMAC case for the operator.
-    await expect(staleLine).toContainText("HMAC verified");
-    await expect(staleLine).toContainText("bound to a different checkpoint");
-    await expect(staleLine).toContainText("lastOkAt discarded");
+    await expect(staleLine).toContainText("Stale checkpoint binding");
+    // Task #204: the banner is now a full panel (with an Acknowledge
+    // affordance) rather than a one-line hint, so the descriptive copy
+    // distinguishing this benign case from the forged-HMAC case lives
+    // in the surrounding panel body.
+    const stalePanel = page.locator(
+      '[data-testid="panel-ledger-sidecar-stale-binding"]',
+    );
+    await expect(stalePanel).toBeVisible();
+    await expect(stalePanel).toContainText("HMAC verification");
+    await expect(stalePanel).toContainText("bound to a different checkpoint");
+    await expect(stalePanel).toContainText("discarded");
+    // Un-acknowledged at boot: the acknowledged badge must not render.
+    await expect(stalePanel).toHaveAttribute("data-acknowledged", "false");
+    await expect(
+      page.locator(
+        '[data-testid="badge-ledger-sidecar-stale-binding-acknowledged"]',
+      ),
+    ).toHaveCount(0);
 
     // The red forged panel must NOT render in the stale-binding case.
     await expect(

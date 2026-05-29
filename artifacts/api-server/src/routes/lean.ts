@@ -276,6 +276,15 @@ let forgedSidecarAcker: typeof defaultLedgerChecker.acknowledgeForgedSidecar =
   defaultLedgerChecker.acknowledgeForgedSidecar;
 
 /**
+ * Task #204: same indirection as `forgedSidecarAcker` for the
+ * stale-checkpoint-binding banner's Acknowledge flow. Defaults to the
+ * real checker's `acknowledgeStaleBinding` (which writes the on-disk
+ * stale-binding-ack sibling next to the sidecar).
+ */
+let staleBindingAcker: typeof defaultLedgerChecker.acknowledgeStaleBinding =
+  defaultLedgerChecker.acknowledgeStaleBinding;
+
+/**
  * Task #140: same indirection as `forgedSidecarAcker` so tests can
  * swap in a stub rotator without booting the full checker.
  */
@@ -1025,6 +1034,48 @@ router.post("/ledger/sidecar-forged-ack", (req, res) => {
     acknowledgedAt: result.acknowledgedAt,
     alreadyAcknowledged: result.alreadyAcknowledged,
     payloadSha: result.payloadSha,
+    ackedBy: result.ackedBy,
+  });
+});
+
+router.post("/ledger/sidecar-stale-binding-ack", (req, res) => {
+  const auth = checkRebuildAuth(req);
+  if (!auth.ok) {
+    applyAuthFailureHeaders(res, auth);
+    res.status(auth.status).json({ ok: false, error: auth.error });
+    return;
+  }
+  // Task #204: thread the rebuild-auth attribution into the ack so
+  // the audit trail / dashboard tooltip name the dismisser. Same
+  // precedence as the forged ack: named tokens from
+  // LEDGER_REBUILD_TOKENS win (auth.refereeName already implements
+  // that over X-Referee-Name); a shared-token deploy with no header
+  // falls through to "anonymous" inside the checker.
+  const result = staleBindingAcker(auth.refereeName);
+  if (!result.ok) {
+    res.status(409).json({
+      ok: false,
+      error:
+        "No stale-checkpoint-binding incident to acknowledge: the boot sidecar read came back ok / missing / forged.",
+    });
+    return;
+  }
+  req.log.info(
+    {
+      boundCheckpointSha: result.boundCheckpointSha,
+      acknowledgedAt: result.acknowledgedAt,
+      alreadyAcknowledged: result.alreadyAcknowledged,
+      ackedBy: result.ackedBy,
+      ackedByIp: getClientIp(req),
+      refereeName: auth.refereeName,
+    },
+    "Ledger stale-checkpoint-binding incident acknowledged by operator",
+  );
+  res.json({
+    ok: true,
+    acknowledgedAt: result.acknowledgedAt,
+    alreadyAcknowledged: result.alreadyAcknowledged,
+    boundCheckpointSha: result.boundCheckpointSha,
     ackedBy: result.ackedBy,
   });
 });

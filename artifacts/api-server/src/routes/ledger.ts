@@ -245,6 +245,14 @@ interface PersistedState {
   // closure in `createLedgerChecker` stashes the boot read so the
   // dashboard can surface `forged` distinctly from `missing`.
   sidecarStatus: LastOkSidecarStatus;
+  // Task #204: the `boundCheckpointSha` the sidecar's discarded
+  // `lastOkAt` was sealed against, populated only on a
+  // `stale_checkpoint_binding` read. Used to key the operator's
+  // stale-binding acknowledgement so a *different* stale binding on a
+  // later boot surfaces as a NEW, un-acked incident (the old ack does
+  // not "cover" a binding against a different sealed prefix). Null on
+  // every other status.
+  boundCheckpointSha?: string | null;
 }
 
 interface SidecarPayload {
@@ -566,6 +574,10 @@ function readPersistedState(
           lastOkAt: null,
           lastCheckedAt: payload.lastCheckedAt,
           sidecarStatus: "stale_checkpoint_binding",
+          // Task #204: carry the bound sha so the boot path can key
+          // the operator's stale-binding ack to this specific stale
+          // sealed prefix.
+          boundCheckpointSha: payload.boundCheckpointSha,
         };
       }
     }
@@ -654,6 +666,92 @@ function writeForgedAck(
     logger?.warn?.(
       { err, ackPath },
       "ledger sidecar: failed to persist forged-ack record",
+    );
+    throw err;
+  }
+}
+
+/**
+ * Task #204: stale-checkpoint-binding acknowledgement sidecar. The
+ * amber "stale checkpoint binding" banner (task #183) previously had
+ * no Acknowledge button — it could only be cleared by the next
+ * successful verify. This record mirrors `ForgedAckRecord`: it
+ * persists the operator's "I've seen this" click across server
+ * restarts, bound to the `boundCheckpointSha` the stale `lastOkAt`
+ * was sealed against, so a stale binding against a *different* sealed
+ * prefix on a later boot is correctly surfaced as a NEW, un-acked
+ * incident (the old ack does not "cover" the new binding).
+ *
+ * A null `boundCheckpointSha` is legitimate: a sidecar can record a
+ * `lastOkAt` whose `boundCheckpointSize`/`boundCheckpointSha` is null
+ * (no checkpoint on disk at seal time). Such a stale binding acks
+ * against the literal null sentinel, and only another null-bound
+ * stale binding carries the ack forward.
+ */
+interface StaleBindingAckRecord {
+  boundCheckpointSha: string | null;
+  acknowledgedAt: string;
+  ackedBy: string | null;
+}
+
+function readStaleBindingAck(
+  ackPath: string,
+  logger?: { warn: (...args: unknown[]) => void },
+): StaleBindingAckRecord | null {
+  try {
+    if (!existsSync(ackPath)) return null;
+    const raw = readFileSync(ackPath, "utf-8").trim();
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as unknown;
+    if (!parsed || typeof parsed !== "object") return null;
+    const obj = parsed as Record<string, unknown>;
+    const acknowledgedAt = obj["acknowledgedAt"];
+    if (
+      typeof acknowledgedAt !== "string" ||
+      Number.isNaN(Date.parse(acknowledgedAt))
+    ) {
+      return null;
+    }
+    // `boundCheckpointSha` is a 64-hex sha or the JSON null sentinel
+    // (the stale binding was sealed with no checkpoint on disk). Any
+    // other shape is treated as a corrupt ack and ignored.
+    const shaRaw = obj["boundCheckpointSha"];
+    let boundCheckpointSha: string | null;
+    if (shaRaw === null) {
+      boundCheckpointSha = null;
+    } else if (typeof shaRaw === "string" && /^[0-9a-f]{64}$/i.test(shaRaw)) {
+      boundCheckpointSha = shaRaw.toLowerCase();
+    } else {
+      return null;
+    }
+    const ackedByRaw = obj["ackedBy"];
+    const ackedBy =
+      typeof ackedByRaw === "string" && ackedByRaw.length > 0
+        ? ackedByRaw
+        : null;
+    return { boundCheckpointSha, acknowledgedAt, ackedBy };
+  } catch (err) {
+    logger?.warn?.(
+      { err, ackPath },
+      "ledger sidecar: stale-binding-ack record unreadable; ignoring",
+    );
+    return null;
+  }
+}
+
+function writeStaleBindingAck(
+  ackPath: string,
+  record: StaleBindingAckRecord,
+  logger?: { warn: (...args: unknown[]) => void },
+): void {
+  try {
+    const tmp = `${ackPath}.tmp`;
+    writeFileSync(tmp, JSON.stringify(record) + "\n", { mode: 0o600 });
+    renameSync(tmp, ackPath);
+  } catch (err) {
+    logger?.warn?.(
+      { err, ackPath },
+      "ledger sidecar: failed to persist stale-binding-ack record",
     );
     throw err;
   }
@@ -998,6 +1096,23 @@ export interface LedgerChecker {
       }
     | { ok: false; reason: "no_incident" };
   /**
+   * Task #204: operator-driven acknowledgement of the current
+   * stale-checkpoint-binding incident. Returns `{ ok: false, reason:
+   * "no_incident" }` when there is no active stale binding (boot read
+   * was `ok` / `missing` / `forged`). Idempotent: re-acking an
+   * already-acked incident returns the original `acknowledgedAt` with
+   * `alreadyAcknowledged: true`.
+   */
+  acknowledgeStaleBinding: (ackedBy?: string | null) =>
+    | {
+        ok: true;
+        acknowledgedAt: string;
+        alreadyAcknowledged: boolean;
+        boundCheckpointSha: string | null;
+        ackedBy: string | null;
+      }
+    | { ok: false; reason: "no_incident" };
+  /**
    * Task #150: most-recent-first snapshot of operator-driven
    * forged-sidecar dismissals from the rotating history log next to
    * the single-incident ack file. The dashboard renders these under
@@ -1218,6 +1333,50 @@ export function createLedgerChecker(opts: LedgerRouterOptions): LedgerChecker {
   // one — a tamper signal is strictly more severe.
   let staleCheckpointBindingAtBoot: boolean =
     persisted.sidecarStatus === "stale_checkpoint_binding";
+  // Task #204: sticky stale-binding incident, mirroring
+  // `forgedIncident`. Lets operators Acknowledge the amber banner
+  // (the same "I saw it, stop showing it" affordance the red
+  // forged-sidecar banner already has) and persists that ack across
+  // restarts as a sibling file next to the sidecar, keyed by the
+  // `boundCheckpointSha` the stale `lastOkAt` was sealed against.
+  const STALE_BINDING_ACK_PATH = `${LAST_OK_PATH}.stale-binding-ack`;
+  type StaleBindingIncident = {
+    boundCheckpointSha: string | null;
+    acknowledgedAt: string | null;
+    ackedBy: string | null;
+  };
+  let staleBindingIncident: StaleBindingIncident | null = null;
+  if (staleCheckpointBindingAtBoot) {
+    const boundSha = persisted.boundCheckpointSha ?? null;
+    const priorAck = readStaleBindingAck(STALE_BINDING_ACK_PATH, defaultLogger);
+    const sameIncident =
+      priorAck != null && priorAck.boundCheckpointSha === boundSha;
+    const carriedAck = sameIncident ? priorAck.acknowledgedAt : null;
+    const carriedAckedBy = sameIncident ? priorAck.ackedBy : null;
+    if (priorAck != null && !sameIncident) {
+      // Stale ack from a previous (differently-bound) incident —
+      // clear it so the dashboard surfaces this binding as un-acked.
+      try {
+        unlinkSync(STALE_BINDING_ACK_PATH);
+      } catch {
+        /* best-effort */
+      }
+    }
+    staleBindingIncident = {
+      boundCheckpointSha: boundSha,
+      acknowledgedAt: carriedAck,
+      ackedBy: carriedAck != null ? carriedAckedBy : null,
+    };
+  } else {
+    // No stale binding on this boot — drop any leftover ack file from
+    // a previous incident so it can't "cover" a future one.
+    try {
+      if (existsSync(STALE_BINDING_ACK_PATH))
+        unlinkSync(STALE_BINDING_ACK_PATH);
+    } catch {
+      /* best-effort */
+    }
+  }
   // One-shot latch for the boot-time forged-detection alert. The
   // server-side monitor (when wired) reads + clears this on its first
   // tick so the alert fires exactly once per process lifetime.
@@ -1443,9 +1602,14 @@ export function createLedgerChecker(opts: LedgerRouterOptions): LedgerChecker {
       // so the dashboard's amber banner reflects what the server
       // actually observed. Cleared by a successful ok verify (below)
       // or by a subsequent boot whose sidecar read is non-stale.
+      // Task #204: reuse the shared acknowledgement surface fields so
+      // the amber banner gains the same "acknowledged" badge (operator
+      // name + timestamp) the red forged banner already has.
       base.lastOkSidecarStatus = "stale_checkpoint_binding";
-      base.lastOkSidecarStatusAcknowledgedAt = null;
-      base.lastOkSidecarStatusAcknowledgedBy = null;
+      base.lastOkSidecarStatusAcknowledgedAt =
+        staleBindingIncident?.acknowledgedAt ?? null;
+      base.lastOkSidecarStatusAcknowledgedBy =
+        staleBindingIncident?.ackedBy ?? null;
     } else {
       base.lastOkSidecarStatus = lastOkSidecarStatus;
       base.lastOkSidecarStatusAcknowledgedAt = null;
@@ -1597,6 +1761,17 @@ export function createLedgerChecker(opts: LedgerRouterOptions): LedgerChecker {
     const hadStaleBindingAtBoot = staleCheckpointBindingAtBoot;
     if (hadStaleBindingAtBoot) {
       staleCheckpointBindingAtBoot = false;
+      // Task #204: the binding is healthy again — clear the sticky
+      // incident and its on-disk ack sibling so a future stale
+      // binding starts fresh (un-acked) rather than inheriting this
+      // one's acknowledgement.
+      staleBindingIncident = null;
+      try {
+        if (existsSync(STALE_BINDING_ACK_PATH))
+          unlinkSync(STALE_BINDING_ACK_PATH);
+      } catch {
+        /* best-effort */
+      }
     }
     const freshStaleness = computeStaleness(checkedAt);
     return {
@@ -1704,6 +1879,68 @@ export function createLedgerChecker(opts: LedgerRouterOptions): LedgerChecker {
       acknowledgedAt,
       alreadyAcknowledged: false,
       payloadSha: forgedIncident.payloadSha,
+      ackedBy: ackedByNormalized,
+    };
+  }
+
+  /**
+   * Task #204: operator-driven acknowledgement of the current
+   * stale-checkpoint-binding incident. Mirrors
+   * `acknowledgeForgedSidecar`: returns `{ ok: false, reason:
+   * "no_incident" }` when there is no active stale binding (boot read
+   * was `ok` / `missing` / `forged`), is idempotent (re-acking an
+   * already-acked incident returns the original `acknowledgedAt` with
+   * `alreadyAcknowledged: true`), and persists the ack to the
+   * `STALE_BINDING_ACK_PATH` sibling so the "acknowledged" badge
+   * survives a restart as long as the same stale binding is on disk.
+   */
+  function acknowledgeStaleBinding(
+    ackedBy?: string | null,
+  ):
+    | {
+        ok: true;
+        acknowledgedAt: string;
+        alreadyAcknowledged: boolean;
+        boundCheckpointSha: string | null;
+        ackedBy: string | null;
+      }
+    | { ok: false; reason: "no_incident" } {
+    if (!staleCheckpointBindingAtBoot || staleBindingIncident == null) {
+      return { ok: false, reason: "no_incident" };
+    }
+    if (staleBindingIncident.acknowledgedAt != null) {
+      return {
+        ok: true,
+        acknowledgedAt: staleBindingIncident.acknowledgedAt,
+        alreadyAcknowledged: true,
+        boundCheckpointSha: staleBindingIncident.boundCheckpointSha,
+        ackedBy: staleBindingIncident.ackedBy,
+      };
+    }
+    // Same attribution contract as the forged ack: empty / missing
+    // values collapse to the literal "anonymous".
+    const ackedByNormalized: string =
+      typeof ackedBy === "string" && ackedBy.length > 0 ? ackedBy : "anonymous";
+    const acknowledgedAt = new Date().toISOString();
+    writeStaleBindingAck(
+      STALE_BINDING_ACK_PATH,
+      {
+        boundCheckpointSha: staleBindingIncident.boundCheckpointSha,
+        acknowledgedAt,
+        ackedBy: ackedByNormalized,
+      },
+      defaultLogger,
+    );
+    staleBindingIncident = {
+      boundCheckpointSha: staleBindingIncident.boundCheckpointSha,
+      acknowledgedAt,
+      ackedBy: ackedByNormalized,
+    };
+    return {
+      ok: true,
+      acknowledgedAt,
+      alreadyAcknowledged: false,
+      boundCheckpointSha: staleBindingIncident.boundCheckpointSha,
       ackedBy: ackedByNormalized,
     };
   }
@@ -1839,6 +2076,7 @@ export function createLedgerChecker(opts: LedgerRouterOptions): LedgerChecker {
       return true;
     },
     acknowledgeForgedSidecar,
+    acknowledgeStaleBinding,
     listForgedAckHistory(limit?: number, rotation?: number) {
       const cap = FORGED_ACK_HISTORY_LIST_CAPACITY;
       const n =
