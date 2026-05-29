@@ -49,13 +49,13 @@ or a `Fintype`/`Nonempty` instance lookup.
 ================================================================
 -/
 
-import Mathlib.LinearAlgebra.Matrix.SpecialUnitaryGroup
+import Mathlib.LinearAlgebra.UnitaryGroup
 import Mathlib.Data.Finset.Lattice
 
 namespace TheoremaAureum.Towers.YM.LatticeGauge
 
 /-- The gauge group: `SU(2)`. -/
-abbrev G : Type := Matrix.SpecialUnitaryGroup (Fin 2) ℂ
+abbrev G : Type := Matrix.specialUnitaryGroup (Fin 2) ℂ
 
 /-- Sites of a `d`-dimensional periodic lattice of side length `L`.
 
