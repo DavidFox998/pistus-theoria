@@ -2,3 +2,4 @@
 - [Lean star vs starRingEnd rfl gap](lean-star-defeq.md) — `rw` can't bridge `star z` / `(starRingEnd ℂ) z`; finish with `exact` (defeq), not `rw`.
 - [Durable long-running commands](durable-long-commands.md) — bash-tool background procs die at the call's systemd-scope teardown (looks like OOM, isn't); run >2min commands as workflows.
 - [towers-build merge churn](towers-build-merge-churn.md) — towers-build auto-restarts on merges + runs `lake update`: wipes the mathlib pin/oleans AND starves the dashboard e2e (contention, not regression).
+- [Headline theorems are True-stubs](headline-theorems-are-true-stubs.md) — RH main_theorem proves `def RiemannHypothesis := True`; axiom-clean is vacuous; never report this repo as proving RH or the YM mass gap.
