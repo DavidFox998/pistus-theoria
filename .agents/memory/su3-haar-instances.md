@@ -58,3 +58,29 @@ Because there is no metric on `Matrix`, you CANNOT use metric Heine-Borel
 Quot.sound]` (classical trio, no `sorryAx`). Verified via `lake env lean <file>`
 + `#print axioms`. Axioms are transitive, so trio on the final `def` certifies
 the whole stack.
+
+## SecondCountable / Borel on `Fin n → ↥SU3` (for `Lp` / integral operators)
+When you need `Memℒp` / `Lp` / dominated-convergence over `haarN = Measure.pi`
+on `Fin n → ↥SU3`, you must supply instances mathlib does NOT auto-derive for a
+`Submonoid` carrier:
+- `SecondCountableTopology (Matrix (Fin 3)(Fin 3) ℂ)`: get it with
+  `by unfold Matrix; infer_instance` (Matrix is a Pi type → forall-SecondCountable).
+- `SecondCountableTopology ↥SU3`: **`inferInstance` FAILS.** The instance
+  `Subtype.secondCountableTopology (s : Set α)` has head `SecondCountableTopology ↥s`
+  (Set sort-coercion), but `↥SU3` uses the *Submonoid* sort-coercion — different
+  `CoeSort`, heads don't unify, so search never fires. Bridge it MANUALLY by
+  applying the instance to the carrier Set (defeq closes the haveI annotation):
+  `haveI : SecondCountableTopology (↥SU3) :=
+     TopologicalSpace.Subtype.secondCountableTopology (SU3 : Set (Matrix (Fin 3)(Fin 3) ℂ))`.
+  **Note the full name** — the instance lives in `namespace TopologicalSpace`
+  (Topology/Bases.lean), so it is `TopologicalSpace.Subtype.secondCountableTopology`,
+  NOT `Subtype.secondCountableTopology` (the short name resolves to bogus field
+  notation on the `Subtype` type constructor).
+- Once `SecondCountableTopology ↥SU3` is in scope, `SecondCountableTopology
+  (Fin n → ↥SU3)` and `BorelSpace (Fin n → ↥SU3)` both come from `inferInstance`
+  (forall-SecondCountable + `Pi.borelSpace`); FirstCountable + OpensMeasurable
+  follow from global SecondCountable→… instances, satisfying `continuous_of_dominated`
+  and `Continuous.aestronglyMeasurable`.
+**Why:** matrix subgroups expose a Submonoid coercion, and mathlib's subtype
+SecondCountable instance is keyed on `Set`; the gap is silent (inferInstance just
+fails) and the namespaced name is easy to get wrong.

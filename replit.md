@@ -38,6 +38,18 @@ history. Roadmap → `docs/ROADMAP.md`.
   live. This is measure-theoretic scaffolding ONLY: built on the *real* Haar
   measure (NOT the Dirac stand-in), but it makes **no** `m > 0` / mass-gap /
   `μ > 0` claim and does **not** touch Surface #1 (stays OPEN).
+- **Real integral transfer operator `T_L` (NOT a brick, not in BRICKS):**
+  `Towers/YM/Transfer.lean` now carries a `sorry`-free `noncomputable def T_L
+  (L β) : Lp ℝ 2 (haarN (4·L⁴)) → Lp ℝ 2 (haarN (4·L⁴))`, the genuine integral
+  operator `(T_L f)(U) = ∫ V, exp(-β·wilsonAction(V⁻¹·U))·f(V) d(haarN)` — a real
+  heat kernel over the *real* product Haar measure built from the *real* SU(3)
+  Wilson action (via `linkEquiv`/`toGauge`, continuity + `Memℒp` proofs). `#print
+  axioms T_L` = classical trio (no `sorryAx`), verified live. Makes **no**
+  spectral / mass-gap / `m > 0` claim; Surface #1 stays OPEN; YM stays
+  `Status: Open`. The companion `Transfer.kotecky_preiss_criterion` is a
+  **disclaimed single-`sorry` placeholder** (own namespace `…YM.Transfer`,
+  reports `sorryAx`, NOT a brick) — it does NOT touch the invariant-locked
+  `kotecky_preiss_criterion` `sorry` in `Towers/Attempts/ClusterExpansion.lean`.
 
 ## Locked invariants (every batch must hold these)
 
