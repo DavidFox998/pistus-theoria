@@ -3136,6 +3136,28 @@ BRICKS=(
   "Towers.YM.Wall256_MassGapConditional|TheoremaAureum.Towers.YM.Wall256.neg_log_pos_of_lt_one"
   "Towers.YM.Wall256_MassGapConditional|TheoremaAureum.Towers.YM.Wall256.rpow_eq_exp_neg_rate"
   "Towers.YM.Wall256_MassGapConditional|TheoremaAureum.Towers.YM.Wall256.mass_gap_pos_of_spectral_gap"
+  # Wall257_StrongCoupling: HONEST CONDITIONAL strong-coupling polymer-activity
+  # bound. The requested "polymerActivity ≤ (1/8)^|γ|" landed as a conditional
+  # combinator over a NAMED OPEN per-polymer energy lower bound hLB, NOT an
+  # unconditional smallness proof. GENUINE/UNCONDITIONAL: inv8_pow_eq_exp_neg
+  # ((1/8)^n = exp(-(log8)·n)), exp_neg_mul_le_inv8_pow (exp(-r·n) ≤ (1/8)^n for
+  # log8 ≤ r), inv8_pow_le_inv7_pow ((1/8)^n ≤ (1/7)^n), polymerEnergy_vacuum_eq_zero
+  # (vacuum energy = 0). HONEST GAP: vacuum_breaks_energy_lb PROVES hLB is FALSE
+  # for c>0 (vacuum w≡1 has energy 0), so the combinator establishes NO smallness
+  # of the real activity. CONDITIONAL: polymerActivity_le_inv8/inv7_of_energy_lb
+  # route the integral bound through hLB (integral_mono + integrable_polymerWeight
+  # + integral_const over the probability measure haarN). All sorry-free, #print
+  # axioms = classical trio (verified by hand: raw lean Towers/YM/
+  # Wall257_StrongCoupling.lean + #print axioms, EXIT=0). Makes NO mass-gap / μ>0
+  # / Surface-#1 claim, does NOT beat the entropy, does NOT give ρ(T)<1, and does
+  # NOT discharge kotecky_preiss_criterion. YM stays Status: Open.
+  "Towers.YM.Wall257_StrongCoupling|TheoremaAureum.Towers.YM.Wall257.inv8_pow_eq_exp_neg"
+  "Towers.YM.Wall257_StrongCoupling|TheoremaAureum.Towers.YM.Wall257.exp_neg_mul_le_inv8_pow"
+  "Towers.YM.Wall257_StrongCoupling|TheoremaAureum.Towers.YM.Wall257.inv8_pow_le_inv7_pow"
+  "Towers.YM.Wall257_StrongCoupling|TheoremaAureum.Towers.YM.Wall257.polymerEnergy_vacuum_eq_zero"
+  "Towers.YM.Wall257_StrongCoupling|TheoremaAureum.Towers.YM.Wall257.vacuum_breaks_energy_lb"
+  "Towers.YM.Wall257_StrongCoupling|TheoremaAureum.Towers.YM.Wall257.polymerActivity_le_inv8_of_energy_lb"
+  "Towers.YM.Wall257_StrongCoupling|TheoremaAureum.Towers.YM.Wall257.polymerActivity_le_inv7_of_energy_lb"
 )
 
 VERIFIER_DIR="$(mktemp -d)"

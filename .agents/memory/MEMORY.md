@@ -7,6 +7,7 @@
 - [Wilson-action positivity ≠ mass gap](wilson-action-positivity-honesty.md) — pointwise positivity is necessary-not-sufficient; off-vacuum inf=0 so no uniform gap from compactness; zero-iff is "all plaquettes trivial" NOT U=1.
 - [Lean sorry == sorryAx](lean-sorry-is-sorryax.md) — `by sorry` always prints sorryAx; to pass the axiom lock, name unproved inputs as a Prop def or a hypothesis, never `theorem := by sorry`.
 - [Main-agent git is write-blocked](main-agent-git-blocked.md) — git writes (tag/commit/etc) rejected for main agent + guard scans heredoc bodies; track milestones as prose+SHA in docs, or delegate to a background Project Task.
+- [YM polymer-activity smallness](ym-polymer-activity-smallness.md) — `∀γ, activity β γ ≤ (1/8)^|γ|` with no β-threshold is FALSE (β=0 ⟹ activity=1); no pointwise energy floor (inf_{w≠1}=0); smallness is measure-level only.
 - [KP entropy/smallness gap](kp-entropy-smallness-gap.md) — single-plaquette smallness (<1/2) can't beat 7^n polymer entropy (needs <1/7); extend KP only as a CONDITIONAL combinator over a named open Summable surface, never claim unconditional convergence.
 - [OS positivity Gram recipe](os-positivity-gram-recipe.md) — land OS2 as genuine Gram-PSD (inner_self_nonneg) + a named-open GNS surface hGNS; never attempt the actual Wilson measure; OS2 is one of OS0–OS4.
 - [linarith opaque decimals](linarith-opaque-decimals.md) — linarith treats decimal `OfScientific` literals as opaque atoms; launder each to a rational via `norm_num` first, then linarith.

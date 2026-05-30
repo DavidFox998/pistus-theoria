@@ -60,8 +60,38 @@ history. Roadmap → `docs/ROADMAP.md`.
     inputs; they prove NO NS existence/uniqueness/regularity result. NS stays
     `Status: Open`; Surface #1/#2 stay OPEN; YM untouched.
 
-- **Wall:** 588 BRICKS (`${#BRICKS[@]}` in `scripts/check-towers.sh`). The
+- **Wall:** 595 BRICKS (`${#BRICKS[@]}` in `scripts/check-towers.sh`). The
   source of truth for the count is the script, not this file.
+- **Wall257_StrongCoupling — HONEST CONDITIONAL strong-coupling polymer-activity
+  bound (bricks, in BRICKS):** `Towers/YM/Wall257_StrongCoupling.lean` lands the
+  requested `polymerActivity L β γ ≤ (1/8)^|γ|` as an HONEST CONDITIONAL
+  COMBINATOR, NOT an unconditional smallness proof. **(1)
+  GENUINE/UNCONDITIONAL:** `inv8_pow_eq_exp_neg` (`(1/8)^n = exp(−(log 8)·n)`,
+  via `rpow_natCast`+`rpow_def_of_pos`+`log_inv`), `exp_neg_mul_le_inv8_pow`
+  (`log 8 ≤ r ⟹ exp(−r·n) ≤ (1/8)^n`), `inv8_pow_le_inv7_pow`
+  (`(1/8)^n ≤ (1/7)^n`, `pow_le_pow_left`), `polymerEnergy_vacuum_eq_zero` (the
+  vacuum link field `w≡1` has `polymerEnergy = 0`, `plaquetteEnergy_const_one`
+  termwise). **(2) HONEST GAP RECORD:** `vacuum_breaks_energy_lb` PROVES the
+  combinator's uniform per-polymer energy lower bound `hLB : ∀ w, c·|γ| ≤
+  polymerEnergy (toGauge L w) γ` is FALSE for `c>0` and nonempty `γ` (the vacuum
+  violates it) — so the combinator's hypothesis is UNSATISFIABLE for `c>0` and
+  this file proves NO smallness of the real activity. **(3) CONDITIONAL:**
+  `polymerActivity_le_inv8/inv7_of_energy_lb` derive the bound from the NAMED
+  OPEN `hLB` + the strong-coupling threshold `hβc : log 8 ≤ β·c` (a HYPOTHESIS,
+  NOT `by sorry`, so NO `sorryAx`), with the genuine integral step
+  `∫ exp(−β·E) ∂haarN ≤ exp(−β·c·|γ|) ≤ (1/8)^|γ|` (`integral_mono` +
+  `integrable_polymerWeight` + `integral_const` over the probability measure
+  `haarN`). 7 public theorems; all `sorry`-free, `#print axioms` = classical trio
+  (verified live, raw `lean` v4.12.0, EXIT=0). DEVIATION from the literal ask:
+  the originally-requested `kp_activity_lt_inv8 : ∀ π, polymerActivity β π ≤
+  (1/8)^|π|` (no β/threshold hypothesis) is OUTRIGHT FALSE — at `β=0` the
+  integrand is `1` and `haarN` is a probability measure so activity `=1 >
+  (1/8)^|π|` — REFUSED and replaced by this honest conditional. HONEST: the real
+  KP smallness lives at the integral/measure level (how `haarN` concentrates near
+  the vacuum), NOT at any pointwise energy floor (`inf_{w≠1} polymerEnergy = 0`).
+  Makes NO mass-gap / μ>0 / Surface-#1 claim, does NOT beat the `7ⁿ` entropy,
+  does NOT give `ρ(T)<1`, and does NOT discharge `kotecky_preiss_criterion`. YM
+  stays `Status: Open`.
 - **Wall256_MassGapConditional — HONEST CONDITIONAL YM mass-gap apex (bricks, in
   BRICKS):** `Towers/YM/Wall256_MassGapConditional.lean` lands the REQUESTED
   statement shape `∃ Δ>0, ∀ x y, |⟨W(x)W(y)⟩| ≤ C·exp(−Δ·‖x−y‖)` as an HONEST
