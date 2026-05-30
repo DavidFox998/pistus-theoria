@@ -440,26 +440,44 @@ async function streamRebuild(
     }
   };
 
-  while (true) {
-    const { done, value } = await reader.read();
-    if (done) break;
-    buffer += decoder.decode(value, { stream: true });
-    let sep: number;
-    while ((sep = buffer.indexOf("\n\n")) !== -1) {
-      const raw = buffer.slice(0, sep);
-      buffer = buffer.slice(sep + 2);
-      let eventName = "message";
-      const dataLines: string[] = [];
-      for (const rawLine of raw.split("\n")) {
-        if (rawLine.startsWith(":") || rawLine.length === 0) continue;
-        if (rawLine.startsWith("event:")) {
-          eventName = rawLine.slice(6).trim();
-        } else if (rawLine.startsWith("data:")) {
-          dataLines.push(rawLine.slice(5).replace(/^ /, ""));
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      let sep: number;
+      while ((sep = buffer.indexOf("\n\n")) !== -1) {
+        const raw = buffer.slice(0, sep);
+        buffer = buffer.slice(sep + 2);
+        let eventName = "message";
+        const dataLines: string[] = [];
+        for (const rawLine of raw.split("\n")) {
+          if (rawLine.startsWith(":") || rawLine.length === 0) continue;
+          if (rawLine.startsWith("event:")) {
+            eventName = rawLine.slice(6).trim();
+          } else if (rawLine.startsWith("data:")) {
+            dataLines.push(rawLine.slice(5).replace(/^ /, ""));
+          }
         }
+        if (dataLines.length > 0) handleEvent(eventName, dataLines.join("\n"));
       }
-      if (dataLines.length > 0) handleEvent(eventName, dataLines.join("\n"));
     }
+  } catch (err) {
+    // Task #227: a forcibly-terminated stream (proxy dropped the
+    // connection, spawn OOM-killed mid-flight, server crashed) makes
+    // `reader.read()` reject instead of returning `done`. Without this
+    // guard the rejection escaped `streamRebuild` entirely, the button's
+    // onClick `finally` cleared the spinner, and the rebuild live-log
+    // panel froze on the last line with no error — the operator never
+    // learned the rebuild actually failed. Surface it explicitly. If a
+    // `result` frame already arrived before the break, prefer it.
+    if (finalResult) return { kind: "result", payload: finalResult };
+    return {
+      kind: "error",
+      error: `Rebuild stream interrupted before completion: ${
+        err instanceof Error ? err.message : String(err)
+      }`,
+    };
   }
 
   if (finalResult) return { kind: "result", payload: finalResult };
