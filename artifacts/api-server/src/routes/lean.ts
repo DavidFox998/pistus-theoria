@@ -318,6 +318,14 @@ let sidecarSecretRotator: typeof defaultLedgerChecker.rotateSidecarSecret =
 let forgedSidecarHistoryLister: typeof defaultLedgerChecker.listForgedAckHistory =
   defaultLedgerChecker.listForgedAckHistory;
 
+/**
+ * Task #231: same indirection as `forgedSidecarHistoryLister` for the
+ * stale-checkpoint-binding "Recent dismissals" panel. Defaults to the
+ * real checker's `listStaleBindingAckHistory`.
+ */
+let staleBindingHistoryLister: typeof defaultLedgerChecker.listStaleBindingAckHistory =
+  defaultLedgerChecker.listStaleBindingAckHistory;
+
 function readAckMap(log: import("pino").Logger): Record<string, string> {
   return readAckMapShared(ALERTS_ACK_PATH, log);
 }
@@ -1013,6 +1021,42 @@ router.get("/ledger/sidecar-forged-ack/history", (req, res) => {
   } catch (err) {
     req.log.error({ err }, "Failed to read forged-ack history");
     res.status(500).json({ error: "Failed to read forged-ack history" });
+  }
+});
+
+router.get("/ledger/sidecar-stale-binding-ack/history", (req, res) => {
+  // Task #231: read-only, no auth — mirrors
+  // `/ledger/sidecar-forged-ack/history`. The "Recent dismissals"
+  // panel is an audit view; referees should be able to look at it
+  // without holding a rebuild token.
+  const rawLimit = req.query["limit"];
+  let limit: number | undefined;
+  if (typeof rawLimit === "string" && rawLimit.trim() !== "") {
+    const parsed = Number(rawLimit);
+    if (Number.isFinite(parsed) && parsed > 0) {
+      limit = Math.floor(parsed);
+    }
+  }
+  // Task #231: rotation paging — `0` (default) reads the live history
+  // file, `N >= 1` reads the Nth archive. Clamping happens inside the
+  // checker so a hostile `?rotation=999999` query can't drive path
+  // traversal.
+  const rawRotation = req.query["rotation"];
+  let rotation: number | undefined;
+  if (typeof rawRotation === "string" && rawRotation.trim() !== "") {
+    const parsed = Number(rawRotation);
+    if (Number.isFinite(parsed) && parsed >= 0) {
+      rotation = Math.floor(parsed);
+    }
+  }
+  try {
+    const result = staleBindingHistoryLister(limit, rotation);
+    res.json(result);
+  } catch (err) {
+    req.log.error({ err }, "Failed to read stale-binding-ack history");
+    res
+      .status(500)
+      .json({ error: "Failed to read stale-binding-ack history" });
   }
 });
 

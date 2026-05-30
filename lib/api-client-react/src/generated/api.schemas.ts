@@ -520,6 +520,87 @@ export interface SidecarForgedAckHistory {
 }
 
 /**
+ * One operator-driven dismissal of a stale-checkpoint-binding
+banner, as parsed from the rotating history log. Task #231.
+
+ */
+export interface SidecarStaleBindingAckHistoryEntry {
+  /**
+     * sha256 hex of the checkpoint the stale `lastOkAt` was sealed
+  against, or null when the sidecar was sealed with no
+  checkpoint on disk at seal time.
+
+     * @nullable
+     */
+  boundCheckpointSha?: string | null;
+  /** ISO-8601 timestamp of when the Acknowledge click happened. */
+  acknowledgedAt: string;
+  /**
+     * Attribution string for the operator who dismissed the
+  banner. Matched named token, sanitized `X-Referee-Name`
+  header, or the literal `"anonymous"`. Null only on legacy
+  entries written before attribution was captured.
+
+     * @nullable
+     */
+  ackedBy?: string | null;
+}
+
+/**
+ * One rotated archive of the stale-binding-ack history log on disk
+(`data/hits.txt.lastok.stale-binding-ack.log.jsonl.<index>`).
+Task #231.
+
+ */
+export interface SidecarStaleBindingAckHistoryRotation {
+  /**
+     * Rotation index. `1` is the most recently rotated archive.
+     * @minimum 1
+     */
+  index: number;
+  /** Absolute path to the rotated file on disk. */
+  path: string;
+  /** Size of the rotated file in bytes (for the dashboard tooltip). */
+  size: number;
+  /** ISO-8601 mtime of the rotated file (i.e. when the rotation happened). */
+  mtime: string;
+}
+
+/**
+ * Result of `GET /ledger/sidecar-stale-binding-ack/history`
+(task #231). Mirrors `SidecarForgedAckHistory`.
+
+ */
+export interface SidecarStaleBindingAckHistory {
+  /** Most-recent-first slice of past stale-binding dismissals. */
+  entries: SidecarStaleBindingAckHistoryEntry[];
+  /** True iff the rotating history log exists on disk. False is
+  the normal healthy state — no stale-checkpoint-binding
+  incident has ever been acknowledged on this deploy.
+   */
+  logExists: boolean;
+  /** Maximum number of entries the endpoint will return per request. */
+  capacity: number;
+  /**
+     * Which rotation file was read on this call. `0` means the
+  live `data/hits.txt.lastok.stale-binding-ack.log.jsonl`;
+  `N >= 1` means `…log.jsonl.N`. Echoes the request param so
+  the dashboard can highlight the active page tab without a
+  second round-trip.
+
+     * @minimum 0
+     */
+  rotation: number;
+  /** Snapshot of every rotated archive currently on disk
+  (`…log.jsonl.1`, `.2`, …), newest-rotated first by index.
+  Empty when no rotation has ever happened — the live file is
+  the only history surface. Lets the dashboard render prev/next
+  paging controls without polling each rotation index blindly.
+   */
+  rotations: SidecarStaleBindingAckHistoryRotation[];
+}
+
+/**
  * Result of `POST /ledger/sidecar-forged-ack` (task #124). On
 success, the dashboard banner driven by
 `lastOkSidecarStatus === "forged"` gains an "acknowledged"
@@ -1502,6 +1583,32 @@ rotations return an empty `entries` array with
 `logExists: false`. Mirrors the rotation paging contract
 on `/lean/ledger-alerts` so the dashboard can render a
 uniform "page back into archive" control.
+
+ * @minimum 0
+ */
+rotation?: number;
+};
+
+export type GetSidecarStaleBindingAckHistoryParams = {
+/**
+ * Maximum entries to return (default = capacity). Values
+above the server cap are clamped down silently.
+
+ * @minimum 1
+ * @maximum 100
+ */
+limit?: number;
+/**
+ * Which stale-binding-ack history file to read. `0` (the
+default) reads the live
+`data/hits.txt.lastok.stale-binding-ack.log.jsonl`. `1`
+reads `…log.jsonl.1` (the most recently rotated archive),
+`2` reads `.2`, and so on up to the rotator's configured
+`MORNINGSTAR_STALE_BINDING_ACK_HISTORY_MAX_ROTATIONS`.
+Rotated reads are best-effort: missing or partially written
+rotations return an empty `entries` array with
+`logExists: false`. Mirrors the rotation paging contract on
+`/ledger/sidecar-forged-ack/history`.
 
  * @minimum 0
  */

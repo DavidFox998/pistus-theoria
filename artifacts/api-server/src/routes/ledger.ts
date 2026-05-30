@@ -1069,6 +1069,228 @@ export function readForgedAckHistory(
   }
 }
 
+/**
+ * Task #231: append-only history of every operator-driven
+ * stale-checkpoint-binding dismissal, mirroring the forged-ack
+ * history (task #150). Lives next to the single-incident
+ * stale-binding ack file at `<ackPath>.log.jsonl` and rotates on a
+ * byte cap so the file does not grow without bound. The dashboard
+ * tails the live file to render a "Recent dismissals" list under the
+ * amber banner — operators investigating a recurring stale binding
+ * (different bound checkpoints across incidents) can see who clicked
+ * Acknowledge on prior incidents (and when, against which
+ * boundCheckpointSha) even after the next stale read has replaced the
+ * single-incident sidecar.
+ *
+ * Rotation policy mirrors the forged-ack history: when the live file
+ * exceeds `MORNINGSTAR_STALE_BINDING_ACK_HISTORY_MAX_BYTES` bytes
+ * after an append, it is rotated to `.1` (with `.1 → .2`, etc.) and
+ * the oldest rotation past
+ * `MORNINGSTAR_STALE_BINDING_ACK_HISTORY_MAX_ROTATIONS` is deleted.
+ * The dashboard endpoint reads the live file by default and pages
+ * back into rotated archives on request.
+ */
+interface StaleBindingAckHistoryEntry {
+  boundCheckpointSha: string | null;
+  acknowledgedAt: string;
+  ackedBy: string | null;
+}
+
+const STALE_BINDING_ACK_HISTORY_DEFAULT_MAX_BYTES = 256 * 1024;
+const STALE_BINDING_ACK_HISTORY_DEFAULT_MAX_ROTATIONS = 3;
+
+function staleBindingAckHistoryMaxBytes(): number {
+  return resolvePositiveIntFromEnv(
+    process.env.MORNINGSTAR_STALE_BINDING_ACK_HISTORY_MAX_BYTES,
+    STALE_BINDING_ACK_HISTORY_DEFAULT_MAX_BYTES,
+  );
+}
+
+function staleBindingAckHistoryMaxRotations(): number {
+  return resolvePositiveIntFromEnv(
+    process.env.MORNINGSTAR_STALE_BINDING_ACK_HISTORY_MAX_ROTATIONS,
+    STALE_BINDING_ACK_HISTORY_DEFAULT_MAX_ROTATIONS,
+  );
+}
+
+function rotateStaleBindingAckHistory(
+  historyPath: string,
+  logger?: { warn: (...args: unknown[]) => void },
+): void {
+  try {
+    const maxRotations = staleBindingAckHistoryMaxRotations();
+    // Drop the oldest archive first so the shift below cannot
+    // overwrite it.
+    const oldest = `${historyPath}.${maxRotations}`;
+    if (existsSync(oldest)) {
+      try {
+        unlinkSync(oldest);
+      } catch (err) {
+        logger?.warn?.(
+          { err, oldest },
+          "stale-binding-ack history: failed to delete oldest rotation",
+        );
+      }
+    }
+    for (let i = maxRotations - 1; i >= 1; i--) {
+      const src = `${historyPath}.${i}`;
+      const dst = `${historyPath}.${i + 1}`;
+      if (existsSync(src)) {
+        try {
+          renameSync(src, dst);
+        } catch (err) {
+          logger?.warn?.(
+            { err, src, dst },
+            "stale-binding-ack history: failed to shift rotation",
+          );
+        }
+      }
+    }
+    if (existsSync(historyPath)) {
+      try {
+        renameSync(historyPath, `${historyPath}.1`);
+      } catch (err) {
+        logger?.warn?.(
+          { err, historyPath },
+          "stale-binding-ack history: failed to rotate live file",
+        );
+      }
+    }
+  } catch (err) {
+    logger?.warn?.(
+      { err, historyPath },
+      "stale-binding-ack history: rotation failed (best-effort, continuing)",
+    );
+  }
+}
+
+function appendStaleBindingAckHistory(
+  historyPath: string,
+  entry: StaleBindingAckHistoryEntry,
+  logger?: { warn: (...args: unknown[]) => void },
+): void {
+  try {
+    const line = JSON.stringify(entry) + "\n";
+    writeFileSync(historyPath, line, { flag: "a", mode: 0o600 });
+    let size = 0;
+    try {
+      size = statSync(historyPath).size;
+    } catch {
+      size = 0;
+    }
+    if (size > staleBindingAckHistoryMaxBytes()) {
+      rotateStaleBindingAckHistory(historyPath, logger);
+    }
+  } catch (err) {
+    logger?.warn?.(
+      { err, historyPath },
+      "stale-binding-ack history: failed to append entry (best-effort)",
+    );
+  }
+}
+
+/**
+ * Task #231: upper bound on how many rotated stale-binding-ack
+ * history files we probe for. Mirrors
+ * `FORGED_ACK_HISTORY_ROTATION_PROBE_MAX` so an operator who manually
+ * preserved older archives next to the live file still sees them
+ * surfaced on the dashboard.
+ */
+const STALE_BINDING_ACK_HISTORY_ROTATION_PROBE_MAX = 32;
+
+interface StaleBindingAckHistoryRotationInfo {
+  index: number;
+  path: string;
+  size: number;
+  mtime: string;
+}
+
+function listStaleBindingAckHistoryRotations(
+  historyPath: string,
+): StaleBindingAckHistoryRotationInfo[] {
+  const out: StaleBindingAckHistoryRotationInfo[] = [];
+  for (let i = 1; i <= STALE_BINDING_ACK_HISTORY_ROTATION_PROBE_MAX; i++) {
+    const p = `${historyPath}.${i}`;
+    try {
+      const st = statSync(p);
+      if (st.isFile()) {
+        out.push({
+          index: i,
+          path: p,
+          size: st.size,
+          mtime: st.mtime.toISOString(),
+        });
+      }
+    } catch {
+      // Missing or unreadable rotation — skip silently.
+    }
+  }
+  return out;
+}
+
+export function readStaleBindingAckHistory(
+  historyPath: string,
+  limit: number,
+  logger?: { warn: (...args: unknown[]) => void },
+): { entries: StaleBindingAckHistoryEntry[]; logExists: boolean } {
+  if (!existsSync(historyPath)) {
+    return { entries: [], logExists: false };
+  }
+  try {
+    const raw = readFileSync(historyPath, "utf-8");
+    const lines = raw.split("\n").filter((l) => l.length > 0);
+    const out: StaleBindingAckHistoryEntry[] = [];
+    // Walk from the tail so we only parse `limit` good entries.
+    for (let i = lines.length - 1; i >= 0 && out.length < limit; i--) {
+      const line = lines[i];
+      try {
+        const parsed = JSON.parse(line) as unknown;
+        if (!parsed || typeof parsed !== "object") continue;
+        const obj = parsed as Record<string, unknown>;
+        const acknowledgedAt = obj["acknowledgedAt"];
+        if (
+          typeof acknowledgedAt !== "string" ||
+          Number.isNaN(Date.parse(acknowledgedAt))
+        ) {
+          continue;
+        }
+        // `boundCheckpointSha` is a 64-hex sha or the JSON null
+        // sentinel (the stale binding was sealed with no checkpoint on
+        // disk). Any other shape is a corrupt line and is skipped.
+        const shaRaw = obj["boundCheckpointSha"];
+        let boundCheckpointSha: string | null;
+        if (shaRaw === null) {
+          boundCheckpointSha = null;
+        } else if (
+          typeof shaRaw === "string" &&
+          /^[0-9a-f]{64}$/i.test(shaRaw)
+        ) {
+          boundCheckpointSha = shaRaw.toLowerCase();
+        } else {
+          continue;
+        }
+        const ackedByRaw = obj["ackedBy"];
+        const ackedBy =
+          typeof ackedByRaw === "string" && ackedByRaw.length > 0
+            ? ackedByRaw
+            : null;
+        out.push({ boundCheckpointSha, acknowledgedAt, ackedBy });
+      } catch {
+        // Skip malformed line; keep scanning so a single bad write
+        // doesn't blank the panel.
+        continue;
+      }
+    }
+    return { entries: out, logExists: true };
+  } catch (err) {
+    logger?.warn?.(
+      { err, historyPath },
+      "stale-binding-ack history: failed to read (returning empty)",
+    );
+    return { entries: [], logExists: true };
+  }
+}
+
 function writePersistedState(
   sidecarPath: string,
   secret: Buffer,
@@ -1285,6 +1507,34 @@ export interface LedgerChecker {
     maxRotations: number;
   };
   /**
+   * Task #231: most-recent-first snapshot of operator-driven
+   * stale-checkpoint-binding dismissals from the rotating history log
+   * next to the single-incident stale-binding ack file. The dashboard
+   * renders these under the amber banner so a recurring stale binding
+   * (different bound checkpoints across incidents) still shows who
+   * dismissed prior incidents after the single-incident sidecar has
+   * been replaced. Mirrors `listForgedAckHistory`.
+   */
+  listStaleBindingAckHistory: (
+    limit?: number,
+    rotation?: number,
+  ) => {
+    entries: Array<{
+      boundCheckpointSha: string | null;
+      acknowledgedAt: string;
+      ackedBy: string | null;
+    }>;
+    logExists: boolean;
+    capacity: number;
+    rotation: number;
+    rotations: Array<{
+      index: number;
+      path: string;
+      size: number;
+      mtime: string;
+    }>;
+  };
+  /**
    * Task #140: rotate the sidecar HMAC secret in response to a tamper
    * alert. Persists the new key (keyfile, or in-memory env slot when
    * the boot-time secret came from `LEDGER_SIDECAR_SECRET`), re-seals
@@ -1473,6 +1723,13 @@ export function createLedgerChecker(opts: LedgerRouterOptions): LedgerChecker {
   // restarts as a sibling file next to the sidecar, keyed by the
   // `boundCheckpointSha` the stale `lastOkAt` was sealed against.
   const STALE_BINDING_ACK_PATH = `${LAST_OK_PATH}.stale-binding-ack`;
+  // Task #231: rotating history log alongside the single-incident
+  // stale-binding ack sidecar. Each operator-driven dismissal appends
+  // one JSONL line so the dashboard can show a "Recent dismissals"
+  // list under the amber banner even after the next stale read has
+  // replaced STALE_BINDING_ACK_PATH (a stale binding against a
+  // *different* checkpoint = a new, un-acked incident).
+  const STALE_BINDING_ACK_HISTORY_PATH = `${STALE_BINDING_ACK_PATH}.log.jsonl`;
   type StaleBindingIncident = {
     boundCheckpointSha: string | null;
     acknowledgedAt: string | null;
@@ -2101,6 +2358,19 @@ export function createLedgerChecker(opts: LedgerRouterOptions): LedgerChecker {
       },
       defaultLogger,
     );
+    // Task #231: append to the rotating history log so the "Recent
+    // dismissals" panel survives the single-incident stale-binding
+    // sidecar being replaced by a later stale read against a
+    // different checkpoint.
+    appendStaleBindingAckHistory(
+      STALE_BINDING_ACK_HISTORY_PATH,
+      {
+        boundCheckpointSha: staleBindingIncident.boundCheckpointSha,
+        acknowledgedAt,
+        ackedBy: ackedByNormalized,
+      },
+      defaultLogger,
+    );
     staleBindingIncident = {
       boundCheckpointSha: staleBindingIncident.boundCheckpointSha,
       acknowledgedAt,
@@ -2299,6 +2569,45 @@ export function createLedgerChecker(opts: LedgerRouterOptions): LedgerChecker {
         maxRotations: forgedAckHistoryMaxRotations(),
       };
     },
+    listStaleBindingAckHistory(limit?: number, rotation?: number) {
+      const cap = STALE_BINDING_ACK_HISTORY_LIST_CAPACITY;
+      const n =
+        typeof limit === "number" && Number.isFinite(limit) && limit > 0
+          ? Math.min(Math.floor(limit), cap)
+          : cap;
+      // Task #231: rotation paging, mirroring listForgedAckHistory.
+      // `0` (default) = live file; `N >= 1` reads
+      // `${STALE_BINDING_ACK_HISTORY_PATH}.N`. Clamp to the probe
+      // ceiling so a hostile query param can't drive path traversal.
+      const rotNorm =
+        typeof rotation === "number" &&
+        Number.isFinite(rotation) &&
+        rotation > 0
+          ? Math.min(
+              Math.floor(rotation),
+              STALE_BINDING_ACK_HISTORY_ROTATION_PROBE_MAX,
+            )
+          : 0;
+      const targetPath =
+        rotNorm > 0
+          ? `${STALE_BINDING_ACK_HISTORY_PATH}.${rotNorm}`
+          : STALE_BINDING_ACK_HISTORY_PATH;
+      const { entries, logExists } = readStaleBindingAckHistory(
+        targetPath,
+        n,
+        defaultLogger,
+      );
+      const rotations = listStaleBindingAckHistoryRotations(
+        STALE_BINDING_ACK_HISTORY_PATH,
+      );
+      return {
+        entries,
+        logExists,
+        capacity: cap,
+        rotation: rotNorm,
+        rotations,
+      };
+    },
     rotateSidecarSecret,
   };
 }
@@ -2308,6 +2617,11 @@ export function createLedgerChecker(opts: LedgerRouterOptions): LedgerChecker {
 // larger (and may include multiple rotations); this just bounds the
 // API surface.
 const FORGED_ACK_HISTORY_LIST_CAPACITY = 20;
+
+// Task #231: hard cap on the number of stale-binding "Recent
+// dismissals" the dashboard panel renders per page. Mirrors
+// FORGED_ACK_HISTORY_LIST_CAPACITY.
+const STALE_BINDING_ACK_HISTORY_LIST_CAPACITY = 20;
 
 export function createLedgerRouter(opts: LedgerRouterOptions): IRouter {
   return createLedgerChecker(opts).router;

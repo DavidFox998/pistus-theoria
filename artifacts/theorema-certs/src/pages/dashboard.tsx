@@ -19,6 +19,8 @@ import {
   GetLedgerCheckpointRerollDigestWindow,
   useGetSidecarForgedAckHistory,
   getGetSidecarForgedAckHistoryQueryKey,
+  useGetSidecarStaleBindingAckHistory,
+  getGetSidecarStaleBindingAckHistoryQueryKey,
   getGetMorningstarHitsQueryKey,
   getGetLeanVerificationQueryKey,
   getGetLeanRebuildHistoryQueryKey,
@@ -60,6 +62,8 @@ const REROLL_HISTORY_REFEREE_FILTER_STORAGE_KEY =
   "lean-checkpoint-reroll-history-referee-filter";
 const SIDECAR_FORGED_HISTORY_REFEREE_FILTER_STORAGE_KEY =
   "lean-sidecar-forged-history-referee-filter";
+const SIDECAR_STALE_BINDING_HISTORY_REFEREE_FILTER_STORAGE_KEY =
+  "lean-sidecar-stale-binding-history-referee-filter";
 const LEDGER_ALERTS_KIND_FILTER_STORAGE_KEY =
   "lean-ledger-alerts-kind-filter";
 type LedgerAlertsKindFilter = "all" | "tamper" | "monitor";
@@ -620,6 +624,29 @@ export default function DashboardPage() {
       },
     },
   );
+  // Task #231: same rotation paging as the forged "Recent dismissals"
+  // panel, for the amber stale-checkpoint-binding banner. `0` is the
+  // live history file; `N >= 1` reads the Nth rotated archive.
+  const [staleBindingAckRotation, setStaleBindingAckRotation] =
+    useState<number>(0);
+  const staleBindingAckHistoryParams = { rotation: staleBindingAckRotation };
+  const { data: staleBindingAckHistory } = useGetSidecarStaleBindingAckHistory(
+    staleBindingAckHistoryParams,
+    {
+      query: {
+        queryKey: getGetSidecarStaleBindingAckHistoryQueryKey(
+          staleBindingAckHistoryParams,
+        ),
+        // Task #231: poll the live page alongside the integrity status
+        // so the panel stays fresh after each Acknowledge click;
+        // rotated archives are immutable so skip the poll off the live
+        // page, exactly like the forged panel.
+        refetchInterval: staleBindingAckRotation === 0 ? 30_000 : false,
+        refetchIntervalInBackground: false,
+        retry: false,
+      },
+    },
+  );
   const { data: checkpointRerollHistory } = useGetLedgerCheckpointRerollHistory({
     query: {
       queryKey: getGetLedgerCheckpointRerollHistoryQueryKey(),
@@ -878,6 +905,38 @@ export default function DashboardPage() {
     }
   }, []);
 
+  const [
+    staleBindingHistoryRefereeFilter,
+    setStaleBindingHistoryRefereeFilterState,
+  ] = useState<string>(() => {
+    try {
+      return (
+        window.localStorage.getItem(
+          SIDECAR_STALE_BINDING_HISTORY_REFEREE_FILTER_STORAGE_KEY,
+        ) ?? ""
+      );
+    } catch {
+      return "";
+    }
+  });
+  const setStaleBindingHistoryRefereeFilter = useCallback((value: string) => {
+    setStaleBindingHistoryRefereeFilterState(value);
+    try {
+      if (value) {
+        window.localStorage.setItem(
+          SIDECAR_STALE_BINDING_HISTORY_REFEREE_FILTER_STORAGE_KEY,
+          value,
+        );
+      } else {
+        window.localStorage.removeItem(
+          SIDECAR_STALE_BINDING_HISTORY_REFEREE_FILTER_STORAGE_KEY,
+        );
+      }
+    } catch {
+      // ignore (private mode, etc.)
+    }
+  }, []);
+
   const rerollRefereeSummaries = useMemo(() => {
     const map = new Map<
       string,
@@ -947,6 +1006,37 @@ export default function DashboardPage() {
         refereeKey(e.ackedBy) === forgedHistoryRefereeFilter,
     );
   }, [forgedAckHistory, forgedHistoryRefereeFilter]);
+
+  // Task #231: same per-operator summary as the forged panel — stale-
+  // binding dismissals are attributed via `ackedBy` and carry no
+  // ok/fail outcome, so just count dismissals per operator plus the
+  // most recent dismissal timestamp.
+  const staleBindingRefereeSummaries = useMemo(() => {
+    const map = new Map<string, { total: number; lastAt: string | null }>();
+    const entries = staleBindingAckHistory?.entries ?? [];
+    for (const entry of entries) {
+      const key = refereeKey(entry.ackedBy);
+      const existing = map.get(key) ?? {
+        total: 0,
+        lastAt: null as string | null,
+      };
+      existing.total += 1;
+      if (!existing.lastAt) existing.lastAt = entry.acknowledgedAt;
+      map.set(key, existing);
+    }
+    return Array.from(map.entries())
+      .map(([key, v]) => ({ key, ...v }))
+      .sort((a, b) => b.total - a.total);
+  }, [staleBindingAckHistory]);
+
+  const filteredStaleBindingEntries = useMemo(() => {
+    const entries = staleBindingAckHistory?.entries ?? [];
+    if (!staleBindingHistoryRefereeFilter) return entries;
+    return entries.filter(
+      (e: { ackedBy?: string | null }) =>
+        refereeKey(e.ackedBy) === staleBindingHistoryRefereeFilter,
+    );
+  }, [staleBindingAckHistory, staleBindingHistoryRefereeFilter]);
 
   useEffect(() => {
     if (logPanelRef.current) {
@@ -3099,6 +3189,241 @@ export default function DashboardPage() {
                   {sidecarStaleBindingAckError}
                 </div>
               ) : null}
+              {(() => {
+                // Task #231: prior stale-checkpoint-binding dismissals
+                // from the rotating history log. The single-incident
+                // sidecar only carries the current incident's ack, so
+                // this panel is what operators investigating a recurring
+                // stale binding rely on to see who dismissed earlier
+                // banners — mirrors the forged-sidecar "Recent
+                // dismissals" panel, with prev/next paging into the
+                // rotated archives.
+                const entries = staleBindingAckHistory?.entries ?? [];
+                const rotations = staleBindingAckHistory?.rotations ?? [];
+                const currentRotation =
+                  staleBindingAckHistory?.rotation ?? staleBindingAckRotation;
+                // Hide the whole panel when there is nothing to show
+                // anywhere — neither live entries nor any rotated
+                // archive on disk.
+                if (entries.length === 0 && rotations.length === 0) {
+                  return null;
+                }
+                const capacity =
+                  staleBindingAckHistory?.capacity ?? entries.length;
+                const maxRotationIdx = rotations.reduce(
+                  (m, r) => (r.index > m ? r.index : m),
+                  0,
+                );
+                const canGoOlder = currentRotation < maxRotationIdx;
+                const canGoNewer = currentRotation > 0;
+                const fmtSize = (n: number): string => {
+                  if (n < 1024) return `${n} B`;
+                  if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`;
+                  return `${(n / (1024 * 1024)).toFixed(2)} MB`;
+                };
+                return (
+                  <div
+                    className="border border-amber-500/30 bg-background/40 mt-2"
+                    data-testid="panel-ledger-sidecar-stale-binding-history"
+                    data-rotation={currentRotation}
+                  >
+                    <div className="flex flex-wrap items-center justify-between gap-2 px-2 py-1 border-b border-amber-500/20">
+                      <span className="font-mono text-[10px] uppercase tracking-wider text-amber-700/80 dark:text-amber-300/80">
+                        Recent dismissals
+                        {currentRotation > 0 ? (
+                          <span
+                            className="ml-2 normal-case tracking-normal text-amber-700/60 dark:text-amber-300/60"
+                            data-testid="text-ledger-sidecar-stale-binding-history-archive-label"
+                          >
+                            (archive .{currentRotation})
+                          </span>
+                        ) : null}
+                      </span>
+                      <div className="flex items-center gap-2">
+                        <label
+                          htmlFor="ledger-sidecar-stale-binding-history-referee-filter"
+                          className="font-mono text-[10px] uppercase tracking-wider text-amber-700/80 dark:text-amber-300/80"
+                        >
+                          Referee
+                        </label>
+                        <select
+                          id="ledger-sidecar-stale-binding-history-referee-filter"
+                          value={staleBindingHistoryRefereeFilter}
+                          onChange={(e) =>
+                            setStaleBindingHistoryRefereeFilter(e.target.value)
+                          }
+                          className="font-mono text-[10px] bg-background border border-amber-500/30 px-1.5 py-0.5"
+                          data-testid="select-ledger-sidecar-stale-binding-history-referee-filter"
+                        >
+                          <option value="">all</option>
+                          {staleBindingRefereeSummaries.map((s) => (
+                            <option key={s.key} value={s.key}>
+                              {refereeLabel(s.key)} ({s.total})
+                            </option>
+                          ))}
+                        </select>
+                        {staleBindingHistoryRefereeFilter ? (
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setStaleBindingHistoryRefereeFilter("")
+                            }
+                            className="font-mono text-[10px] underline text-amber-700/70 dark:text-amber-300/70 hover:text-amber-700 dark:hover:text-amber-300"
+                            data-testid="button-ledger-sidecar-stale-binding-history-clear-filter"
+                          >
+                            clear
+                          </button>
+                        ) : null}
+                        <span
+                          className="font-mono text-[10px] text-amber-700/70 dark:text-amber-300/70"
+                          data-testid="text-ledger-sidecar-stale-binding-history-count"
+                        >
+                          {staleBindingHistoryRefereeFilter
+                            ? `${filteredStaleBindingEntries.length} of ${entries.length}`
+                            : `${entries.length} of last ${capacity}`}
+                        </span>
+                      </div>
+                    </div>
+                    {rotations.length > 0 ? (
+                      <div
+                        className="flex flex-wrap items-center gap-2 px-2 py-1 border-b border-amber-500/20 bg-amber-500/5"
+                        data-testid="panel-ledger-sidecar-stale-binding-history-rotations"
+                      >
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setStaleBindingAckRotation((r) =>
+                              Math.max(0, r - 1),
+                            )
+                          }
+                          disabled={!canGoNewer}
+                          className="font-mono text-[10px] px-2 py-0.5 border border-amber-500/30 rounded-sm bg-background/40 hover:bg-background/70 disabled:opacity-40 disabled:cursor-not-allowed"
+                          data-testid="btn-ledger-sidecar-stale-binding-history-newer"
+                          title="Page to the newer archive (or back to the live file)"
+                        >
+                          ← newer
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setStaleBindingAckRotation(0)}
+                          className={`font-mono text-[10px] px-2 py-0.5 border rounded-sm ${
+                            currentRotation === 0
+                              ? "bg-amber-500/80 text-white border-amber-500"
+                              : "bg-background/40 border-amber-500/30 hover:bg-background/70"
+                          }`}
+                          data-testid="btn-ledger-sidecar-stale-binding-history-rotation-0"
+                          title="Live stale-binding-ack history (data/hits.txt.lastok.stale-binding-ack.log.jsonl)"
+                        >
+                          live
+                        </button>
+                        {rotations.map((r) => (
+                          <button
+                            key={`stale-binding-ack-rot-${r.index}`}
+                            type="button"
+                            onClick={() => setStaleBindingAckRotation(r.index)}
+                            className={`font-mono text-[10px] px-2 py-0.5 border rounded-sm ${
+                              currentRotation === r.index
+                                ? "bg-amber-500/80 text-white border-amber-500"
+                                : "bg-background/40 border-amber-500/30 hover:bg-background/70"
+                            }`}
+                            data-testid={`btn-ledger-sidecar-stale-binding-history-rotation-${r.index}`}
+                            title={`Rotated archive .${r.index} — ${fmtSize(r.size)}, rotated ${formatTimestamp(r.mtime)}`}
+                          >
+                            .{r.index}
+                          </button>
+                        ))}
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setStaleBindingAckRotation((r) =>
+                              Math.min(maxRotationIdx, r + 1),
+                            )
+                          }
+                          disabled={!canGoOlder}
+                          className="font-mono text-[10px] px-2 py-0.5 border border-amber-500/30 rounded-sm bg-background/40 hover:bg-background/70 disabled:opacity-40 disabled:cursor-not-allowed"
+                          data-testid="btn-ledger-sidecar-stale-binding-history-older"
+                          title="Page to the next-older archive"
+                        >
+                          older →
+                        </button>
+                        {currentRotation > 0 ? (
+                          <span
+                            className="font-mono text-[10px] text-amber-700/70 dark:text-amber-300/70 ml-auto"
+                            data-testid="text-ledger-sidecar-stale-binding-history-rotation-hint"
+                          >
+                            read-only archive
+                          </span>
+                        ) : (
+                          <span
+                            className="font-mono text-[10px] text-amber-700/70 dark:text-amber-300/70 ml-auto"
+                            data-testid="text-ledger-sidecar-stale-binding-history-rotation-hint"
+                          >
+                            {rotations.length} rotated archive
+                            {rotations.length === 1 ? "" : "s"} available
+                          </span>
+                        )}
+                      </div>
+                    ) : null}
+                    {entries.length === 0 ? (
+                      <p
+                        className="px-2 py-2 font-mono text-[10px] text-amber-700/60 dark:text-amber-300/60"
+                        data-testid="text-ledger-sidecar-stale-binding-history-empty"
+                      >
+                        archive empty
+                      </p>
+                    ) : null}
+                    {entries.length > 0 &&
+                    filteredStaleBindingEntries.length === 0 ? (
+                      <p
+                        className="px-2 py-2 font-mono text-[10px] text-amber-700/60 dark:text-amber-300/60"
+                        data-testid="text-ledger-sidecar-stale-binding-history-no-match"
+                      >
+                        No dismissals match the current filter.
+                      </p>
+                    ) : null}
+                    <ul className="divide-y divide-amber-500/15">
+                      {filteredStaleBindingEntries.map((entry, i) => (
+                        <li
+                          key={`${entry.acknowledgedAt}-${i}`}
+                          className="flex flex-wrap items-center gap-x-3 gap-y-1 px-2 py-1 font-mono text-[10px]"
+                          data-testid={`row-ledger-sidecar-stale-binding-history-${i}`}
+                          data-bound-checkpoint-sha={entry.boundCheckpointSha ?? ""}
+                          data-acked-by={entry.ackedBy ?? ""}
+                        >
+                          <span className="text-foreground/70 md:w-44">
+                            {formatTimestamp(entry.acknowledgedAt)}
+                          </span>
+                          <span
+                            className={
+                              entry.ackedBy
+                                ? "text-foreground md:w-40 truncate"
+                                : "text-muted-foreground italic md:w-40 truncate"
+                            }
+                            title={
+                              entry.ackedBy ??
+                              "no operator attribution captured"
+                            }
+                          >
+                            {entry.ackedBy ?? "anonymous"}
+                          </span>
+                          <span
+                            className="text-muted-foreground truncate"
+                            title={
+                              entry.boundCheckpointSha
+                                ? `boundCheckpointSha: ${entry.boundCheckpointSha}`
+                                : "no checkpoint was on disk when the sidecar was sealed"
+                            }
+                          >
+                            {entry.boundCheckpointSha
+                              ? `checkpoint ${entry.boundCheckpointSha.slice(0, 12)}…`
+                              : "no checkpoint"}
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                );
+              })()}
             </div>
           ) : null}
 

@@ -367,6 +367,65 @@ export const GetSidecarForgedAckHistoryResponse = zod.object({
 
 
 /**
+ * Task #231. Returns the most recent operator-driven dismissals
+of the amber "stale checkpoint binding" banner — who clicked
+Acknowledge, when, and against which `boundCheckpointSha`.
+Sourced from the rotating history log
+`data/hits.txt.lastok.stale-binding-ack.log.jsonl` (rotated by
+size, capped via
+`MORNINGSTAR_STALE_BINDING_ACK_HISTORY_MAX_BYTES` /
+`MORNINGSTAR_STALE_BINDING_ACK_HISTORY_MAX_ROTATIONS`).
+
+The single-incident sidecar
+`data/hits.txt.lastok.stale-binding-ack` only carries the
+*current* incident's ack — when the next stale read against a
+different checkpoint replaces it with a new un-acked incident,
+the prior dismissal disappears from
+`lastOkSidecarStatusAcknowledgedBy`. This endpoint surfaces
+those prior dismissals so operators investigating a recurring
+stale binding can still see who handled the earlier incidents.
+Read-only, no auth — mirrors
+`/ledger/sidecar-forged-ack/history`.
+
+ * @summary Recent stale-checkpoint-binding dismissals (audit trail)
+ */
+export const getSidecarStaleBindingAckHistoryQueryLimitDefault = 20;
+export const getSidecarStaleBindingAckHistoryQueryLimitMax = 100;
+
+export const getSidecarStaleBindingAckHistoryQueryRotationDefault = 0;
+export const getSidecarStaleBindingAckHistoryQueryRotationMin = 0;
+
+
+
+export const GetSidecarStaleBindingAckHistoryQueryParams = zod.object({
+  "limit": zod.coerce.number().min(1).max(getSidecarStaleBindingAckHistoryQueryLimitMax).default(getSidecarStaleBindingAckHistoryQueryLimitDefault).describe('Maximum entries to return (default = capacity). Values\nabove the server cap are clamped down silently.\n'),
+  "rotation": zod.coerce.number().min(getSidecarStaleBindingAckHistoryQueryRotationMin).default(getSidecarStaleBindingAckHistoryQueryRotationDefault).describe('Which stale-binding-ack history file to read. `0` (the\ndefault) reads the live\n`data\/hits.txt.lastok.stale-binding-ack.log.jsonl`. `1`\nreads `…log.jsonl.1` (the most recently rotated archive),\n`2` reads `.2`, and so on up to the rotator\'s configured\n`MORNINGSTAR_STALE_BINDING_ACK_HISTORY_MAX_ROTATIONS`.\nRotated reads are best-effort: missing or partially written\nrotations return an empty `entries` array with\n`logExists: false`. Mirrors the rotation paging contract on\n`\/ledger\/sidecar-forged-ack\/history`.\n')
+})
+
+export const getSidecarStaleBindingAckHistoryResponseRotationMin = 0;
+
+
+
+
+export const GetSidecarStaleBindingAckHistoryResponse = zod.object({
+  "entries": zod.array(zod.object({
+  "boundCheckpointSha": zod.string().nullish().describe('sha256 hex of the checkpoint the stale `lastOkAt` was sealed\nagainst, or null when the sidecar was sealed with no\ncheckpoint on disk at seal time.\n'),
+  "acknowledgedAt": zod.coerce.date().describe('ISO-8601 timestamp of when the Acknowledge click happened.'),
+  "ackedBy": zod.string().nullish().describe('Attribution string for the operator who dismissed the\nbanner. Matched named token, sanitized `X-Referee-Name`\nheader, or the literal `\"anonymous\"`. Null only on legacy\nentries written before attribution was captured.\n')
+}).describe('One operator-driven dismissal of a stale-checkpoint-binding\nbanner, as parsed from the rotating history log. Task #231.\n')).describe('Most-recent-first slice of past stale-binding dismissals.'),
+  "logExists": zod.boolean().describe('True iff the rotating history log exists on disk. False is\nthe normal healthy state — no stale-checkpoint-binding\nincident has ever been acknowledged on this deploy.\n'),
+  "capacity": zod.number().describe('Maximum number of entries the endpoint will return per request.'),
+  "rotation": zod.number().min(getSidecarStaleBindingAckHistoryResponseRotationMin).describe('Which rotation file was read on this call. `0` means the\nlive `data\/hits.txt.lastok.stale-binding-ack.log.jsonl`;\n`N >= 1` means `…log.jsonl.N`. Echoes the request param so\nthe dashboard can highlight the active page tab without a\nsecond round-trip.\n'),
+  "rotations": zod.array(zod.object({
+  "index": zod.number().min(1).describe('Rotation index. `1` is the most recently rotated archive.'),
+  "path": zod.string().describe('Absolute path to the rotated file on disk.'),
+  "size": zod.number().describe('Size of the rotated file in bytes (for the dashboard tooltip).'),
+  "mtime": zod.coerce.date().describe('ISO-8601 mtime of the rotated file (i.e. when the rotation happened).')
+}).describe('One rotated archive of the stale-binding-ack history log on disk\n(`data\/hits.txt.lastok.stale-binding-ack.log.jsonl.<index>`).\nTask #231.\n')).describe('Snapshot of every rotated archive currently on disk\n(`…log.jsonl.1`, `.2`, …), newest-rotated first by index.\nEmpty when no rotation has ever happened — the live file is\nthe only history surface. Lets the dashboard render prev\/next\npaging controls without polling each rotation index blindly.\n')
+}).describe('Result of `GET \/ledger\/sidecar-stale-binding-ack\/history`\n(task #231). Mirrors `SidecarForgedAckHistory`.\n')
+
+
+/**
  * Task #124. Records that an operator has investigated and
 dismissed the red "Sidecar tamper detected" banner driven by
 `lastOkSidecarStatus === "forged"`. The acknowledgement is

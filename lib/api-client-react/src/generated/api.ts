@@ -29,6 +29,7 @@ import type {
   GetLedgerCheckpointRerollDigestParams,
   GetMorningstarHitsParams,
   GetSidecarForgedAckHistoryParams,
+  GetSidecarStaleBindingAckHistoryParams,
   HealthStatus,
   LeanLockoutClearRequest,
   LeanLockoutClearResult,
@@ -46,6 +47,7 @@ import type {
   SidecarForgedAckHistory,
   SidecarForgedAckResult,
   SidecarSecretRotateResult,
+  SidecarStaleBindingAckHistory,
   SidecarStaleBindingAckResult,
   UploadUrlRequest,
   UploadUrlResponse
@@ -1173,6 +1175,110 @@ export function useGetSidecarForgedAckHistory<TData = Awaited<ReturnType<typeof 
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
   const queryOptions = getGetSidecarForgedAckHistoryQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getGetSidecarStaleBindingAckHistoryUrl = (params?: GetSidecarStaleBindingAckHistoryParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : value.toString())
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/ledger/sidecar-stale-binding-ack/history?${stringifiedParams}` : `/api/ledger/sidecar-stale-binding-ack/history`
+}
+
+/**
+ * Task #231. Returns the most recent operator-driven dismissals
+of the amber "stale checkpoint binding" banner — who clicked
+Acknowledge, when, and against which `boundCheckpointSha`.
+Sourced from the rotating history log
+`data/hits.txt.lastok.stale-binding-ack.log.jsonl` (rotated by
+size, capped via
+`MORNINGSTAR_STALE_BINDING_ACK_HISTORY_MAX_BYTES` /
+`MORNINGSTAR_STALE_BINDING_ACK_HISTORY_MAX_ROTATIONS`).
+
+The single-incident sidecar
+`data/hits.txt.lastok.stale-binding-ack` only carries the
+*current* incident's ack — when the next stale read against a
+different checkpoint replaces it with a new un-acked incident,
+the prior dismissal disappears from
+`lastOkSidecarStatusAcknowledgedBy`. This endpoint surfaces
+those prior dismissals so operators investigating a recurring
+stale binding can still see who handled the earlier incidents.
+Read-only, no auth — mirrors
+`/ledger/sidecar-forged-ack/history`.
+
+ * @summary Recent stale-checkpoint-binding dismissals (audit trail)
+ */
+export const getSidecarStaleBindingAckHistory = async (params?: GetSidecarStaleBindingAckHistoryParams, options?: RequestInit): Promise<SidecarStaleBindingAckHistory> => {
+
+  return customFetch<SidecarStaleBindingAckHistory>(getGetSidecarStaleBindingAckHistoryUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetSidecarStaleBindingAckHistoryQueryKey = (params?: GetSidecarStaleBindingAckHistoryParams,) => {
+    return [
+    `/api/ledger/sidecar-stale-binding-ack/history`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getGetSidecarStaleBindingAckHistoryQueryOptions = <TData = Awaited<ReturnType<typeof getSidecarStaleBindingAckHistory>>, TError = ErrorType<unknown>>(params?: GetSidecarStaleBindingAckHistoryParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getSidecarStaleBindingAckHistory>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetSidecarStaleBindingAckHistoryQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getSidecarStaleBindingAckHistory>>> = ({ signal }) => getSidecarStaleBindingAckHistory(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getSidecarStaleBindingAckHistory>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetSidecarStaleBindingAckHistoryQueryResult = NonNullable<Awaited<ReturnType<typeof getSidecarStaleBindingAckHistory>>>
+export type GetSidecarStaleBindingAckHistoryQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Recent stale-checkpoint-binding dismissals (audit trail)
+ */
+
+export function useGetSidecarStaleBindingAckHistory<TData = Awaited<ReturnType<typeof getSidecarStaleBindingAckHistory>>, TError = ErrorType<unknown>>(
+ params?: GetSidecarStaleBindingAckHistoryParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getSidecarStaleBindingAckHistory>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetSidecarStaleBindingAckHistoryQueryOptions(params,options)
 
   const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
 
