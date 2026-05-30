@@ -2455,6 +2455,22 @@ BRICKS=(
   "Towers.YM.RiemannianGeometry|TheoremaAureum.Towers.YM.RiemannianGeometry.d_SU3_eq_chordal_id"
   "Towers.YM.RiemannianGeometry|TheoremaAureum.Towers.YM.RiemannianGeometry.d_SU3_geodesic_eq_d_SU3_diag"
   "Towers.YM.RiemannianGeometry|TheoremaAureum.Towers.YM.RiemannianGeometry.d_SU3_le_geodesic_of_contracts"
+  # Task #241 — the Task #189 chordal `d_SU3 g h = ‖↑g - ↑h‖_HS` is a
+  # GENUINE METRIC. Discharges the two clauses `IsMetricOnSU3` adds over
+  # `IsPseudoDistOnSU3` (separation `d g h = 0 → g = h` and the triangle
+  # inequality `d g h ≤ d g k + d k h`) for the REAL chordal distance,
+  # landing `d_SU3_isMetric : IsMetricOnSU3 d_SU3`. Proof routes `hsNormSq`
+  # through the genuine L² structure of `EuclideanSpace ℂ (Fin 3 × Fin 3)`
+  # via the linear embedding `toEuc M = (M i j)_(i,j)`:
+  # `hsNormSq_eq_sum` (`hsNormSq M = ∑ ‖M i j‖²` from `tr(Mᴴ M)`),
+  # `sqrt_hsNormSq_eq_norm` (`√(hsNormSq M) = ‖toEuc M‖`), so separation is
+  # `norm_eq_zero` + `toEuc` injectivity + SU(3)→Matrix coercion injectivity,
+  # and triangle is the ambient `dist_triangle`. `#print axioms d_SU3_isMetric`
+  # = classical trio (verified live). This is the CHORDAL metric, NOT the
+  # Killing-form GEODESIC distance (still open — needs the Riemannian
+  # exponential / cut-locus, absent from mathlib v4.12.0). Makes NO mass-gap /
+  # μ>0 / Surface-#1 claim; YM stays `Status: Open`. Wall 549 → 550 (+1).
+  "Towers.YM.RiemannianGeometry|TheoremaAureum.Towers.YM.RiemannianGeometry.d_SU3_isMetric"
   # Batch 162 / TRI PARALLEL #2 — three honest stand-ins for Yang-Mills
   # Surface #1 (OS reconstruction / mass-gap support). Each is a
   # consistency / inhabitedness brick on its predicate shape; none

@@ -43,3 +43,22 @@ with `Freq = EuclideanSpace ℝ (Fin 3)`, `Val = EuclideanSpace ℂ (Fin 3)`.
   (conjugation-fixed) components, `⟪toVal ξ, û⟫_ℂ = ∑ i, ξ_i · û_i = ξ · û` — the
   Hermitian inner product literally equals the bilinear divergence, so the
   inner-product phrasing is faithful, not a weakening.
+
+## Proving a matrix Frobenius/HS distance is a genuine metric
+- To show `√(∑ ‖M i j‖²)` separates points + satisfies the triangle inequality,
+  do NOT grind Minkowski by hand. Embed the matrix into `EuclideanSpace 𝕜
+  (ι × κ)` via `toEuc M := (WithLp.equiv 2 _).symm (fun ij => M ij.1 ij.2)` and
+  prove `√(hsNormSq M) = ‖toEuc M‖` (`EuclideanSpace.norm_eq` +
+  `Fintype.sum_prod_type` + `toEuc_apply` which is `rfl`).
+- Then triangle = ambient `dist_triangle` (rewrite norms to `dist` via
+  `← dist_eq_norm`); separation = `norm_eq_zero` + a coordinatewise
+  `toEuc_eq_zero` (`congrArg (·  (i,j))` then `simpa [toEuc_apply]`).
+- For `hsNormSq M = (tr(Mᴴ M)).re = ∑ ‖M i j‖²`: unfold `Matrix.trace`, then
+  `simp only [Matrix.diag_apply, Matrix.mul_apply, Matrix.star_apply,
+  Complex.re_sum, hz]` where `hz z : (star z * z).re = ‖z‖²`, finish with
+  `Finset.sum_comm` (the `i,k` index order from the trace is swapped vs `i,j`).
+  `Complex.re_sum` (in `Data/Complex/BigOperators`) pushes `.re` through a sum.
+- `hz`: `star z * z = ↑(normSq z)` via `rw [Complex.star_def,
+  Complex.normSq_eq_conj_mul_self]` (use `star_def` to bridge `star`↔`conj`,
+  per the star-vs-starRingEnd defeq gotcha), then `Complex.ofReal_re`,
+  `Complex.normSq_eq_abs`, `Complex.norm_eq_abs`.

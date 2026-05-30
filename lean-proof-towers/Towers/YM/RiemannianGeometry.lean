@@ -103,6 +103,7 @@ import Mathlib.LinearAlgebra.Matrix.Determinant.Basic
 import Mathlib.LinearAlgebra.Matrix.NonsingularInverse
 import Mathlib.Data.Matrix.Notation
 import Mathlib.Analysis.InnerProductSpace.Basic
+import Mathlib.Analysis.InnerProductSpace.PiL2
 import Mathlib.Analysis.Normed.Algebra.MatrixExponential
 import Mathlib.Data.Real.Basic
 import Mathlib.Data.Real.Archimedean
@@ -362,6 +363,118 @@ theorem not_IsMetricOnSU3_const_zero :
     ¬ IsMetricOnSU3 (fun _ _ : SU3 => (0 : ℝ)) := by
   rintro ⟨_, hsep, _⟩
   exact cWit_ne_one (hsep cWit 1 rfl)
+
+/-! ## The chordal `d_SU3` is a genuine metric (Task #241)
+
+This section discharges the two clauses `IsMetricOnSU3` adds over
+`IsPseudoDistOnSU3` — **separation** (`d g h = 0 → g = h`) and the
+**triangle inequality** (`d g h ≤ d g k + d k h`) — for the *real*
+Task #189 chordal distance `d_SU3 g h = ‖↑g - ↑h‖_HS`, landing
+`d_SU3_isMetric : IsMetricOnSU3 d_SU3`.
+
+The proof routes the Hilbert–Schmidt squared norm `hsNormSq` through the
+genuine `L²` structure of `EuclideanSpace ℂ (Fin 3 × Fin 3)`: the linear
+embedding `toEuc M = (M i j)_{(i,j)}` satisfies `√(hsNormSq M) = ‖toEuc M‖`,
+so separation is `norm_eq_zero` + injectivity of `toEuc` + injectivity of
+the SU(3) → Matrix coercion, and the triangle inequality is the ambient
+`dist_triangle`. This is a real metric inherited from the ambient normed
+space — NOT a stand-in.
+
+**Honest scope (locked).** This is the *chordal* (Hilbert–Schmidt) metric,
+NOT the Killing-form *geodesic* distance (which still needs the Riemannian
+exponential / cut-locus, absent from mathlib v4.12.0 — see the file
+docstring and the Task #211 geodesic section below). It makes NO mass-gap /
+μ>0 / Surface-#1 claim; YM tower stays `Status: Open`. Axiom footprint: the
+classical trio `{propext, Classical.choice, Quot.sound}`. -/
+
+/-- **`hsNormSq_eq_sum`.** The Hilbert–Schmidt squared norm is the entrywise
+sum of squared magnitudes: `hsNormSq M = ∑_{i,j} ‖M i j‖²`. Read off from
+`tr(Mᴴ M) = ∑_i ∑_k conj(M k i)·(M k i)`, taking real parts. -/
+theorem hsNormSq_eq_sum (M : Matrix (Fin 3) (Fin 3) ℂ) :
+    hsNormSq M = ∑ i, ∑ j, ‖M i j‖ ^ 2 := by
+  have hz : ∀ z : ℂ, (star z * z).re = ‖z‖ ^ 2 := by
+    intro z
+    have hzz : star z * z = ((Complex.normSq z : ℝ) : ℂ) := by
+      rw [Complex.star_def, Complex.normSq_eq_conj_mul_self]
+    rw [hzz, Complex.ofReal_re, Complex.normSq_eq_abs, Complex.norm_eq_abs]
+  unfold hsNormSq
+  rw [Matrix.trace]
+  simp only [Matrix.diag_apply, Matrix.mul_apply, Matrix.star_apply,
+    Complex.re_sum, hz]
+  exact Finset.sum_comm
+
+/-- **`toEuc M`** — the linear embedding of a 3×3 complex matrix into the
+`L²` space `EuclideanSpace ℂ (Fin 3 × Fin 3)`, sending `M` to the family of
+its entries `(i,j) ↦ M i j`. Its norm is the Hilbert–Schmidt norm
+(`sqrt_hsNormSq_eq_norm`), which lets us inherit separation and the triangle
+inequality from the ambient `L²` space. -/
+noncomputable def toEuc (M : Matrix (Fin 3) (Fin 3) ℂ) :
+    EuclideanSpace ℂ (Fin 3 × Fin 3) :=
+  (WithLp.equiv 2 (Fin 3 × Fin 3 → ℂ)).symm (fun ij => M ij.1 ij.2)
+
+/-- The `(i,j)`-coordinate of `toEuc M` is `M i j`. -/
+theorem toEuc_apply (M : Matrix (Fin 3) (Fin 3) ℂ) (ij : Fin 3 × Fin 3) :
+    toEuc M ij = M ij.1 ij.2 := rfl
+
+/-- `toEuc` distributes over subtraction (it is additive). -/
+theorem toEuc_sub (A B : Matrix (Fin 3) (Fin 3) ℂ) :
+    toEuc (A - B) = toEuc A - toEuc B := by
+  ext ij
+  simp only [toEuc_apply, PiLp.sub_apply, Matrix.sub_apply]
+
+/-- **`sqrt_hsNormSq_eq_norm`.** The square root of the Hilbert–Schmidt
+squared norm is the `L²` norm of the `EuclideanSpace` embedding:
+`√(hsNormSq M) = ‖toEuc M‖`. -/
+theorem sqrt_hsNormSq_eq_norm (M : Matrix (Fin 3) (Fin 3) ℂ) :
+    Real.sqrt (hsNormSq M) = ‖toEuc M‖ := by
+  rw [EuclideanSpace.norm_eq, hsNormSq_eq_sum, Fintype.sum_prod_type]
+  simp only [toEuc_apply]
+
+/-- `toEuc` is injective on the kernel: `toEuc M = 0 → M = 0`. -/
+theorem toEuc_eq_zero {M : Matrix (Fin 3) (Fin 3) ℂ} (h : toEuc M = 0) :
+    M = 0 := by
+  ext i j
+  have hz := congrArg (fun x : EuclideanSpace ℂ (Fin 3 × Fin 3) => x (i, j)) h
+  simpa only [toEuc_apply] using hz
+
+/-- **Separation for the chordal distance.** `d_SU3 g h = 0 → g = h`. From
+`d_SU3 g h = ‖toEuc (↑g - ↑h)‖` (via `sqrt_hsNormSq_eq_norm`), `norm_eq_zero`
+gives `toEuc (↑g - ↑h) = 0`, hence `↑g - ↑h = 0` (injectivity of `toEuc`),
+hence `g = h` (injectivity of the SU(3) → Matrix coercion). -/
+theorem d_SU3_sep (g h : SU3) (hgh : d_SU3 g h = 0) : g = h := by
+  unfold d_SU3 at hgh
+  rw [sqrt_hsNormSq_eq_norm, norm_eq_zero] at hgh
+  have hM : (g : Matrix (Fin 3) (Fin 3) ℂ) - h = 0 := toEuc_eq_zero hgh
+  exact Subtype.ext (sub_eq_zero.mp hM)
+
+/-- **Triangle inequality for the chordal distance.**
+`d_SU3 g h ≤ d_SU3 g k + d_SU3 k h`. Each chordal distance equals an `L²`
+norm of a difference of `toEuc` images (`sqrt_hsNormSq_eq_norm` + `toEuc_sub`),
+so the bound is the ambient `dist_triangle` in `EuclideanSpace`. -/
+theorem d_SU3_triangle (g h k : SU3) :
+    d_SU3 g h ≤ d_SU3 g k + d_SU3 k h := by
+  have e : ∀ a b : SU3,
+      d_SU3 a b = ‖toEuc (a : Matrix (Fin 3) (Fin 3) ℂ)
+        - toEuc (b : Matrix (Fin 3) (Fin 3) ℂ)‖ := by
+    intro a b
+    unfold d_SU3
+    rw [sqrt_hsNormSq_eq_norm, toEuc_sub]
+  rw [e g h, e g k, e k h, ← dist_eq_norm, ← dist_eq_norm, ← dist_eq_norm]
+  exact dist_triangle _ _ _
+
+/-- **Brick (`d_SU3_isMetric`).** The real Task #189 chordal distance
+`d_SU3 g h = ‖↑g - ↑h‖_HS` is a genuine metric on SU(3): it satisfies the
+full `IsMetricOnSU3` predicate — the three pseudo-distance clauses
+(`d_SU3_isPseudoDist`), separation (`d_SU3_sep`), and the triangle inequality
+(`d_SU3_triangle`). This upgrades the heat-kernel envelope's distance from a
+pseudo-distance to a real metric.
+
+**Honest scope (locked).** This is the *chordal* metric, NOT the Killing-form
+*geodesic* distance (still open — needs the Riemannian exponential / cut-locus,
+absent from mathlib v4.12.0). It makes NO mass-gap / μ>0 / Surface-#1 claim;
+YM tower stays `Status: Open`. -/
+theorem d_SU3_isMetric : IsMetricOnSU3 d_SU3 :=
+  ⟨d_SU3_isPseudoDist, d_SU3_sep, d_SU3_triangle⟩
 
 /-! ## The genuine *geodesic* distance via the matrix exponential (Task #211)
 

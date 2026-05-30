@@ -7,8 +7,22 @@ history. Roadmap → `docs/ROADMAP.md`.
 
 ## Current status — 2026-05-30
 
-- **Wall:** 539 BRICKS (`${#BRICKS[@]}` in `scripts/check-towers.sh`). The
+- **Wall:** 550 BRICKS (`${#BRICKS[@]}` in `scripts/check-towers.sh`). The
   source of truth for the count is the script, not this file.
+- **Real SU(3) chordal distance is a genuine metric (NEW brick, in BRICKS):**
+  `Towers/YM/RiemannianGeometry.lean` now lands `d_SU3_isMetric :
+  IsMetricOnSU3 d_SU3` — the Task #189 chordal distance `d_SU3 g h =
+  ‖↑g - ↑h‖_HS` PROVES the full metric predicate (the three pseudo-distance
+  clauses + separation `d g h = 0 → g = h` + triangle `d g h ≤ d g k + d k h`).
+  Proof routes `hsNormSq` through the genuine L² structure of
+  `EuclideanSpace ℂ (Fin 3 × Fin 3)` via the linear embedding `toEuc`
+  (`sqrt_hsNormSq_eq_norm : √(hsNormSq M) = ‖toEuc M‖`): separation is
+  `norm_eq_zero` + `toEuc`/coercion injectivity, triangle is the ambient
+  `dist_triangle`. `#print axioms` = classical trio (verified live), no `sorry`.
+  HONEST scope: this is the CHORDAL metric, NOT the Killing-form GEODESIC
+  distance (still open — needs the Riemannian exponential / cut-locus, absent
+  from mathlib v4.12.0). Makes NO mass-gap / μ>0 / Surface-#1 claim; YM stays
+  `Status: Open`.
 - **Axiom debt:** `[]` on `TheoremaAureum.main_theorem` (`#print axioms`
   returns `[]`; also `[]` on `H2_WeilTransfer` and `M9_WeilTransfer_All`).
   Every landed brick is classical-trio-only.
