@@ -62,6 +62,48 @@ describe("buildRerollDigest", () => {
     expect(d.text).toContain("Failures:\n  (none)");
   });
 
+  it("buckets the window into fixed-width slices with ok/fail tallies", () => {
+    // NOW is 2026-05-28T12:00:00Z; a 24h window => 24 hourly buckets
+    // starting at 2026-05-27T12:00:00Z.
+    const rows: RerollDigestRow[] = [
+      row({ timestamp: "2026-05-27T12:30:00Z", ok: true }), // bucket 0
+      row({ timestamp: "2026-05-28T11:30:00Z", ok: true }), // last bucket
+      row({ timestamp: "2026-05-28T11:45:00Z", ok: false }), // last bucket
+    ];
+    const d = buildRerollDigest(rows, 24, NOW);
+    expect(d.buckets).toHaveLength(24);
+    expect(d.buckets[0]).toEqual({
+      start: "2026-05-27T12:00:00.000Z",
+      attempts: 1,
+      okCount: 1,
+      failCount: 0,
+    });
+    expect(d.buckets[23]).toEqual({
+      start: "2026-05-28T11:00:00.000Z",
+      attempts: 2,
+      okCount: 1,
+      failCount: 1,
+    });
+    const totalAttempts = d.buckets.reduce((s, b) => s + b.attempts, 0);
+    expect(totalAttempts).toBe(3);
+  });
+
+  it("returns empty (zeroed) buckets when there are no attempts", () => {
+    const d = buildRerollDigest([], 24, NOW);
+    expect(d.buckets).toHaveLength(24);
+    expect(d.buckets.every((b) => b.attempts === 0)).toBe(true);
+  });
+
+  it("clamps out-of-window rows into the first/last bucket", () => {
+    const rows: RerollDigestRow[] = [
+      row({ timestamp: "2026-05-20T00:00:00Z", ok: true }), // way before start
+      row({ timestamp: "2026-05-28T12:00:00Z", ok: false }), // at/after end
+    ];
+    const d = buildRerollDigest(rows, 24, NOW);
+    expect(d.buckets[0].attempts).toBe(1);
+    expect(d.buckets[23].attempts).toBe(1);
+  });
+
   it("collapses whitespace and caps error length in failure list", () => {
     const huge = "x".repeat(500);
     const d = buildRerollDigest(

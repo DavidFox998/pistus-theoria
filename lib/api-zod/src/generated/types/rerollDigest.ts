@@ -5,6 +5,7 @@
  * Theorema Aureum 143 — Certificate Ledger API
  * OpenAPI spec version: 0.1.0
  */
+import type { RerollDigestBucket } from './rerollDigestBucket';
 import type { RerollDigestPerReferee } from './rerollDigestPerReferee';
 import type { RerollDigestRow } from './rerollDigestRow';
 import type { RerollDigestWindow } from './rerollDigestWindow';
@@ -30,6 +31,11 @@ export interface RerollDigest {
   perReferee: RerollDigestPerReferee[];
   /** Every failing re-roll row in the window. */
   failures: RerollDigestRow[];
+  /** Equal-width time slices across the window (oldest first) with
+  per-slice attempt/ok/fail tallies, for charting volume over
+  time (task #224).
+   */
+  buckets: RerollDigestBucket[];
   /** The rendered digest body (same text the email/webhook sends). */
   text: string;
 }

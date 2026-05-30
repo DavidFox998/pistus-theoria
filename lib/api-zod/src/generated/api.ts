@@ -596,6 +596,12 @@ export const GetLedgerCheckpointRerollDigestResponse = zod.object({
   "refereeName": zod.string().nullish(),
   "ip": zod.string().nullish()
 }).describe('One failing checkpoint re-roll attempt inside a digest window.')).describe('Every failing re-roll row in the window.'),
+  "buckets": zod.array(zod.object({
+  "start": zod.coerce.date().describe('ISO-8601 timestamp of the bucket\'s (inclusive) start.'),
+  "attempts": zod.number(),
+  "okCount": zod.number(),
+  "failCount": zod.number()
+}).describe('Task #224. One equal-width time slice of a digest window with\nattempt\/ok\/fail tallies, so the dashboard can draw a\nvolume-over-time chart. A digest always has a fixed number of\nbuckets regardless of window length.\n')).describe('Equal-width time slices across the window (oldest first) with\nper-slice attempt\/ok\/fail tallies, for charting volume over\ntime (task #224).\n'),
   "text": zod.string().describe('The rendered digest body (same text the email\/webhook sends).')
 }).describe('On-demand rollup of checkpoint re-roll attempts over a window\n(task #199). Recomputed from the persisted re-roll history each\ntime it is requested — the same body the daily digest email\/webhook\nsends, surfaced for the dashboard.\n')
 

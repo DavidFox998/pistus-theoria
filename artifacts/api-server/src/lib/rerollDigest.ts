@@ -19,6 +19,14 @@ export interface RerollDigestPerReferee {
   failCount: number;
 }
 
+export interface RerollDigestBucket {
+  /** ISO-8601 timestamp of the bucket's (inclusive) start. */
+  start: string;
+  attempts: number;
+  okCount: number;
+  failCount: number;
+}
+
 export interface RerollDigest {
   windowHours: number;
   windowStart: string;
@@ -28,10 +36,58 @@ export interface RerollDigest {
   failCount: number;
   perReferee: RerollDigestPerReferee[];
   failures: RerollDigestRow[];
+  buckets: RerollDigestBucket[];
   text: string;
 }
 
 const ANON_REFEREE = "(unnamed)";
+
+/**
+ * Task #224: fixed number of time buckets per digest, regardless of
+ * window length, so the dashboard sparkline stays a compact, constant
+ * width across 24h/7d/30d. 24 columns keeps each bar readable while
+ * still revealing a burst. With 24 buckets a 24h window is hourly, 7d
+ * is 7h-wide, 30d is daily.
+ */
+const DIGEST_BUCKET_COUNT = 24;
+
+/**
+ * Task #224: bucket the window into `DIGEST_BUCKET_COUNT` equal slices
+ * and tally attempts/ok/fail per slice so the dashboard can draw a
+ * volume-over-time chart. Rows are placed by their finish timestamp;
+ * anything landing on or before the window start clamps into bucket 0
+ * and anything at/after the end clamps into the last bucket (defensive
+ * against clock skew between the row time and `now`).
+ */
+function bucketRerollRows(
+  rows: RerollDigestRow[],
+  windowStartMs: number,
+  windowHours: number,
+): RerollDigestBucket[] {
+  const windowMs = windowHours * 60 * 60 * 1000;
+  const bucketMs = windowMs / DIGEST_BUCKET_COUNT;
+  const buckets: RerollDigestBucket[] = Array.from(
+    { length: DIGEST_BUCKET_COUNT },
+    (_, i) => ({
+      start: new Date(windowStartMs + i * bucketMs).toISOString(),
+      attempts: 0,
+      okCount: 0,
+      failCount: 0,
+    }),
+  );
+  for (const r of rows) {
+    const t = Date.parse(r.timestamp);
+    if (Number.isNaN(t)) continue;
+    let idx = Math.floor((t - windowStartMs) / bucketMs);
+    if (idx < 0) idx = 0;
+    if (idx >= DIGEST_BUCKET_COUNT) idx = DIGEST_BUCKET_COUNT - 1;
+    const bucket = buckets[idx];
+    bucket.attempts += 1;
+    if (r.ok) bucket.okCount += 1;
+    else bucket.failCount += 1;
+  }
+  return buckets;
+}
 
 /**
  * Task #176: build the human-readable digest body. Groups by referee
@@ -45,9 +101,8 @@ export function buildRerollDigest(
   now: Date = new Date(),
 ): RerollDigest {
   const windowEnd = now.toISOString();
-  const windowStart = new Date(
-    now.getTime() - windowHours * 60 * 60 * 1000,
-  ).toISOString();
+  const windowStartMs = now.getTime() - windowHours * 60 * 60 * 1000;
+  const windowStart = new Date(windowStartMs).toISOString();
   const byReferee = new Map<string, RerollDigestPerReferee>();
   let okCount = 0;
   let failCount = 0;
@@ -119,6 +174,7 @@ export function buildRerollDigest(
     failCount,
     perReferee,
     failures,
+    buckets: bucketRerollRows(rows, windowStartMs, windowHours),
     text: lines.join("\n"),
   };
 }

@@ -48,6 +48,7 @@ export * from './ledgerIntegrityStatusStatus';
 export * from './morningstarHits';
 export * from './morningstarProbe';
 export * from './rerollDigest';
+export * from './rerollDigestBucket';
 export * from './rerollDigestPerReferee';
 export * from './rerollDigestRow';
 export * from './rerollDigestWindow';

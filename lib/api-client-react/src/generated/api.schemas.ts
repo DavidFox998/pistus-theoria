@@ -357,6 +357,21 @@ export interface RerollDigestPerReferee {
 }
 
 /**
+ * Task #224. One equal-width time slice of a digest window with
+attempt/ok/fail tallies, so the dashboard can draw a
+volume-over-time chart. A digest always has a fixed number of
+buckets regardless of window length.
+
+ */
+export interface RerollDigestBucket {
+  /** ISO-8601 timestamp of the bucket's (inclusive) start. */
+  start: string;
+  attempts: number;
+  okCount: number;
+  failCount: number;
+}
+
+/**
  * The requested (and applied) window key.
  */
 export type RerollDigestWindow = typeof RerollDigestWindow[keyof typeof RerollDigestWindow];
@@ -389,6 +404,11 @@ export interface RerollDigest {
   perReferee: RerollDigestPerReferee[];
   /** Every failing re-roll row in the window. */
   failures: RerollDigestRow[];
+  /** Equal-width time slices across the window (oldest first) with
+  per-slice attempt/ok/fail tallies, for charting volume over
+  time (task #224).
+   */
+  buckets: RerollDigestBucket[];
   /** The rendered digest body (same text the email/webhook sends). */
   text: string;
 }

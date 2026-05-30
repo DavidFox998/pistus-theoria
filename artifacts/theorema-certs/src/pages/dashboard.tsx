@@ -27,7 +27,10 @@ import {
   getGetLedgerAlertsQueryKey,
   getGetLedgerCheckpointRerollHistoryQueryKey,
 } from "@workspace/api-client-react";
-import type { LedgerAlertDeliveryStatus } from "@workspace/api-client-react";
+import type {
+  LedgerAlertDeliveryStatus,
+  RerollDigestBucket,
+} from "@workspace/api-client-react";
 import { ShaChip } from "@/components/sha-chip";
 import { StatusBadge } from "@/components/status-badge";
 import { VerifyTxtDialog } from "@/components/verify-txt-dialog";
@@ -100,6 +103,108 @@ function formatTimestamp(iso: string | undefined): string {
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return iso;
   return d.toISOString().replace("T", " ").replace(/\.\d+Z$/, "Z");
+}
+
+/**
+ * Task #224: compact volume-over-time chart for the re-roll digest.
+ * Each bucket is a vertical column; the column is split into a green
+ * (ok) segment and a red (fail) segment stacked on top, sized against
+ * the busiest bucket so a burst of activity (or a spike of failures)
+ * visibly towers over the rest. Kept as a hand-rolled SVG to match the
+ * dense font-mono panel aesthetic rather than the heavier recharts
+ * container used elsewhere. Renders nothing meaningful (a flat
+ * baseline) when the window is empty.
+ */
+function RerollDigestChart({
+  buckets,
+}: {
+  buckets: RerollDigestBucket[];
+}) {
+  const maxAttempts = buckets.reduce(
+    (m, b) => (b.attempts > m ? b.attempts : m),
+    0,
+  );
+  const totalFailures = buckets.reduce((s, b) => s + b.failCount, 0);
+  const count = buckets.length || 1;
+  const gap = 1;
+  const colWidth = (100 - gap * (count - 1)) / count;
+  return (
+    <div
+      className="px-3 py-2 border-b border-border bg-muted/5"
+      data-testid="chart-reroll-digest"
+      data-bucket-count={buckets.length}
+      data-max-attempts={maxAttempts}
+    >
+      <div className="flex items-center justify-between mb-1">
+        <span className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
+          volume over time
+        </span>
+        <span className="font-mono text-[10px] text-muted-foreground">
+          peak {maxAttempts}/bucket
+        </span>
+      </div>
+      <svg
+        viewBox="0 0 100 28"
+        preserveAspectRatio="none"
+        className="w-full h-12 overflow-visible"
+        role="img"
+        aria-label={`Re-roll volume across ${buckets.length} time buckets, peak ${maxAttempts} attempts per bucket, ${totalFailures} failures total`}
+      >
+        {/* baseline */}
+        <line
+          x1="0"
+          y1="28"
+          x2="100"
+          y2="28"
+          className="stroke-border"
+          strokeWidth="0.5"
+          vectorEffect="non-scaling-stroke"
+        />
+        {buckets.map((b, i) => {
+          const x = i * (colWidth + gap);
+          const totalH =
+            maxAttempts > 0 ? (b.attempts / maxAttempts) * 28 : 0;
+          const failH =
+            b.attempts > 0 ? (b.failCount / b.attempts) * totalH : 0;
+          const okH = totalH - failH;
+          const okY = 28 - okH;
+          const failY = okY - failH;
+          const title = `${formatTimestamp(b.start)} — ${b.attempts} attempts (ok=${b.okCount}, fail=${b.failCount})`;
+          return (
+            <g key={b.start} data-testid={`chart-reroll-digest-bucket-${i}`}>
+              <title>{title}</title>
+              {/* invisible full-height hit area so empty buckets are hoverable */}
+              <rect
+                x={x}
+                y={0}
+                width={colWidth}
+                height={28}
+                fill="transparent"
+              />
+              {okH > 0 ? (
+                <rect
+                  x={x}
+                  y={okY}
+                  width={colWidth}
+                  height={okH}
+                  className="fill-green-600 dark:fill-green-500"
+                />
+              ) : null}
+              {failH > 0 ? (
+                <rect
+                  x={x}
+                  y={failY}
+                  width={colWidth}
+                  height={failH}
+                  className="fill-red-600 dark:fill-red-500"
+                />
+              ) : null}
+            </g>
+          );
+        })}
+      </svg>
+    </div>
+  );
 }
 
 interface RebuildOutcome {
@@ -3530,6 +3635,7 @@ export default function DashboardPage() {
                         over last {rerollDigest.windowHours}h
                       </span>
                     </div>
+                    <RerollDigestChart buckets={rerollDigest.buckets} />
                     {perReferee.length === 0 ? (
                       <p
                         className="px-3 py-2 font-mono text-[11px] text-muted-foreground italic"
