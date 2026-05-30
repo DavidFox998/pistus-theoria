@@ -59,7 +59,10 @@ VERIFICATION STATUS — **UNVERIFIED** (not yet machine-checked):
   `BRICKS` array of `scripts/check-towers.sh`, and it is NOT a brick.
   The proofs below are best-effort and may need adjustment on first compile.
 -/
-import Mathlib
+import Mathlib.Data.Complex.ExponentialBounds
+import Mathlib.Data.Real.Pi.Bounds
+import Mathlib.Analysis.SpecialFunctions.Log.Basic
+import Mathlib.Algebra.BigOperators.Group.Finset
 
 namespace TheoremaAureum.Towers.YM.S4Numerics
 
@@ -68,7 +71,7 @@ open Real
 /-! ### Fact 1 — `C_S4 < 5/2` (a four-term arithmetic inequality, nothing more) -/
 
 /-- The finite set `S₄ = {2, 3, 19, 191} ⊂ ℝ`. -/
-def S4 : Finset ℝ := {2, 3, 19, 191}
+noncomputable def S4 : Finset ℝ := {2, 3, 19, 191}
 
 /-- `C_S4 := ∑_{p ∈ S₄} log p / (p - 1)` with the divisor `log p / (p - 1)`
     (value ≈ 1.4337).  This is NOT the corpus's `log p · p/(p-1)` ≈ 11.422. -/
@@ -78,6 +81,9 @@ noncomputable def C_S4 : ℝ := ∑ p ∈ S4, Real.log p / (p - 1)
     RH, BSD, the Kotecký–Preiss criterion, or the Yang–Mills mass gap. -/
 theorem c_S4_lt : C_S4 < 5 / 2 := by
   have hlog2 : Real.log 2 < 0.6931471808 := Real.log_two_lt_d9
+  have hlog2' : Real.log 2 < 7 / 10 := by
+    have e : (0.6931471808 : ℝ) ≤ 7 / 10 := by norm_num
+    linarith [hlog2, e]
   -- log 3 ≤ log 4 = 2·log 2
   have h3 : Real.log 3 ≤ 2 * Real.log 2 := by
     calc Real.log 3 ≤ Real.log 4 := Real.log_le_log (by norm_num) (by norm_num)
@@ -94,12 +100,12 @@ theorem c_S4_lt : C_S4 < 5 / 2 := by
       _ = Real.log ((2 : ℝ) ^ 8) := by norm_num
       _ = 8 * Real.log 2 := by rw [Real.log_pow]; push_cast; ring
   -- expand the four-term sum
-  have hexpand : C_S4 = Real.log 2 / 1 + Real.log 3 / 2
+  have hexpand : C_S4 = Real.log 2 + Real.log 3 / 2
       + Real.log 19 / 18 + Real.log 191 / 190 := by
     simp only [C_S4, S4]
     rw [Finset.sum_insert (by norm_num), Finset.sum_insert (by norm_num),
         Finset.sum_insert (by norm_num), Finset.sum_singleton]
-    norm_num
+    ring
   rw [hexpand]
   -- per-term bounds in units of log 2
   have t2 : Real.log 3 / 2 ≤ Real.log 2 := by
@@ -108,7 +114,7 @@ theorem c_S4_lt : C_S4 < 5 / 2 := by
     (div_le_div_right (by norm_num : (0:ℝ) < 18)).mpr h19
   have t4 : Real.log 191 / 190 ≤ 8 * Real.log 2 / 190 :=
     (div_le_div_right (by norm_num : (0:ℝ) < 190)).mpr h191
-  linarith [hlog2, t2, t3, t4]
+  linarith [hlog2', t2, t3, t4]
 
 /-! ### Fact 2 — `kEff ≤ 3.2` (a bound on `10/π`, no meaning attached) -/
 
@@ -118,8 +124,11 @@ noncomputable def kEff : ℝ := 10 / Real.pi
 
 /-- `kEff ≤ 16/5` (= 3.2), i.e. `10/π ≤ 3.2`, because `π > 3.125`. -/
 theorem kEff_le : kEff ≤ 16 / 5 := by
+  have hpi : (25 : ℝ) / 8 < Real.pi := by
+    have e : (25 : ℝ) / 8 ≤ 3.141592 := by norm_num
+    linarith [Real.pi_gt_d6, e]
   rw [kEff, div_le_iff Real.pi_pos]
-  nlinarith [Real.pi_gt_3141592, Real.pi_pos]
+  linarith [hpi]
 
 /-! ### Fact 3 — `zModes = 15 = 120/2³` (integer arithmetic, no meaning attached) -/
 
@@ -139,5 +148,11 @@ def h4OrderLiterature : ℕ := 14400
     This is group-theoretically EMPTY: it does NOT prove `|H4| = 14400`. -/
 theorem h4Order_factor : h4OrderLiterature = 2 ^ 6 * 3 ^ 2 * 5 ^ 2 := by
   norm_num [h4OrderLiterature]
+
+-- TEMPORARY axiom probes (removed after verification)
+#print axioms c_S4_lt
+#print axioms kEff_le
+#print axioms zModes_eq
+#print axioms h4Order_factor
 
 end TheoremaAureum.Towers.YM.S4Numerics
