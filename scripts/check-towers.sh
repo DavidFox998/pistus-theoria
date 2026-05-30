@@ -3324,6 +3324,33 @@ BRICKS=(
   "Towers.YM.Wall260_ClayReduction|TheoremaAureum.Towers.YM.Wall260.threshold_split"
   "Towers.YM.Wall260_ClayReduction|TheoremaAureum.Towers.YM.Wall260.new_clay_reduction"
   "Towers.YM.Wall260_ClayReduction|TheoremaAureum.Towers.YM.Wall260.new_clay_reduction_Z4"
+  # Wall261_H4Defect: the H4 / 120-cell defect improvement — HONEST CONDITIONAL
+  # combinator (namespace Wall261). Sequel to Wall260: where Wall260 pins ℤ⁴ C=6
+  # (threshold log 42), this records the H4 improvement C = 1+φ = φ² ≈ 2.618
+  # (threshold log(7·(1+φ)) ≈ log 18.33 < log 42), with the margin ε>0 from the
+  # ℤ⁴-vs-H4 graph comparison. φ := (1+√5)/2. GENUINE/UNCONDITIONAL: phi_sq_eq
+  # (φ²=φ+1, the golden-ratio identity ⇒ 1+φ=φ²); one_add_phi_lt_six (1+φ<6, H4
+  # constant below ℤ⁴ incidence); graph_gap_pos (0 < log6 − log(1+φ), the honest
+  # CONSTANT-level positive gap = "ε>0 comes from graph comparison"); h4_threshold
+  # _lt_z4 (log(7·(1+φ)) < log 42). CONDITIONAL (h_rate mechanism, hypotheses NOT
+  # axioms): h4_defect_beats_z4 (NAMED OPEN h_graph : Defect ≤ log(1+φ)−ε, ε>0 ⟹
+  # Defect < log 6); h4_clay_reduction (feeds the NAMED OPEN H4 defect bound +
+  # H4-threshold rate through Wall260.new_clay_reduction at C=1+φ ⟹ ∀x, log7 <
+  # I_polymer x). All sorry-free, #print axioms = classical trio (verified by hand:
+  # raw lean Towers/YM/Wall261_H4Defect.lean + #print axioms, EXIT=0). HONEST: does
+  # NOT prove the real H4 spectral gap λ₂=φ (no 120-cell adjacency spectrum in
+  # mathlib v4.12.0; φ enters only as the real (1+√5)/2), does NOT prove the real
+  # dependence defect (Defect abstract; the H4 defect bound is a NAMED OPEN
+  # hypothesis, proved nowhere). A REDUCTION/IMPROVEMENT not a proof — proves NO
+  # Clay result, discharges NO open surface, NO real SU(N) rate functional. Makes
+  # NO mass-gap / μ>0 / Surface-#1 claim, does NOT touch kotecky_preiss_criterion.
+  # YM stays Status: Open.
+  "Towers.YM.Wall261_H4Defect|TheoremaAureum.Towers.YM.Wall261.phi_sq_eq"
+  "Towers.YM.Wall261_H4Defect|TheoremaAureum.Towers.YM.Wall261.one_add_phi_lt_six"
+  "Towers.YM.Wall261_H4Defect|TheoremaAureum.Towers.YM.Wall261.graph_gap_pos"
+  "Towers.YM.Wall261_H4Defect|TheoremaAureum.Towers.YM.Wall261.h4_threshold_lt_z4"
+  "Towers.YM.Wall261_H4Defect|TheoremaAureum.Towers.YM.Wall261.h4_defect_beats_z4"
+  "Towers.YM.Wall261_H4Defect|TheoremaAureum.Towers.YM.Wall261.h4_clay_reduction"
 )
 
 VERIFIER_DIR="$(mktemp -d)"

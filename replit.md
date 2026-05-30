@@ -60,8 +60,33 @@ history. Roadmap → `docs/ROADMAP.md`.
     inputs; they prove NO NS existence/uniqueness/regularity result. NS stays
     `Status: Open`; Surface #1/#2 stay OPEN; YM untouched.
 
-- **Wall:** 633 BRICKS (`${#BRICKS[@]}` in `scripts/check-towers.sh`). The
+- **Wall:** 639 BRICKS (`${#BRICKS[@]}` in `scripts/check-towers.sh`). The
   source of truth for the count is the script, not this file.
+- **Wall261_H4Defect — HONEST CONDITIONAL H4 / 120-cell defect improvement
+  (bricks, in BRICKS):** `Towers/YM/Wall261_H4Defect.lean` (namespace `Wall261`).
+  Sequel to `Wall260_ClayReduction`: where Wall260 pins the ℤ⁴ link incidence
+  `C = 6` (threshold `log 42`), this records the H4 improvement
+  `C = 1 + φ = φ² ≈ 2.618` (threshold `log(7·(1+φ)) ≈ log 18.33 < log 42`), the
+  margin `ε > 0` coming from the ℤ⁴-vs-H4 graph comparison. `φ := (1 + √5)/2`.
+  **GENUINE/UNCONDITIONAL:** `phi_sq_eq` (`φ² = φ + 1`, the golden-ratio identity
+  ⇒ `1 + φ = φ²`); `one_add_phi_lt_six` (`1 + φ < 6`, H4 constant strictly below
+  the ℤ⁴ incidence); `graph_gap_pos` (`0 < log 6 − log(1+φ)`, the honest
+  CONSTANT-level positive gap — the realization that "`ε > 0` comes from the graph
+  comparison"); `h4_threshold_lt_z4` (`log(7·(1+φ)) < log 42`). **CONDITIONAL
+  (h_rate mechanism — hypotheses, NOT axioms):** `h4_defect_beats_z4` (from the
+  NAMED OPEN `h_graph : Defect ≤ log(1+φ) − ε`, `ε > 0`, conclude `Defect <
+  log 6`); `h4_clay_reduction` (feeds the NAMED OPEN H4 defect bound `∀ x, I_E x −
+  I_polymer x ≤ log(1+φ) − ε` and the H4-threshold rate through
+  `Wall260.new_clay_reduction` at `C = 1+φ` ⟹ `∀ x, log 7 < I_polymer x`). 6
+  registered public theorems; all `sorry`-free, `#print axioms` = classical trio
+  (verified live, raw `lean` v4.12.0, EXIT=0). HONEST: does NOT prove the real H4
+  spectral gap `λ₂ = φ` (no 120-cell adjacency spectrum in mathlib v4.12.0; `φ`
+  enters ONLY as the real `(1+√5)/2`), does NOT prove the real dependence defect
+  (`Defect` abstract; the H4 defect bound is a NAMED OPEN hypothesis, proved
+  nowhere). A REDUCTION/IMPROVEMENT, NOT a proof — proves NO Clay result,
+  discharges NO open surface, constructs NO real SU(N) rate functional. Makes NO
+  mass-gap / μ>0 / Surface-#1 claim, does NOT touch `kotecky_preiss_criterion`.
+  YM stays `Status: Open`.
 - **Wall260_ClayReduction — HONEST CONDITIONAL Clay reduction (pointwise defect
   form) (bricks, in BRICKS):** `Towers/YM/Wall260_ClayReduction.lean` (namespace
   `Wall260`). The pointwise-function version of the dependence-defect reduction,
