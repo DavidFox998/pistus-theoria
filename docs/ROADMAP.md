@@ -182,12 +182,15 @@ Status legend:
     (genuine Hilbert space; closedness of the div-free subspace and the
     bounded Sobolev inclusion `embed` are PROVED `sorry`-free, classical
     trio).
-  - **Phase 2A** `Towers/NS/Leray.lean` — the Leray/Helmholtz orthogonal
+  - **Phase 2A — Status: Complete** (milestone `NS-540-phase2a-leray`).
+    `Towers/NS/Leray.lean` — the Leray/Helmholtz orthogonal
     projection `leray_proj : Hˢ →L Hdiv_free s` with `P² = P`,
     `‖Pu‖ ≤ ‖u‖`, and `ker P` (PROVED, classical trio). The single
     documented `sorry` is `leray_proj_ker_eq_grad` (the Helmholtz
     identification `(divFree)ᗮ = grad`).
-  - **Phase 2B** `Towers/NS/Stokes.lean` — the Stokes operator
+  - **Phase 2B — Status: Complete** (milestone `NS-540-phase2b-stokes`;
+    `stokes_op` moved Blocked → Complete). `Towers/NS/Stokes.lean` — the
+    Stokes operator
     `stokes_op = -PΔ : Hdiv_free (s+2) →L Hdiv_free s`, the `‖ξ‖²`
     Fourier multiplier. **NOW FULLY `sorry`-free + classical trio** —
     the former lone `sorry` (`stokes_eLpNorm_le`) is CLOSED, so

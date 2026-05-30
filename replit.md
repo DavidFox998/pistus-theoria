@@ -7,6 +7,20 @@ history. Roadmap → `docs/ROADMAP.md`.
 
 ## Current status — 2026-05-30
 
+- **NS Tower 540 Phase 2A/2B COMPLETE** (milestones `NS-540-phase2a-leray`,
+  `NS-540-phase2b-stokes`; both on `main` @ checkpoint `f4becd5`). The active
+  Phase 1–2 NS chain carries **1 documented `sorry` total**:
+  `Towers/NS/FunctionSpaces.lean` (0 sorries), `Towers/NS/Leray.lean`
+  (1 — `leray_proj_ker_eq_grad`, the Helmholtz `(divFree)ᗮ = gradSubmodule`
+  identification), `Towers/NS/Stokes.lean` (0 — every decl classical-trio,
+  zero `sorryAx`, verified live). HONEST scope: these NAME/BOUND operators
+  only; NOT bricks, not lakefile roots; NS stays `Status: Open`, Surface #2
+  stays OPEN. **Next: the NS energy inequality (Phase 3,
+  `Towers/NS/Energy.lean`)** — must import both Leray + Stokes, max 2 sorries.
+  (Milestone tags recorded here as prose, matching this repo's SHA/prose
+  versioning convention — see note in "Operational gotchas" on git-tag
+  creation being restricted for the main agent.)
+
 - **Wall:** 550 BRICKS (`${#BRICKS[@]}` in `scripts/check-towers.sh`). The
   source of truth for the count is the script, not this file.
 - **Real SU(3) chordal distance is a genuine metric (NEW brick, in BRICKS):**
@@ -239,6 +253,13 @@ history. Roadmap → `docs/ROADMAP.md`.
 
 ## Operational gotchas
 
+- **Git-tag creation is restricted for the main agent.** `git tag` (and other
+  git writes) are blocked with "Destructive git operations are not allowed in
+  the main agent" — they must go through a background Project Task. This repo's
+  working convention is therefore to track milestones as **prose + SHA** in
+  `replit.md` / `docs/ROADMAP.md` / `docs/CHANGELOG.md` (e.g. "YM frozen at
+  `c8f6a7ed`", "milestone `NS-540-phase2b-stokes` @ checkpoint `f4becd5`"),
+  NOT as literal git refs. Replit checkpoints already capture the merged state.
 - **Do NOT run `towers-build` / `lake update` casually.** Both re-clone the
   vendored mathlib checkout and wipe its oleans, requiring a `lake-recovery`
   (`lake exe cache get`) pass. Verify bricks via direct `lake env lean <file>`
