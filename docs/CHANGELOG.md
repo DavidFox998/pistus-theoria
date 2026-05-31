@@ -6,6 +6,48 @@ this file is the version history.
 
 ---
 
+## SORRY purge — every live `sorry` proof-term → named open `Prop` (2026-05-31)
+
+Under an EXPLICIT one-pass user override of the NS freeze + YM invariant-locks,
+every live `sorry` proof-term across `Towers/` was converted to a named open
+`Prop` hypothesis (Option B), and the three BSD `axiom`s were refactored to
+hypotheses. **This is logical hygiene only — it discharges NO surface and proves
+NO new result. YM stays OPEN (conditional reduction only), NS stays OPEN, Hodge
+stays OPEN via `AnalyticObstruction`; Surfaces #1/#2 stay OPEN.**
+
+- **Conversion pattern (Option B).**
+  `theorem foo (a) : Goal a := by sorry`
+  ⟹ `def Foo_Surface (a) : Prop := Goal a`
+  ` + theorem foo (a) (h : Foo_Surface a) : Goal a := h`.
+  Mid-proof sorries thread the named hypothesis `h` at the exact open goal, not
+  the whole theorem. In Lean 4 `sorry` IS the axiom `sorryAx`; naming the
+  unproved input as a `Prop`/hypothesis removes `sorryAx` while keeping the
+  statement's logical content explicit and OPEN.
+- **Files touched.** `Attempts/{Clay, Enstrophy, T_g, UniformGap, Perron,
+  OSHilbert (3 sites), ClusterExpansion (8 sites incl
+  `kotecky_preiss_criterion`)}`; `YM/{Transfer (`kotecky_preiss_criterion`,
+  `trivial_polymer_set_null`), MassGap574}`; `NS/Leray`
+  (`leray_proj_ker_eq_grad`); `BSD/MordellWeil` (3 `axiom`s → parameters of
+  `BSD_rank_statement`).
+- **Audit.** 0 bare `sorry`, 0 `:= sorry` / `:= by sorry`, 0 `axiom`, 0 `admit`
+  PROOF-TERMS across `Towers/` (remaining textual matches are docstring prose,
+  e.g. "sorry-free", "`def T_real := sorry`" as a quoted example).
+- **Verification (direct-lean bypass).** Tag `v4.12.0` unresolved ⟹
+  `lake`/`lake env` would re-resolve from remote and wipe the mathlib oleans;
+  oleans were intact, so each file was compiled with a hand-built `LEAN_PATH`
+  over the 7 `.lake/packages/*/.lake/build/lib` dirs + `.lake/build/lib`, raw
+  `lean` v4.12.0. All 11 edited files compile EXIT=0 with NO `sorry`/error/
+  warning; 3 missing dependency oleans (`NS/FunctionSpaces`,
+  `YM/LatticePositivityReal`, `YM/SpectrumBound`) were rebuilt with `lean -o`
+  first (no `lake`, mathlib oleans untouched).
+- **Dashboard.** `theorema-certs` gains an HONEST "Open-surface status" badge:
+  `YM: OPEN (conditional) · HODGE: OPEN via AnalyticObstruction · NS: OPEN ·
+  SORRY: 0`, with the explicit "does not close any surface" disclaimer.
+- **Scope note.** The NS freeze and YM invariant-locks remain in force for
+  FUTURE work; this override applied to this pass only.
+
+---
+
 ## Hodge X₅ — Zoe Comparison Test (honest conditional reduction) (2026-05-31)
 
 New `Towers/Hodge/` leaf `ZoeComparisonTest.lean` for `X₅ = Jac(y² = x¹¹ − x)`,

@@ -58,7 +58,7 @@ open TheoremaAureum.Towers.YM.OSReconstruction
 open TheoremaAureum.Towers.YM.SpectralGap
 open TheoremaAureum.Towers.YM.ClusterExpansion
 
-/-- **Real strict contraction `g < g₀ → ‖T_g‖ ≤ e^{-m} < 1`.**
+/- **Real strict contraction `g < g₀ → ‖T_g‖ ≤ e^{-m} < 1`.**
 
 Honest scope: with the current placeholder
 `spectral_radius_def := 1` and `Decay_constant_from_KP := 1`, the
@@ -70,12 +70,18 @@ the tripwire telling Batch 19.1h+ that promoting both
 will require landing the real Brydges-Federbush polymer
 expansion here. Marked `sorry`; lives outside BRICKS so the
 axiom footprint of the green wall is untouched. -/
-theorem Strict_contraction_CE_real (D : OSPreHilbert) (g : ℝ)
-    (_h : g < Small_g_regime_def) :
-    spectral_radius_def D g < 1 := by
-  sorry
+/-- Named-open surface behind `Strict_contraction_CE_real`. Stated as a `Prop`,
+NOT discharged with `by sorry`; discharging it needs the real Brydges–Federbush
+polymer expansion. -/
+def Strict_contraction_CE_real_Surface (D : OSPreHilbert) (g : ℝ) : Prop :=
+  spectral_radius_def D g < 1
 
-/-- **Real strict contraction (19.1g form): `g < g₀ → ‖T_g‖ <
+theorem Strict_contraction_CE_real (D : OSPreHilbert) (g : ℝ)
+    (_h : g < Small_g_regime_def)
+    (hsurf : Strict_contraction_CE_real_Surface D g) :
+    spectral_radius_def D g < 1 := hsurf
+
+/- **Real strict contraction (19.1g form): `g < g₀ → ‖T_g‖ <
 Decay_constant_real`.** Strict-`<` companion to the 19.1g BRICK
 `Strict_contraction_real` (which ships `≤`). At the placeholder
 `spectral_radius_def := 1`, `Decay_constant_real := 1` this
@@ -83,12 +89,17 @@ unfolds to `(1 : ℝ) < 1`, false — the intentional tripwire that
 the `≤ → <` gap is exactly the Brydges-Federbush strict
 contraction content (Glimm-Jaffe Lemma 18.5.3). Marked
 `sorry`. -/
-theorem Strict_contraction_real_strict (D : OSPreHilbert) (g : ℝ)
-    (_h : g < Small_g_regime_def) :
-    spectral_radius_def D g < Decay_constant_real := by
-  sorry
+/-- Named-open surface behind `Strict_contraction_real_strict` (the `≤ → <`
+Brydges–Federbush strict-contraction gap). Stated as a `Prop`, NOT `by sorry`. -/
+def Strict_contraction_real_strict_Surface (D : OSPreHilbert) (g : ℝ) : Prop :=
+  spectral_radius_def D g < Decay_constant_real
 
-/-- **Real spectral radius `< 1` for `g < g₀` (renamed 19.1g).**
+theorem Strict_contraction_real_strict (D : OSPreHilbert) (g : ℝ)
+    (_h : g < Small_g_regime_def)
+    (hsurf : Strict_contraction_real_strict_Surface D g) :
+    spectral_radius_def D g < Decay_constant_real := hsurf
+
+/- **Real spectral radius `< 1` for `g < g₀` (renamed 19.1g).**
 
 Previously named `Spectral_radius_lt_one_real` (19.1f); renamed
 to free that identifier for the 19.1g BRICK in
@@ -104,10 +115,16 @@ named-handle, the 19.1c `Perron_Frobenius_statement`, and the
 19.1g `MassGap_YM4_from_KP` to land `0 < mass_gap_def D g` and
 the Clay-shape `∃ Δ > 0, Δ ≤ mass_gap_def D g` for `g < g₀`.
 Marked `sorry`. -/
+/-- Named-open surface behind `Spectral_radius_lt_one_strict_real`: strict
+spectral radius `< 1` in the small-coupling regime — the single target whose
+discharge would flip YM from `Status: Open`. Stated as a `Prop`, NOT `by sorry`. -/
+def Spectral_radius_lt_one_strict_real_Surface (D : OSPreHilbert) (g : ℝ) : Prop :=
+  spectral_radius_def D g < 1
+
 theorem Spectral_radius_lt_one_strict_real (D : OSPreHilbert) (g : ℝ)
-    (_h : g < Small_g_regime_def) :
-    spectral_radius_def D g < 1 := by
-  sorry
+    (_h : g < Small_g_regime_def)
+    (hsurf : Spectral_radius_lt_one_strict_real_Surface D g) :
+    spectral_radius_def D g < 1 := hsurf
 
 /-! ============================================================
     Batch 19.1k — Brydges-Federbush Step 1: structural
@@ -189,7 +206,7 @@ heat-kernel measure on `SU(N)^{|Λ|}` and the split is
 Glimm-Jaffe Eq. (20.2.5). -/
 def Wilson_measure_gaussian_part (_D : OSPreHilbert) (_g : ℝ) : ℝ := 1
 
-/-- **Single-plaquette high-temperature bound**
+/- **Single-plaquette high-temperature bound**
 `∫ e^{-β S_p} dμ_0 ≤ e^{-cβ}`. Real content: the Glimm-Jaffe
 Thm. 20.3.1 step (i) estimate — the integral of the Boltzmann
 weight against the Gaussian reference measure on a single
@@ -199,13 +216,17 @@ depending on the SU(N) character expansion. At the placeholder
 `Plaquette_action_def := 0`, the conclusion is `1 ≤ e^0 = 1`,
 which holds. The `sorry` flags the slot for the real Gaussian /
 character-expansion content, not the placeholder discharge. -/
-theorem Single_plaquette_bound (D : OSPreHilbert) (g : ℝ) (β : ℝ)
-    (_hβ : 0 < β) :
-    Wilson_measure_gaussian_part D g ≤
-      Real.exp (-(β * Plaquette_action_def D g)) := by
-  sorry
+/-- Named-open surface behind `Single_plaquette_bound`: the single-plaquette
+Gaussian/character-expansion estimate. Stated as a `Prop`, NOT `by sorry`. -/
+def Single_plaquette_bound_Surface (D : OSPreHilbert) (g : ℝ) (β : ℝ) : Prop :=
+  Wilson_measure_gaussian_part D g ≤ Real.exp (-(β * Plaquette_action_def D g))
 
-/-- **Polymer decoupling estimate.** Disjoint polymers factorize:
+theorem Single_plaquette_bound (D : OSPreHilbert) (g : ℝ) (β : ℝ)
+    (_hβ : 0 < β) (hsurf : Single_plaquette_bound_Surface D g β) :
+    Wilson_measure_gaussian_part D g ≤
+      Real.exp (-(β * Plaquette_action_def D g)) := hsurf
+
+/- **Polymer decoupling estimate.** Disjoint polymers factorize:
 `|z_{X ⊔ Y}| ≤ |z_X| · |z_Y|`. Real content: Glimm-Jaffe
 Thm. 20.3.1 step (ii), the multiplicativity of polymer
 activities over disjoint supports (a consequence of the
@@ -213,23 +234,34 @@ Wilson-measure product structure). Shape uses `n + m` to model
 the disjoint union of polymers indexed by their cardinalities;
 the real version would quantify over polymer sets `X Y` with
 `X ∩ Y = ∅`. -/
-theorem Polymer_decoupling_estimate (D : OSPreHilbert) (g : ℝ) (n m : ℕ) :
-    |Polymer_activity_def D g (n + m)| ≤
-      |Polymer_activity_def D g n| * |Polymer_activity_def D g m| := by
-  sorry
+/-- Named-open surface behind `Polymer_decoupling_estimate`: multiplicativity of
+polymer activities over disjoint supports. Stated as a `Prop`, NOT `by sorry`. -/
+def Polymer_decoupling_estimate_Surface (D : OSPreHilbert) (g : ℝ) (n m : ℕ) : Prop :=
+  |Polymer_activity_def D g (n + m)| ≤
+    |Polymer_activity_def D g n| * |Polymer_activity_def D g m|
 
-/-- **Inductive activity bound** `|z_X| ≤ K^{|X|}` by induction on
+theorem Polymer_decoupling_estimate (D : OSPreHilbert) (g : ℝ) (n m : ℕ)
+    (hsurf : Polymer_decoupling_estimate_Surface D g n m) :
+    |Polymer_activity_def D g (n + m)| ≤
+      |Polymer_activity_def D g n| * |Polymer_activity_def D g m| := hsurf
+
+/- **Inductive activity bound** `|z_X| ≤ K^{|X|}` by induction on
 the polymer support. Real content: Glimm-Jaffe Thm. 20.3.1
 step (iii), the inductive combination of `Single_plaquette_bound`
 and `Polymer_decoupling_estimate` to control `|z_X|` by the
 product over plaquettes. The inductive step is the standard
 Brydges-Federbush argument: factor `X = X' ⊔ {p}`, apply
 decoupling, then apply single-plaquette bound. -/
-theorem Inductive_activity_bound (D : OSPreHilbert) (g : ℝ) (n : ℕ) :
-    |Polymer_activity_def D g n| ≤ mayer_K_constant ^ n := by
-  sorry
+/-- Named-open surface behind `Inductive_activity_bound`: the inductive
+`|z_X| ≤ K^{|X|}` bound. Stated as a `Prop`, NOT `by sorry`. -/
+def Inductive_activity_bound_Surface (D : OSPreHilbert) (g : ℝ) (n : ℕ) : Prop :=
+  |Polymer_activity_def D g n| ≤ mayer_K_constant ^ n
 
-/-- **Polymer activity bound (real / Attempts).** Wrapper
+theorem Inductive_activity_bound (D : OSPreHilbert) (g : ℝ) (n : ℕ)
+    (hsurf : Inductive_activity_bound_Surface D g n) :
+    |Polymer_activity_def D g n| ≤ mayer_K_constant ^ n := hsurf
+
+/- **Polymer activity bound (real / Attempts).** Wrapper
 combining `Single_plaquette_bound` (Gaussian step) +
 `Polymer_decoupling_estimate` (disjoint factorization) +
 `Inductive_activity_bound` (induction on support) under the
@@ -244,10 +276,16 @@ qualified namespace; documented in the 19.1k section comment
 above. The YM placeholder discharges trivially at
 `Polymer_activity_def := 0`; the Attempts version requires the
 real analytic content. -/
+/-- Named-open surface behind `Polymer_activity_bound_real`: the real analytic
+polymer-activity bound (Gaussian + decoupling + induction wrapper). Stated as a
+`Prop`, NOT `by sorry`. -/
+def Polymer_activity_bound_real_Surface (D : OSPreHilbert) (g : ℝ) (n : ℕ) : Prop :=
+  |Polymer_activity_def D g n| ≤ mayer_K_constant ^ n
+
 theorem Polymer_activity_bound_real (D : OSPreHilbert) (g : ℝ) (n : ℕ)
-    (_h : Small_beta_regime_def g) :
-    |Polymer_activity_def D g n| ≤ mayer_K_constant ^ n := by
-  sorry
+    (_h : Small_beta_regime_def g)
+    (hsurf : Polymer_activity_bound_real_Surface D g n) :
+    |Polymer_activity_def D g n| ≤ mayer_K_constant ^ n := hsurf
 
 /-! ============================================================
     Batch 19.1l — Single Plaquette (Track 1). Sharpen the
@@ -316,7 +354,7 @@ expansion). Used as the integrand-side bookkeeping symbol for
 the `Single_plaquette_bound_SU3` reduction. -/
 def Character_expansion_plaquette (_β : ℝ) : ℝ := 0
 
-/-- **Single-plaquette SU(3) Haar integral bound (real form).**
+/- **Single-plaquette SU(3) Haar integral bound (real form).**
 The real analytic target:
 `∫_{SU(3)} e^{-β Re tr U} dU ≤ e^{-c · β}` for a constant
 `c > 0` determined by the SU(3) heat-kernel asymptotics.
@@ -482,10 +520,16 @@ each new sorry is individually named, individually cited, and
 individually scoped — refactor only, not progress. This sorry
 (`Single_plaquette_bound_SU3`) is unchanged and stays gated
 on the same `Polymer_activity_bound_real` surface as before. -/
-theorem Single_plaquette_bound_SU3 (β : ℝ) (_hβ : 0 < β) :
+/-- Named-open surface behind `Single_plaquette_bound_SU3`: the SU(3) Haar
+single-plaquette character bound. Stated as a `Prop`, NOT `by sorry`. -/
+def Single_plaquette_bound_SU3_Surface (β : ℝ) : Prop :=
+  Character_expansion_plaquette β * SU3_Haar_measure_explicit ≤
+    Real.exp (-(Casimir_SU3 * β))
+
+theorem Single_plaquette_bound_SU3 (β : ℝ) (_hβ : 0 < β)
+    (hsurf : Single_plaquette_bound_SU3_Surface β) :
     Character_expansion_plaquette β * SU3_Haar_measure_explicit ≤
-      Real.exp (-(Casimir_SU3 * β)) := by
-  sorry
+      Real.exp (-(Casimir_SU3 * β)) := hsurf
 
 /-! ============================================================
     Batch 19.1q — MayerScaffold (Brydges-Federbush typed gap)

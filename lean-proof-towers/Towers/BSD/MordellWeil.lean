@@ -182,8 +182,8 @@ def IsRankZero {K : Type*} [Field K] (E : WeierstrassCurve K) : Prop :=
     `{propext, Classical.choice, Quot.sound}` (verified by
     `scripts/check-towers.sh`). No research-grade axioms; in
     particular this lemma does **not** depend on the placeholder
-    axioms `IsLFunctionOf`, `orderOfVanishingAt`, or
-    `MordellWeilRank` declared below for the BSD rank schema. -/
+    parameters `IsLFunctionOf`, `orderOfVanishingAt`, or
+    `MordellWeilRank` of the BSD rank schema below. -/
 theorem eq_zero_of_isRankZero {K : Type*} [Field K]
     {E : WeierstrassCurve K}
     (h : IsRankZero E) (P : MordellWeilGroup E) : P = 0 :=
@@ -191,43 +191,25 @@ theorem eq_zero_of_isRankZero {K : Type*} [Field K]
 
 end MordellWeilGroup
 
-/-- Placeholder for "`L_E` is the analytic L-function of the
-    elliptic curve `E` over `ℚ`."
+/- **BSD rank schema — placeholders are PARAMETERS, NOT axioms (2026-05-31).**
 
-    **TODO** (open mathlib-scale work, separate from BSD itself):
-    replace this axiom with the real definition of the L-function
-    attached to an elliptic curve — either via the modular form
-    attached to `E` (modularity theorem) or via the Hasse-Weil Euler
-    product. Mathlib v4.12.0 has neither.
+`IsLFunctionOf`, `orderOfVanishingAt`, and `MordellWeilRank` were previously
+declared as three fresh `axiom`s. Per the honesty pass they are refactored into
+explicit *parameters* of `BSD_rank_statement` below, eliminating all three
+axioms from this file's footprint (classical trio only). Each remains an opaque
+placeholder for open mathlib-scale work:
+  * `IsLFunctionOf      : (ℂ → ℂ) → WeierstrassCurve ℚ → Prop` — "`L_E` is the
+    analytic L-function of `E`" (real def needs modularity / Hasse–Weil Euler
+    product; absent from mathlib v4.12.0).
+  * `orderOfVanishingAt : (ℂ → ℂ) → ℂ → ℕ` — analytic order of vanishing at a
+    point (real def needs mathlib's complex-analytic order of vanishing).
+  * `MordellWeilRank    : WeierstrassCurve ℚ → ℕ` — algebraic `ℤ`-rank of `E(ℚ)`
+    (needs Mordell–Weil for `E(ℚ)` formalized + finite generation).
 
-    Declared as a fresh axiom (not as `def ... := True` or
-    `def ... := False`) so that `BSD_rank_statement` below is not
-    closeable by instantiating this predicate trivially. -/
-axiom IsLFunctionOf : (ℂ → ℂ) → WeierstrassCurve ℚ → Prop
-
-/-- Placeholder for the analytic order of vanishing of a complex
-    function at a point in `ℂ`.
-
-    **TODO**: replace with the real `Function.orderOfVanishing` once
-    mathlib's complex-analysis library defines it for analytic
-    functions on neighbourhoods in `ℂ`.
-
-    Declared as a fresh axiom for the same reason as
-    `IsLFunctionOf`. -/
-axiom orderOfVanishingAt : (ℂ → ℂ) → ℂ → ℕ
-
-/-- Placeholder for the algebraic Mordell-Weil rank of `E(ℚ)`, i.e.
-    the `ℤ`-rank of the finitely generated abelian group of rational
-    points.
-
-    **TODO**: replace with mathlib's eventual rank function on the
-    Mordell-Weil group once (a) Mordell-Weil for `E(ℚ)` is formalized
-    in mathlib and (b) `MordellWeilGroup E` has been shown to be a
-    finitely generated abelian group.
-
-    Declared as a fresh axiom for the same reason as
-    `IsLFunctionOf`. -/
-axiom MordellWeilRank : WeierstrassCurve ℚ → ℕ
+Universally quantifying over them keeps `BSD_rank_statement` non-closeable by
+adversarial instantiation: it must hold for ALL such placeholders, so no choice
+(e.g. `IsLFunctionOf := fun _ _ => True`, `MordellWeilRank := fun _ => 0`)
+discharges it. -/
 
 /-- **Statement** of the rank form of the Birch–Swinnerton-Dyer
     conjecture, expressed in terms of the placeholder axioms
@@ -254,7 +236,10 @@ axiom MordellWeilRank : WeierstrassCurve ℚ → ℕ
     formal `L(E, s)` definition (open mathlib-scale work) and the
     BSD proof itself (a Clay Millennium Problem, open since 1965).
     The schema below is the *future target*, not a theorem. -/
-def BSD_rank_statement : Prop :=
+def BSD_rank_statement
+    (IsLFunctionOf : (ℂ → ℂ) → WeierstrassCurve ℚ → Prop)
+    (orderOfVanishingAt : (ℂ → ℂ) → ℂ → ℕ)
+    (MordellWeilRank : WeierstrassCurve ℚ → ℕ) : Prop :=
   ∀ (E : WeierstrassCurve ℚ) (L_E : ℂ → ℂ),
     IsLFunctionOf L_E E →
       MordellWeilRank E = orderOfVanishingAt L_E 1

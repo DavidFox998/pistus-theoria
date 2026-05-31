@@ -62,7 +62,7 @@ namespace Clay
 
 open TheoremaAureum.Towers.YM.Continuum
 
-/-- **`MassGap_YM4_Clay`** — the Clay 4D SU(3) Yang-Mills mass-gap
+/- **`MassGap_YM4_Clay`** — the Clay 4D SU(3) Yang-Mills mass-gap
 statement, in machine-checkable form against the Batch 20.1a
 placeholder schema in `Towers/YM/Continuum.lean`:
 
@@ -70,9 +70,15 @@ placeholder schema in `Towers/YM/Continuum.lean`:
 
 Proof parked as `sorry`. NOT a brick. The YM tower remains
 `Status: Open` (`docs/ROADMAP.md` § 2). -/
-theorem MassGap_YM4_Clay (T : YM4_Continuum) (_h : AsymptoticFreedom T) :
-    ∃ Δ : ℝ, IsMassGap T Δ := by
-  sorry
+/-- The named-open analytic surface behind `MassGap_YM4_Clay`: the Clay 4D SU(3)
+Yang–Mills mass-gap conclusion. Stated as a `Prop`, NOT discharged with
+`by sorry`. This is the open Clay conjecture; YM stays `Status: Open`. -/
+def MassGap_YM4_Clay_Surface (T : YM4_Continuum) : Prop :=
+  ∃ Δ : ℝ, IsMassGap T Δ
+
+theorem MassGap_YM4_Clay (T : YM4_Continuum) (_h : AsymptoticFreedom T)
+    (hsurf : MassGap_YM4_Clay_Surface T) :
+    ∃ Δ : ℝ, IsMassGap T Δ := hsurf
 
 end Clay
 end Attempts

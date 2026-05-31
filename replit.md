@@ -5,7 +5,32 @@ notes, proof sketches, drift footnotes, env vars, stack, where-things-live,
 gotchas). `replit.md` is the live-ops doc; the CHANGELOG is the version
 history. Roadmap → `docs/ROADMAP.md`.
 
-## Current status — 2026-05-30
+## Current status — 2026-05-31
+
+- **SORRY PURGE (2026-05-31) — every live `sorry` proof-term in `Towers/`
+  converted to a named open `Prop` hypothesis (Option B); BSD `axiom`s →
+  hypotheses.** Under an EXPLICIT user override of the NS freeze + YM
+  invariant-locks FOR THIS PASS ONLY. Pattern: `theorem foo (a) : Goal := by
+  sorry` ⟹ `def Foo_Surface (a) : Prop := Goal` + `theorem foo (a) (h :
+  Foo_Surface a) : Goal := h` (mid-proof sorries thread `h` at the open goal).
+  Touched: `Attempts/{Clay, Enstrophy, T_g, UniformGap, Perron, OSHilbert(3),
+  ClusterExpansion(8 incl `kotecky_preiss_criterion`)}`, `YM/{Transfer
+  (`kotecky_preiss_criterion`, `trivial_polymer_set_null`), MassGap574}`,
+  `NS/Leray` (`leray_proj_ker_eq_grad`), `BSD/MordellWeil` (3 `axiom`s → params
+  of `BSD_rank_statement`). HONEST: this is logical hygiene — it discharges NO
+  surface, proves NO new result. **YM stays OPEN (conditional reduction only),
+  NS stays OPEN, Hodge stays OPEN via `AnalyticObstruction`; Surfaces #1/#2
+  OPEN.** Grep audit: 0 bare `sorry`, 0 `:= sorry`/`:= by sorry`, 0 `axiom`,
+  0 `admit` PROOF-TERMS across `Towers/` (remaining matches are docstring
+  prose). Verified via the direct-lean bypass (tag `v4.12.0` unresolved ⟹
+  `lake`/`lake env` are destructive; mathlib oleans intact): all 11 edited files
+  + 3 rebuilt dep oleans (`NS/FunctionSpaces`, `YM/LatticePositivityReal`,
+  `YM/SpectrumBound`) compile EXIT=0 with NO `sorry`/error/warning. The
+  `theorema-certs` dashboard carries an HONEST "Open-surface status" badge
+  (`YM: OPEN (conditional) · HODGE: OPEN via AnalyticObstruction · NS: OPEN ·
+  SORRY: 0`) with the no-surface-closed disclaimer. (NB: the NS freeze and YM
+  invariant-locks below remain in force for FUTURE work — this override was
+  one-pass.)
 
 - **NS Tower 540 — honest weak→strong chain, Phases 1–6 COMPLETE, FROZEN at the
   Clay boundary (Status: Open).** NONE are bricks / in BRICKS / lakefile roots;

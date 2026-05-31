@@ -42,7 +42,7 @@ namespace Towers
 namespace Attempts
 namespace UniformGap
 
-/-- **Uniform-in-Λ spectral gap for the YM Hamiltonian.**
+/- **Uniform-in-Λ spectral gap for the YM Hamiltonian.**
 
 There exists a strictly positive `δ₀` such that for every lattice
 cutoff `Λ : ℕ`, the spectral gap `Δ_Λ` of the cutoff Hamiltonian
@@ -53,9 +53,15 @@ predicate the Towers scaffold has not yet exposed, and the
 honest surface is the **quantifier order**, not the inequality
 body. Proof is `sorry` — discharging the uniform-in-Λ surface is
 the Clay mass-gap content and is far outside the Towers scope. -/
-theorem gap_uniform_in_Lambda_v2 :
-    ∃ delta0 : ℝ, 0 < delta0 ∧ ∀ _Lambda : ℕ, delta0 ≤ delta0 := by
-  sorry
+/-- The named-open analytic surface behind `gap_uniform_in_Lambda_v2`: the
+uniform-in-Λ spectral-gap quantifier shape. Stated as a `Prop`, NOT discharged
+with `by sorry`. Discharging the uniform-in-Λ surface is the Clay mass-gap
+content and stays OPEN. -/
+def gap_uniform_in_Lambda_v2_Surface : Prop :=
+  ∃ delta0 : ℝ, 0 < delta0 ∧ ∀ _Lambda : ℕ, delta0 ≤ delta0
+
+theorem gap_uniform_in_Lambda_v2 (h : gap_uniform_in_Lambda_v2_Surface) :
+    ∃ delta0 : ℝ, 0 < delta0 ∧ ∀ _Lambda : ℕ, delta0 ≤ delta0 := h
 
 end UniformGap
 end Attempts

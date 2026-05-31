@@ -50,17 +50,23 @@ namespace Enstrophy
 open TheoremaAureum.Towers.NS
 open TheoremaAureum.Towers.NS.EnergyV2
 
-/-- **Global enstrophy bound for 3D Navier-Stokes.**
+/- **Global enstrophy bound for 3D Navier-Stokes.**
 
 For every velocity field `u : VelocityField` the H¹-norm of
 `u(t)` is bounded by a finite constant `C` uniformly in `t`.
 Discharging this is equivalent to the Clay 3D Navier-Stokes
 global regularity statement (no finite-time blow-up of `‖∇u‖_{L²}`).
 Proof is `sorry` — far outside the Towers scope. -/
+/-- The named-open analytic surface behind `enstrophy_bound_global`: the global
+H¹-norm (enstrophy) bound. Stated as a `Prop`, NOT discharged with `by sorry`.
+Discharging it is equivalent to the Clay 3D Navier–Stokes global regularity
+statement and stays OPEN. -/
+def enstrophy_bound_global_Surface (u : VelocityField) : Prop :=
+  ∃ C : ℝ, ∀ t : ℝ, H1Norm_v2 u t ≤ C
+
 theorem enstrophy_bound_global
-    (u : VelocityField) :
-    ∃ C : ℝ, ∀ t : ℝ, H1Norm_v2 u t ≤ C := by
-  sorry
+    (u : VelocityField) (h : enstrophy_bound_global_Surface u) :
+    ∃ C : ℝ, ∀ t : ℝ, H1Norm_v2 u t ≤ C := h
 
 end Enstrophy
 end Attempts

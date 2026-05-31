@@ -47,18 +47,23 @@ namespace OSHilbert
 
 open TheoremaAureum.Towers.YM.OSReconstruction
 
-/-- **OS positivity for the Wilson SU(3) action.**
+/- **OS positivity for the Wilson SU(3) action.**
 
 For a concrete Wilson `OSPreHilbert` datum `D` (which we do not
 construct here), the reflection-positivity property
 `D.reflectionPositive` holds. This is Osterwalder–Seiler 1978 for
 SU(N) Wilson, and is OUT OF SCOPE for the current OS-skeleton
 batches. -/
-theorem OS_positivity_for_Wilson (D : OSPreHilbert) :
-    D.reflectionPositive := by
-  sorry
+/-- Named-open surface behind `OS_positivity_for_Wilson` (Osterwalder–Seiler 1978
+reflection positivity for SU(N) Wilson). Stated as a `Prop`, NOT `by sorry`. -/
+def OS_positivity_for_Wilson_Surface (D : OSPreHilbert) : Prop :=
+  D.reflectionPositive
 
-/-- **Transfer-operator boundedness.**
+theorem OS_positivity_for_Wilson (D : OSPreHilbert)
+    (h : OS_positivity_for_Wilson_Surface D) :
+    D.reflectionPositive := h
+
+/- **Transfer-operator boundedness.**
 
 For a concrete `OSPreHilbert` datum `D` arising from a
 reflection-positive lattice action, the (named, abstract) transfer
@@ -66,20 +71,31 @@ operator `T_g : ℋ_phys → ℋ_phys` carrying the time-translation
 group is bounded. Statement is pinned at the NAMED-Prop level
 `D.timeZeroAlgebra_acts` until 19.1c lands a real
 `TransferOperator` bundle. -/
-theorem Transfer_bounded (D : OSPreHilbert) :
-    D.timeZeroAlgebra_acts := by
-  sorry
+/-- Named-open surface behind `Transfer_bounded`. Stated as a `Prop`, NOT
+`by sorry`. -/
+def Transfer_bounded_Surface (D : OSPreHilbert) : Prop :=
+  D.timeZeroAlgebra_acts
 
-/-- **Transfer-operator compactness.**
+theorem Transfer_bounded (D : OSPreHilbert)
+    (h : Transfer_bounded_Surface D) :
+    D.timeZeroAlgebra_acts := h
+
+/- **Transfer-operator compactness.**
 
 Strengthening of `Transfer_bounded`: the transfer operator is in
 fact compact (the real spectral-gap-yielding surface for SU(3)
 Wilson). Statement is pinned at the NAMED-Prop level
 `D.physHilbert_isHilbert` until 19.1d lands a real
 `CompactOperator` predicate. -/
-theorem Transfer_compact (D : OSPreHilbert) :
-    D.physHilbert_isHilbert := by
-  sorry
+/-- Named-open surface behind `Transfer_compact` (transfer-operator compactness,
+the real spectral-gap-yielding surface for SU(3) Wilson). Stated as a `Prop`,
+NOT `by sorry`. -/
+def Transfer_compact_Surface (D : OSPreHilbert) : Prop :=
+  D.physHilbert_isHilbert
+
+theorem Transfer_compact (D : OSPreHilbert)
+    (h : Transfer_compact_Surface D) :
+    D.physHilbert_isHilbert := h
 
 end OSHilbert
 end Attempts

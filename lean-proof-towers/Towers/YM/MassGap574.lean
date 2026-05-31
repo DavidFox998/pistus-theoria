@@ -55,17 +55,25 @@ open TheoremaAureum.Towers.YM.LatticeGauge
 
 namespace TheoremaAureum.YM_MassGap
 
-/-- Wall 574 TARGET (scaffold, carries `sorry`). For the Step-4 scalar
+/- Wall 574 TARGET (scaffold, carries `sorry`). For the Step-4 scalar
     Hamiltonian `H U`, `spectrum_bound_H_iff` makes this equivalent to
     `0 < wilsonAction U`, carried here as the explicit hypothesis `hpos`
     (the deferred strict action positivity; it fails at the vacuum, see
     the file header). The `sorry` is retained DELIBERATELY: this is only
     the scalar shadow, NOT the real transfer operator, so we make NO
     mass-gap claim and Surface #1 stays OPEN. -/
+/-- Named-open surface behind `YM_mass_gap`: an `∃ m > 0` spectral gap for the
+REAL Wilson transfer Hamiltonian (Wall 574). Stated as a `Prop`, NOT discharged
+with `by sorry`. This is the scalar-shadow scaffold, NOT the real transfer
+operator, so NO mass-gap claim is made and Surface #1 stays OPEN. -/
+def YM_mass_gap_Surface (d L n : ℕ) [NeZero L] [NeZero n]
+    (U : GaugeConfig d L) : Prop :=
+  ∃ m > 0, spectrum_bound (E := PiLp 2 (fun _ : Fin n => ℝ)) (H U) m
+
 theorem YM_mass_gap {d L n : ℕ} [NeZero L] [NeZero n]
-    (U : GaugeConfig d L) (hpos : 0 < wilsonAction U) :
-    ∃ m > 0, spectrum_bound (E := PiLp 2 (fun _ : Fin n => ℝ)) (H U) m := by
-  sorry -- invariant-locked: real Wilson transfer Hamiltonian unbuilt (Wall 574)
+    (U : GaugeConfig d L) (_hpos : 0 < wilsonAction U)
+    (hsurf : YM_mass_gap_Surface d L n U) :
+    ∃ m > 0, spectrum_bound (E := PiLp 2 (fun _ : Fin n => ℝ)) (H U) m := hsurf
 
 /-- **Brick (`YM_mass_gap_nontrivial`) — Task #255 follow-up: discharge
     `hpos`.** Same SCALAR-shadow statement as `YM_mass_gap`, but the

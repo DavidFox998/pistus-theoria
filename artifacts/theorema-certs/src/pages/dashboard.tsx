@@ -1380,6 +1380,29 @@ export default function DashboardPage() {
         </div>
       </Card>
 
+      <Card className="p-5 border-border bg-card" data-testid="badge-surface-status">
+        <div className="flex items-center gap-2 font-mono text-[11px] text-muted-foreground uppercase tracking-[0.18em] mb-2 border-b border-border pb-2">
+          <ShieldCheck className="w-4 h-4" /> Open-surface status
+        </div>
+        <p
+          className="font-mono text-sm font-bold text-foreground"
+          data-testid="text-surface-status-line"
+        >
+          YM: OPEN (conditional) · HODGE: OPEN via AnalyticObstruction · NS: OPEN · SORRY: 0
+        </p>
+        <p className="text-xs font-serif text-muted-foreground mt-2 leading-relaxed max-w-prose">
+          Every live <span className="font-mono">sorry</span> proof-term across{" "}
+          <span className="font-mono">Towers/</span> has been converted to a{" "}
+          <strong>named open <span className="font-mono">Prop</span> hypothesis</strong>: each
+          unproved target is now an explicit hypothesis threaded into the theorem, not a{" "}
+          <span className="font-mono">sorryAx</span>. The axiom footprint stays the classical
+          trio. This is <em>logical hygiene</em> — it does <strong>not</strong> close any
+          surface. Yang–Mills (conditional reduction only), Navier–Stokes, and Hodge (via the
+          named-open <span className="font-mono">AnalyticObstruction</span>) all remain{" "}
+          <span className="font-mono">Open</span>.
+        </p>
+      </Card>
+
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card className="p-4 flex flex-col justify-between border-border bg-card">
           <span className="text-xs font-mono text-muted-foreground uppercase">DAG Status</span>

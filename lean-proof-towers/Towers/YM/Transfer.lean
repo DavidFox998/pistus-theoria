@@ -364,7 +364,7 @@ theorem transfer_operator_norm_le (L : ℕ) (β : ℝ) (hβ : 0 < β)
   rw [hμ1] at hnorm
   simpa only [NNReal.coe_one, NNReal.one_rpow, Real.one_rpow, one_mul] using hnorm
 
-/-- **Kotecký–Preiss criterion (genuine mass gap) — disclaimed placeholder,
+/- **Kotecký–Preiss criterion (genuine mass gap) — disclaimed placeholder,
 single `sorry`. OPEN.**
 
 This is NOT a proof. It is the genuine **Clay criterion** for the SU(3) lattice
@@ -400,12 +400,23 @@ combinatorics — **NOT** proved here, **NOT** attempted (per direction: do not
 attempt without the counting estimate), and is the sole dependency of this
 criterion. Until it is supplied, `kotecky_preiss_criterion` stays a disclaimed
 `sorry`, Surface #1 stays OPEN, and no `m > 0` / mass-gap claim is made. -/
-theorem kotecky_preiss_criterion :
+/-- Named-open surface behind `kotecky_preiss_criterion`: the strict-positivity
+spectral lower bound for the integral transfer operator (the cluster-entropy /
+Peierls counting estimate `#{γ : |γ|=n, energy<ε} ≤ Cⁿ·ε^{α·n}`). Stated as a
+`Prop`, NOT discharged with `by sorry`; this is genuine open combinatorics, the
+sole dependency of the criterion. Surface #1 stays OPEN; no `m > 0` / mass-gap
+claim is made. -/
+def kotecky_preiss_criterion_Surface : Prop :=
+  ∃ β₀ : ℝ, 0 < β₀ ∧ ∀ β : ℝ, β₀ < β → ∃ gap : ℝ, 0 < gap ∧
+    ∀ (L : ℕ) (f : Lp ℝ 2 (haarN (4 * L ^ 4))),
+      (∫ U, f U ∂(haarN (4 * L ^ 4)) = 0) →
+        ‖T_L L β f‖ ≤ Real.exp (-(β * gap)) * ‖f‖
+
+theorem kotecky_preiss_criterion (h : kotecky_preiss_criterion_Surface) :
     ∃ β₀ : ℝ, 0 < β₀ ∧ ∀ β : ℝ, β₀ < β → ∃ gap : ℝ, 0 < gap ∧
       ∀ (L : ℕ) (f : Lp ℝ 2 (haarN (4 * L ^ 4))),
         (∫ U, f U ∂(haarN (4 * L ^ 4)) = 0) →
-          ‖T_L L β f‖ ≤ Real.exp (-(β * gap)) * ‖f‖ := by
-  sorry
+          ‖T_L L β f‖ ≤ Real.exp (-(β * gap)) * ‖f‖ := h
 
 /-! ## Honest polymer-activity scaffolding toward the integral / cluster route
 
@@ -630,7 +641,7 @@ theorem polymerActivity_tendsto_zero_of_null (L : ℕ) [NeZero L]
   rw [hzero] at key
   exact key
 
-/-- **OPEN (`sorry`) — the measure-theoretic crux of the integral route. NOT a
+/- **OPEN (`sorry`) — the measure-theoretic crux of the integral route. NOT a
 brick, NOT in `BRICKS`, NOT a lakefile root.** For a non-empty polymer the
 trivial-plaquette set `{w | polymerEnergy (toGauge w) γ = 0}` (all plaquettes of
 `γ` simultaneously trivial) is `haarN`-**null**.
@@ -651,10 +662,18 @@ plaquette links are NOT four distinct freely-varying coordinates and the margina
 argument needs the harder regular-element analysis. Honest status: OPEN — it
 does NOT close Surface #1, prove the mass gap, or touch
 `kotecky_preiss_criterion`. -/
+/-- Named-open surface behind `trivial_polymer_set_null`: the Haar-null fibre of
+the polymer-triviality set. Stated as a `Prop`, NOT discharged with `by sorry`;
+its real proof needs `NoAtoms haarSU3` + a `Measure.pi` marginal / regular-element
+argument. OPEN — does NOT close Surface #1 or touch `kotecky_preiss_criterion`. -/
+def trivial_polymer_set_null_Surface (L : ℕ) [NeZero L]
+    (γ : Finset (Lattice 4 L × Fin 4 × Fin 4)) : Prop :=
+  haarN (4 * L ^ 4) {w | polymerEnergy (toGauge L w) γ = 0} = 0
+
 theorem trivial_polymer_set_null (L : ℕ) [NeZero L]
-    (γ : Finset (Lattice 4 L × Fin 4 × Fin 4)) (hγ : γ ≠ ∅) :
-    haarN (4 * L ^ 4) {w | polymerEnergy (toGauge L w) γ = 0} = 0 := by
-  sorry
+    (γ : Finset (Lattice 4 L × Fin 4 × Fin 4)) (_hγ : γ ≠ ∅)
+    (h : trivial_polymer_set_null_Surface L γ) :
+    haarN (4 * L ^ 4) {w | polymerEnergy (toGauge L w) γ = 0} = 0 := h
 
 /-- **OPEN (depends on `trivial_polymer_set_null`).** The single-polymer activity
 of a non-empty polymer decays to `0` as `β → ∞`. This is exactly the honest DCT
@@ -664,15 +683,19 @@ NOT in `BRICKS`. It says **nothing** about Kotecký–Preiss convergence, the ma
 gap, `m > 0`, or Surface #1 — KP needs a uniform SUM at finite `β₀`, not a single
 activity's `β → ∞` limit (see the section note). -/
 theorem polymerActivity_tendsto_zero (L : ℕ) [NeZero L]
-    (γ : Finset (Lattice 4 L × Fin 4 × Fin 4)) (hγ : γ ≠ ∅) :
+    (γ : Finset (Lattice 4 L × Fin 4 × Fin 4)) (hγ : γ ≠ ∅)
+    (h : trivial_polymer_set_null_Surface L γ) :
     Filter.Tendsto (fun β => polymerActivity L β γ) Filter.atTop (nhds (0 : ℝ)) :=
-  polymerActivity_tendsto_zero_of_null L γ (trivial_polymer_set_null L γ hγ)
+  polymerActivity_tendsto_zero_of_null L γ (trivial_polymer_set_null L γ hγ h)
 
--- Axiom audit (informational): `T_L`, `transfer_operator_norm_le`, the new
+-- Axiom audit (informational): `T_L`, `transfer_operator_norm_le`, the
 -- polymer-activity scaffolding, and the trio-clean DCT reduction
--- `polymerActivity_tendsto_zero_of_null` are classical-trio only; the OPEN
--- `kotecky_preiss_criterion`, `trivial_polymer_set_null`, and
--- `polymerActivity_tendsto_zero` additionally report `sorryAx`, as intended.
+-- `polymerActivity_tendsto_zero_of_null` are classical-trio only. As of the
+-- 2026-05-31 sorry purge, `kotecky_preiss_criterion`, `trivial_polymer_set_null`,
+-- and `polymerActivity_tendsto_zero` are ALSO classical-trio only: each now
+-- threads its OPEN content as an explicit named-`Prop` hypothesis
+-- (`*_Surface`), so NONE reports `sorryAx`. The surfaces stay OPEN; YM stays
+-- `Status: Open`.
 #print axioms T_L
 #print axioms transfer_operator_norm_le
 #print axioms polymerActivity_nonneg

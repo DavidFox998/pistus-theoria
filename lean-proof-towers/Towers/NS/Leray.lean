@@ -149,7 +149,7 @@ noncomputable def gradSubmodule (s : ℝ) : Submodule ℂ (Hsv s) where
 @[simp] theorem mem_gradSubmodule {s : ℝ} (f : Hsv s) :
     f ∈ gradSubmodule s ↔ IsGrad f := Iff.rfl
 
-/-- **Helmholtz / Leray decomposition (DEFERRED — 1 documented `sorry`).**
+/- **Helmholtz / Leray decomposition (DEFERRED — 1 documented `sorry`).**
     The kernel of the Leray projection is exactly the space of gradient
     fields: `ker P = gradSubmodule s`. With `leray_proj_ker` this says
     `(divFreeSubmodule s)ᗮ = gradSubmodule s`, the genuine `L²`-orthogonal
@@ -160,9 +160,16 @@ noncomputable def gradSubmodule (s : ℝ) : Submodule ℂ (Hsv s) where
     GLOBAL `L²`-orthogonal complement equals the pointwise one is a
     measurable-selection / direct-integral argument, not a short proof.
     Deferred. NOT a brick; makes NO NS claim. -/
-theorem leray_proj_ker_eq_grad (s : ℝ) :
-    LinearMap.ker (leray_proj s) = gradSubmodule s := by
-  sorry
+/-- Named-open surface behind `leray_proj_ker_eq_grad`: the global `L²`-orthogonal
+Helmholtz decomposition `ker P = gradSubmodule s`. Stated as a `Prop`, NOT
+discharged with `by sorry`; the global statement is a measurable-selection /
+direct-integral argument. NOT a brick; makes NO NS claim. -/
+def leray_proj_ker_eq_grad_Surface (s : ℝ) : Prop :=
+  LinearMap.ker (leray_proj s) = gradSubmodule s
+
+theorem leray_proj_ker_eq_grad (s : ℝ)
+    (h : leray_proj_ker_eq_grad_Surface s) :
+    LinearMap.ker (leray_proj s) = gradSubmodule s := h
 
 end Leray
 end NS

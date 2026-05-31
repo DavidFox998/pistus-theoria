@@ -43,7 +43,7 @@ namespace Perron
 
 open TheoremaAureum.Towers.YM
 
-/-- **Unconditional Perron–Frobenius for the YM transfer matrix.**
+/- **Unconditional Perron–Frobenius for the YM transfer matrix.**
 
 For every positive coupling `g`, there is `λ ∈ (0, 1)` bounding the
 spectral radius of the transfer operator from above. Stated here
@@ -51,9 +51,17 @@ as an existential over `ℝ`; the *body* of the statement is what
 the real `WilsonAction g`-transfer would need to inhabit. Proof is
 `sorry` — discharging it is equivalent to the SU(3) lattice mass
 gap and is far outside the Towers scope. -/
-theorem Perron_Frobenius_for_transfer_unconditional :
-    ∀ g : ℝ, 0 < g → ∃ lam : ℝ, 0 < lam ∧ lam < 1 := by
-  sorry
+/-- The named-open analytic surface behind
+`Perron_Frobenius_for_transfer_unconditional`: the unconditional Perron–Frobenius
+bound for the YM transfer matrix. Stated as a `Prop`, NOT discharged with
+`by sorry` (which would inject `sorryAx`). Discharging it is equivalent to the
+SU(3) lattice mass gap and stays OPEN. -/
+def Perron_Frobenius_for_transfer_unconditional_Surface : Prop :=
+  ∀ g : ℝ, 0 < g → ∃ lam : ℝ, 0 < lam ∧ lam < 1
+
+theorem Perron_Frobenius_for_transfer_unconditional
+    (h : Perron_Frobenius_for_transfer_unconditional_Surface) :
+    ∀ g : ℝ, 0 < g → ∃ lam : ℝ, 0 < lam ∧ lam < 1 := h
 
 end Perron
 end Attempts

@@ -35,7 +35,7 @@ namespace T_g
 open TheoremaAureum.Towers.YM.OSReconstruction
 open TheoremaAureum.Towers.YM.SpectralGap
 
-/-- **`T_g` is compact on `ℋ_phys`.** Cluster-expansion surface;
+/- **`T_g` is compact on `ℋ_phys`.** Cluster-expansion surface;
 the named witness here is the still-NAMED `physHilbert_isHilbert`
 Prop, used as a Prop-level stand-in for "the construction has
 produced a real compact operator on a real Hilbert space". The
@@ -56,11 +56,17 @@ The real discharge needs (a) a real Wilson measure, (b) the
 Brydges-Federbush convergent polymer expansion at the full
 textbook `K * e * Δ < 1` (19.1f ships the `e = 1` slice),
 (c) a real operator-norm on `physHilbert`. -/
-theorem Transfer_compact (D : OSPreHilbert) (_g : ℝ) :
-    D.physHilbert_isHilbert := by
-  sorry
+/-- Named-open surface behind `Transfer_compact`. Stated as a `Prop`, NOT
+`by sorry`; the real discharge needs a real Wilson measure, the Brydges–Federbush
+polymer expansion, and a real operator-norm on `physHilbert`. -/
+def Transfer_compact_Surface (D : OSPreHilbert) : Prop :=
+  D.physHilbert_isHilbert
 
-/-- **Real Perron–Frobenius bound: `r(T_g) < 1` for `g > 0`.**
+theorem Transfer_compact (D : OSPreHilbert) (_g : ℝ)
+    (h : Transfer_compact_Surface D) :
+    D.physHilbert_isHilbert := h
+
+/- **Real Perron–Frobenius bound: `r(T_g) < 1` for `g > 0`.**
 
 Honest scope: with the current placeholder `spectral_radius_def := 1`,
 this statement is **false on its face** (`(1 : ℝ) < 1` is `False`).
@@ -87,10 +93,17 @@ ships only the `e = 1`, `Δ = 0` slice). The companion stub
 Spectral_radius_lt_one_strict_real` carries the same `sorry` as a
 ClusterExpansion-shaped surface; this T_g surface stays as the
 canonical "Perron-Frobenius for the transfer operator" sorry. -/
+/-- Named-open surface behind `Perron_Frobenius_for_transfer`: the canonical
+Perron–Frobenius bound `r(T_g) < 1` for the transfer operator. Stated as a
+`Prop`, NOT `by sorry`; real discharge = Brydges–Federbush convergent polymer
+expansion. -/
+def Perron_Frobenius_for_transfer_Surface (D : OSPreHilbert) (g : ℝ) : Prop :=
+  spectral_radius_def D g < 1
+
 theorem Perron_Frobenius_for_transfer (D : OSPreHilbert)
-    (g : ℝ) (_hg : 0 < g) :
-    spectral_radius_def D g < 1 := by
-  sorry
+    (g : ℝ) (_hg : 0 < g)
+    (h : Perron_Frobenius_for_transfer_Surface D g) :
+    spectral_radius_def D g < 1 := h
 
 end T_g
 end Attempts

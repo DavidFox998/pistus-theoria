@@ -17,6 +17,14 @@ Status legend:
 - **Certified in spine** — the named theorem actually closes inside
   the Lean spine without new axioms.
 
+> **SORRY-purge note (2026-05-31).** Every live `sorry` proof-term across
+> `Towers/` has been converted to a named open `Prop` hypothesis (Option B),
+> and the BSD `axiom`s to hypotheses. This is logical hygiene only: it removes
+> `sorryAx` from the touched files but **discharges no surface and proves no new
+> result.** All five towers below stay **Open**; YM is a conditional reduction
+> only, NS keeps Surfaces #1/#2 Open, and Hodge stays Open behind the named-open
+> `AnalyticObstruction`.
+
 ---
 
 ## 1. Riemann Hypothesis (RH)
