@@ -47,7 +47,12 @@ history. Roadmap → `docs/ROADMAP.md`.
     leaf, OUT of the YM graph; does NOT discharge `Wall262.hR`.
   - **Wall263_CoxeterSpectral** — axiom-free REFUTATION of "λ_max(2I−M_H4)=φ"
     (`φ` is the label-5 EDGE WEIGHT, not a spectral value; true radius
-    `2cos(π/30)≈1.989`). Conditional `defect_bound_H4` over NAMED OPEN hyps.
+    `2cos(π/30)≈1.989`). Matrix bridge now MACHINE-CHECKED: concrete
+    `B : Matrix (Fin 4) (Fin 4) ℝ`, `det_charmatrix` (Laplace cofactor expansion:
+    `det(λI−B) = coxeterCharpoly λ`), and `phi_not_mem_spectrum` (`φ ∉ spectrum ℝ B`
+    via `spectrum.not_mem_iff`+`isUnit_iff_isUnit_det`) — all classical trio, 0
+    sorry. Only the IDENTITY of the largest eigenvalue (`2cos(π/30)`, h=30) stays
+    DOCUMENTARY. Conditional `defect_bound_H4` over NAMED OPEN hyps.
   - **Wall262_ConnectiveRatio** — conditional connective-ratio defect → SU(2)
     polymer-rate win (`R := μ_Z4/φ`; NAMED OPEN `hR`/`h_defect`/`h_rate`).
   - **Wall261_H4Defect** — conditional H4/120-cell defect improvement

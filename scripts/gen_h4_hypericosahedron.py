@@ -192,16 +192,16 @@ def build_png():
       "This is the real 600-cell ({3,3,5}); its symmetry group is H4. The "
       "POLYTOPE is NOT formalized in Lean.", f_body, INK2)
     T(60, ly + 58,
-      "Machine-checked = only the hand-encoded polynomial facts  "
-      "coxeterCharpoly \u03c6 = \u2212\u03c6\u00b2  and  phi_not_root "
-      "(\u03c6 is not a root).", f_body, INK2)
+      "Machine-checked = the concrete matrix B, det_charmatrix (det(\u03bbI\u2212B) "
+      "= coxeterCharpoly), and", f_body, INK2)
     T(60, ly + 78,
-      "The matrix B and the eigenvalue reading are DOCUMENTARY (no det / "
-      "charpoly\u2194eigenvalue bridge in mathlib v4.12.0):", f_body, INK2)
+      "phi_not_mem_spectrum (\u03c6 \u2209 spectrum \u211d B) \u2014 so "
+      "\u201c\u03bb_max = \u03c6\u201d is FALSE, machine-checked, not just hand-"
+      "computed.", f_body, INK2)
     T(60, ly + 98,
-      "\u03c6 is NOT an eigenvalue \u21d2 \u201c\u03bb_max = \u03c6\u201d is "
-      "FALSE; true radius 2\u00b7cos(\u03c0/30) \u2248 1.989.  LATTICE scope, "
-      "NOT the Clay mass gap.  YM: Open.", f_body, INK2)
+      "DOCUMENTARY: only the IDENTITY of the largest eigenvalue "
+      "2\u00b7cos(\u03c0/30) \u2248 1.989 (h=30).  LATTICE scope, NOT the Clay "
+      "mass gap.  YM: Open.", f_body, INK2)
     T(40, H - 42, FOOTER1, f_small, MUTED)
     T(40, H - 22, FOOTER2, f_small, MUTED)
 
@@ -270,9 +270,10 @@ def build_svg():
     # --- matrix B + true radius ---
     bh = 150
     half = (W - 80 - 20) / 2
-    # matrix box (documentary: matrix/det/bridge not formalized)
-    parts.append(rr(40, y, half, bh, 12, "#fbf3e6", "#e7d5ac"))
-    parts.append(pill(40 + half - 14, y + 12, "DOCUMENTARY", AMBER))
+    # matrix box (PROVEN: B, det, and phi-not-eigenvalue now machine-checked)
+    parts.append(rr(40, y, half, bh, 12, PANEL, BORDER))
+    parts.append(rr(40, y, 6, bh, 3, GREEN))
+    parts.append(pill(40 + half - 14, y + 12, "PROVEN", GREEN))
     parts.append(tx(60, y + 28, "B = 2I \u2212 M_H4", 14.5, INK, SANS, "bold"))
     Bm = [["0", "1", "0", "0"],
           ["1", "0", "1", "0"],
@@ -294,16 +295,17 @@ def build_svg():
     nx = gx + 4 * cell + 34
     parts.append(tx(nx, gy + 2 * cell - 8, "label-5 edge \u21a6 \u03c6", 12.5,
                     MUTED, SANS))
-    parts.append(tx(nx, gy + 2 * cell + 12, "matrix / det / eigenvalue", 11.5,
-                    MUTED, SANS))
-    parts.append(tx(nx, gy + 2 * cell + 28, "bridge: not in mathlib v4.12.0",
+    parts.append(tx(nx, gy + 2 * cell + 12, "det_charmatrix: det(\u03bbI\u2212B)",
+                    11.5, MUTED, SANS))
+    parts.append(tx(nx, gy + 2 * cell + 28, "= coxeterCharpoly (in Lean)",
                     11.5, MUTED, SANS))
 
     # true radius box
     rx0 = 40 + half + 20
-    parts.append(rr(rx0, y, half, bh, 12, "#fbf3e6", "#e7d5ac"))
-    parts.append(pill(rx0 + half - 14, y + 12, "DOCUMENTARY", AMBER))
-    parts.append(tx(rx0 + 18, y + 28, "Spectral reading", 14.5, AMBER,
+    parts.append(rr(rx0, y, half, bh, 12, PANEL, BORDER))
+    parts.append(rr(rx0, y, 6, bh, 3, GREEN))
+    parts.append(pill(rx0 + half - 14, y + 12, "PROVEN", GREEN))
+    parts.append(tx(rx0 + 18, y + 28, "Spectral reading", 14.5, GREEN,
                     SANS, "bold"))
     parts.append(tx(rx0 + 18, y + 52,
                     "\u03c6 is not a root \u21d2 \u03c6 is NOT an eigenvalue,",
@@ -312,17 +314,18 @@ def build_svg():
                     "so  \u201c\u03bb_max(2I \u2212 M_H4) = \u03c6\u201d  is "
                     "FALSE.", 12.8, INK, SANS))
     parts.append(tx(rx0 + 18, y + 98,
-                    "True Perron value  2\u00b7cos(\u03c0/30) \u2248 1.989 "
-                    "(h=30)", 13, INK, MONO, "bold"))
+                    "phi_not_mem_spectrum :  \u03c6 \u2209 spectrum \u211d B",
+                    12.5, INK, MONO, "bold"))
     parts.append(tx(rx0 + 18, y + 120,
-                    "modulo the hand determinant; no det /", 12, INK2, SANS))
+                    "True Perron value 2\u00b7cos(\u03c0/30) \u2248 1.989 (h=30)",
+                    12, INK2, SANS))
     parts.append(tx(rx0 + 18, y + 138,
-                    "charpoly\u2194eigenvalue bridge in mathlib v4.12.0.",
+                    "stays documentary (full spectrum not formalized).",
                     12, INK2, SANS))
     y += bh + 18
 
     # --- PROVEN panel ---
-    ph = 118
+    ph = 182
     parts.append(rr(40, y, W - 80, ph, 12, PANEL, BORDER))
     parts.append(rr(40, y, 6, ph, 3, GREEN))
     parts.append(pill(W - 40 - 14, y + 12, "PROVEN", GREEN))
@@ -331,18 +334,21 @@ def build_svg():
     proven = [
         "phi_sq_eq :  \u03c6\u00b2 = \u03c6 + 1        \u2234  C = 1 + \u03c6 = "
         "\u03c6\u00b2 \u2248 2.618",
-        "coxeterCharpoly \u03c6 = \u2212(\u03c6\u00b2)        (hand-encoded H4 "
-        "charpoly, evaluated at \u03c6)",
-        "phi_not_root :  coxeterCharpoly \u03c6 \u2260 0        (\u03c6 is not a "
-        "root of it)",
+        "coxeterCharpoly \u03c6 = \u2212(\u03c6\u00b2)        (H4 charpoly "
+        "evaluated at \u03c6)",
+        "phi_not_root :  coxeterCharpoly \u03c6 \u2260 0",
+        "det_charmatrix :  det(\u03bb\u00b7I \u2212 B) = coxeterCharpoly \u03bb   "
+        "(Laplace cofactor expansion)",
+        "phi_not_mem_spectrum :  \u03c6 \u2209 spectrum \u211d B   (\u03c6 is NOT "
+        "an eigenvalue)",
     ]
     yy = y + 52
     for ln in proven:
         parts.append(tx(64, yy, ln, 13.5, INK, MONO)); yy += 21
     parts.append(tx(64, yy + 1,
-                    "\u21b3 pure `ring` identities \u2014 the only machine-checked "
-                    "H4 facts; the eigenvalue reading (right) is documentary.",
-                    13, INK2, SANS, "italic"))
+                    "\u21b3 B is a concrete Matrix (Fin 4) (Fin 4) \u211d; the "
+                    "det\u2194charpoly bridge and \u201c\u03c6 not an eigenvalue\u201d "
+                    "are now in Lean.", 13, INK2, SANS, "italic"))
     y += ph + 18
 
     # --- NOT FORMALIZED + OPEN row ---

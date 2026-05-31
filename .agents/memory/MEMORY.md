@@ -14,3 +14,4 @@
 - [Workflow limit-checker stuck](workflow-limit-checker-stuck.md) — configureWorkflow can freeze at 10/10 ignoring removals; don't removeWorkflow to free slots; run long jobs as checkpoint-resumable bash with an internal time budget.
 - [Deterministic docs-visual toolchain](docs-visual-toolchain.md) — build figures hand-authored (no AI): DejaVu fonts, verify via ephemeral `uvx cairosvg`, mono lacks long arrows ⟹/⟺ (use ⇒/⇔), honesty review mandatory.
 - [pi/10 exceptional-primes sieve](pi10-exceptional-primes-sieve.md) — enumerate CF convergents+semiconvergents (not random ints) + exact integer test + margin certificate; 20 primes ≤10^4000; BPSW is not a formal proof.
+- [Explicit 4x4 det in v4.12.0](explicit-matrix-det-v4_12.md) — no det_fin_four; Laplace via PLAIN simp (not simp only)+Fin.succAbove/Fin.lt_def then ring; φ∉spectrum via spectrum.not_mem_iff+isUnit_iff_isUnit_det; `-/` in docstring closes it early.
