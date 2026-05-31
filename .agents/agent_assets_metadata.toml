@@ -5,49 +5,49 @@ generated = []
 id = "1ubIS7yKRHOSVM6QhuvOr"
 uri = "file://paper/theorema-aureum-143.pdf"
 type = "pdf"
-title = "Theorema Aureum 143 — Updated Paper (Corrected Lean 4 Certification)"
+title = "Theorema Aureum 143 — Main Paper"
 
 [[outputs]]
 id = "ig3yeAQmVfMSKfZj1UNve"
 uri = "file://paper/modules/m01-alpha0def.pdf"
 type = "pdf"
-title = "Module 01 — Alpha0 Definition [Alpha0Def]"
+title = "Module 1 — α₀ Definition"
 
 [[outputs]]
 id = "iDVz-HP7Y813dLQl9S7BN"
 uri = "file://paper/modules/m02-kappabound.pdf"
 type = "pdf"
-title = "Module 02 — Kappa Bound [KappaBound]"
+title = "Module 2 — Kappa Bound"
 
 [[outputs]]
 id = "IPYyktKIeTyoGLFTCYBEu"
 uri = "file://paper/modules/m03-q5p5bound.pdf"
 type = "pdf"
-title = "Module 03 — Q5/P5 Bound [Q5P5Bound]"
+title = "Module 3 — Q5/P5 Bound"
 
 [[outputs]]
 id = "yfj92Hav0eBFxLixuHhXF"
 uri = "file://paper/modules/m04-esete4.pdf"
 type = "pdf"
-title = "Module 04 — Exceptional Set E4 [ESetE4]"
+title = "Module 4 — S14 Head / ESETE4"
 
 [[outputs]]
 id = "deD8rI0L62Ro_eTU4CDpU"
 uri = "file://paper/modules/m05-bostbound.pdf"
 type = "pdf"
-title = "Module 05 — Bost Bound [BostBound]"
+title = "Module 5 — Bost Bound"
 
 [[outputs]]
 id = "wwuGJyMq4RxSLezHHuEtp"
 uri = "file://paper/modules/m06-grhx0143.pdf"
 type = "pdf"
-title = "Module 06 — GRH X0(143) [GRHX0143]"
+title = "Module 6 — GRH X0143"
 
 [[outputs]]
 id = "vtIjlJuGhSbg_eR7Fa3Nz"
 uri = "file://paper/modules/m07-manifest.pdf"
 type = "pdf"
-title = "Module 07 — Master Manifest [Manifest]"
+title = "Module 7 — Manifest"
 
 [[outputs]]
 id = "v6QL_UW0yFX6bgzQbE7pU"
@@ -59,19 +59,19 @@ title = "M10 — CM Descent"
 id = "Lq6i-2LY7Ba0ZT6w-Qzu6"
 uri = "file://docs/M13_BC_CM.pdf"
 type = "pdf"
-title = "M13 — Bost–Connes / CM"
+title = "M13 — BC CM"
 
 [[outputs]]
 id = "jzuCrL0deAvyjsNGVUP7D"
 uri = "file://data/MorningStar_RH_Cert.pdf"
 type = "pdf"
-title = "MorningStar-Lab v1.0 — Riemann Hypothesis Reconnaissance Certificate (100 zeros, axiom debt [])"
+title = "Morning Star — RH Certificate"
 
 [[outputs]]
 id = "nOQONQ-4FcIiS3DbkJXyQ"
 uri = "file://docs/MorningStar_Architecture.pdf"
 type = "pdf"
-title = "MorningStar Architecture (full write-up: Math Kernel + Engineering Manifest + Appendices)"
+title = "Morning Star — Architecture"
 
 [[outputs]]
 id = "-lwBT9H2DXmGerXdKLXip"
@@ -180,3 +180,15 @@ id = "nsm8DdrA50JIKPH3-guzI"
 uri = "file://docs/H4_CoxeterModel.svg"
 type = "image"
 title = "H4 / 600-cell — what is machine-checked (model card)"
+
+[[outputs]]
+id = "lU79_LC1sD4HTIOLB0Dle"
+uri = "file://docs/Surface1_InstallmentA.pdf"
+type = "pdf"
+title = "Surface 1 — Installment A"
+
+[[outputs]]
+id = "N4MaFzKRUXlpJ2jdYLBRe"
+uri = "file://docs/Surface2_ResearchProgram.pdf"
+type = "pdf"
+title = "Surface 2 — Research Program"
