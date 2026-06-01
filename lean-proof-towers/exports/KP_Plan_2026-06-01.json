@@ -161,7 +161,7 @@
       "beta0_certified_interval": [2.079416880123, 2.079416880124],
       "safe_constraint": "β > 2.079416880124 (upper endpoint — conservative formal requirement)",
       "planning_shorthand": "2.07941688 (lower-bound-style rounded label for planning only; NOT a safe strict bound)",
-      "evidence": "lean-proof-towers/exports/CERT_Arb_beta0.pdf (sha256 4648eab7d5abd641d2b8acdfc29399bb9c620c7c45ad750a25401776bb80ec6c) ; CERT_Arb_beta0_2026-06-01.yaml",
+      "evidence": "lean-proof-towers/exports/CERT_Arb_beta0.pdf (sha256 b5a9f0a7666a91f283a7d4531ae99dff2097c2cedef10424b77833b7bbc840d3) ; CERT_Arb_beta0_2026-06-01.yaml",
       "method_options": ["SU(3) character expansion", "interval-arithmetic cubature over SU(3) (Arb/MPFI) — DELIVERED via mpmath.iv"],
       "mathlib_v4_12_0": "absent (no Lean object; CERT_Arb is out-of-tower)"
     },
