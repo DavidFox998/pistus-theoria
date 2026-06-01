@@ -282,3 +282,9 @@ id = "b2PFG0bHOBU9_dnbE9CVD"
 uri = "file://lean-proof-towers/exports/Big_Day_Status_2026-06-01.md"
 type = "text"
 title = "YM Wall256 Status — 2026-06-01 (slide deck)"
+
+[[outputs]]
+id = "MJdeR0TQxY5Lytx-Yv_88"
+uri = "file://lean-proof-towers/exports/Final_Status_Bundle_2026-06-01.json"
+type = "unspecified"
+title = "Final Status Bundle — 2026-06-01 (Wall256 β₀ wiring locked)"
