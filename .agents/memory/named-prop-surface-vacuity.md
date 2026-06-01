@@ -30,5 +30,9 @@ Enstrophy, though `H1Norm := ‖u t 0‖` is a SIMPLIFIED seminorm, not full H¹
 Clay `MassGap_YM4_Clay` and `MassGap574.YM_mass_gap` are non-vacuous *statements*
 but over SCALAR shadow operators (`continuumOp = (1−scale)•1`,
 `H = wilsonAction U • 𝟙`) — necessary-not-sufficient, never a real mass gap.
-The canonical honest index lives in doc-only `Towers/CanonicalSurfaces.lean`
-(no `iff`, grouped by REAL tower: 4 of the 6 genuine surfaces are YM, 2 are NS).
+The canonical honest index lives in TWO compiling per-tower registries (no
+`iff`): `Towers/YM/CanonicalSurfaces.lean` (`def YM_Clay_Open` bundles 3 of the
+4 YM genuine surfaces — `trivial_polymer_set_null` stays unbundled in
+`YM/Transfer`) and `Towers/NS/CanonicalSurfaces.lean` (`def NS_Open` bundles the
+2 NS surfaces). 6 genuine total = 4 YM + 2 NS. (Earlier doc-only
+`Towers/CanonicalSurfaces.lean` was deleted in the tower-separation split.)

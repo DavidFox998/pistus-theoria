@@ -1388,7 +1388,7 @@ export default function DashboardPage() {
           className="font-mono text-sm font-bold text-foreground"
           data-testid="text-surface-status-line"
         >
-          YM_Clay: OPEN (conditional) · NS: OPEN · HODGE: OPEN via AnalyticObstruction · classical trio only · SORRY: 0 · VACUOUS: 11 (2 deprecated / 9 flagged) · GENUINE OPEN SURFACES: 6 (YM_Clay_Open + NS_Open). YM "wall" bricks (e.g. Wall263) are proven geometry lemmas that make NO mass-gap claim.
+          YM_Clay: OPEN (conditional) · NS: OPEN · HODGE: OPEN via AnalyticObstruction · classical trio only · SORRY: 0 · VACUOUS: 11 (2 deprecated / 9 flagged) · GENUINE OPEN SURFACES: 6 (4 YM + 2 NS) — 5 bundled into 2 registries: YM_Clay_Open (3 YM) + NS_Open (2 NS); the 6th (trivial_polymer_set_null) stays unbundled in YM/Transfer. YM "wall" bricks (e.g. Wall263) are proven geometry lemmas that make NO mass-gap claim.
         </p>
         <p className="text-xs font-serif text-muted-foreground mt-2 leading-relaxed max-w-prose">
           Every live <span className="font-mono">sorry</span> proof-term across{" "}

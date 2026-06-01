@@ -6,6 +6,39 @@ this file is the version history.
 
 ---
 
+## Theoria tower separation — compiling CanonicalSurfaces registries (2026-06-01)
+
+The prior `Towers/CanonicalSurfaces.lean` was a doc-only index (no imports, no
+defs). This change replaces it with **two COMPILING registries**, split by
+tower:
+
+- **`Towers/YM/CanonicalSurfaces.lean`** — `def YM_Clay_Open : Prop` = the
+  conjunction of the three GENUINE YM open surfaces:
+  `(∀ T, MassGap_YM4_Clay_Surface T) ∧ kotecky_preiss_criterion_Surface ∧
+  (∀ d L n [NeZero L] [NeZero n] (U : GaugeConfig d L), YM_mass_gap_Surface …)`.
+- **`Towers/NS/CanonicalSurfaces.lean`** — `def NS_Open : Prop` =
+  `(∀ u, enstrophy_bound_global_Surface u) ∧
+  (∀ s, leray_proj_ker_eq_grad_Surface s)`.
+
+Both are **OPEN** (conjunctions of hypotheses, asserted by no theorem); both
+verified to compile via the direct-lean bypass, `#print axioms` =
+classical trio `{propext, Classical.choice, Quot.sound}` for each. No `sorry` /
+`admit` / `sorryAx` / new axiom. Added as `lakefile.lean` roots (transitively
+wiring in `MassGap574` and `Leray`, which had no prior oleans).
+
+HONESTY: these only NAME and group the existing open surfaces — they discharge
+NOTHING. NO "YM proven" / "mass gap" / "NS solved" claim. The fourth genuine YM
+surface (`trivial_polymer_set_null`) and the abstract placeholder-bundle
+hypotheses remain documented in their source files, not bundled here. The
+proven YM "wall" bricks (e.g. `Wall263_CoxeterSpectral`) are geometry lemmas
+that make NO mass-gap claim and are deliberately NOT referenced.
+
+**NS FREEZE.** `Towers/NS/CanonicalSurfaces.lean` was created under an EXPLICIT
+user unfreeze order ("Unlock freeze on NS Tower"); it is purely additive
+(references existing NS surface defs, modifies no frozen proof). NS otherwise
+stays frozen. The 9 in-place flagged-vacuous surfaces remain (VACUOUS count
+unchanged at 11 = 2 deprecated + 9 flagged); "Vacuous: 0" was REFUSED as false.
+
 ## Vacuous surface purge + honest cross-tower registry (2026-05-31)
 
 Follow-up to the SORRY purge below. The SORRY purge converted every live

@@ -33,3 +33,18 @@ is broken; it is non-destructive (no git, no lake re-resolve, oleans untouched).
 doesn't, use the direct-`lean` path above instead and document the brick as
 verified-by-direct-lean (not via `check-towers.sh`, which runs the destructive
 `lake build`).
+
+## Gotcha: prebuilt `.lake/build/lib` Towers oleans can be STALE
+
+The Towers oleans in `.lake/build/lib/Towers/**` are NOT auto-rebuilt by the
+direct-`lean` path — they persist from whenever `check-towers.sh` / lake last
+ran. After a source edit (e.g. the SORRY purge that added new `*_Surface`
+defs), the on-disk olean for that module is STALE and lacks the new
+declarations. A downstream file that `import`s it then fails with `unknown
+identifier '<NewDef>'` even though `open <Namespace>` succeeds (the namespace
+loads from the stale olean, but the new name isn't in it) — a confusing
+false-negative that looks like a namespace/path bug but is staleness.
+**Fix:** recompile each stale DEPENDENCY module to refresh its olean FIRST
+(`lean -o .lake/build/lib/Towers/<Path>.olean Towers/<Path>.lean`), in
+dependency order, THEN compile the consumer. `open` finding the namespace but
+NOT the identifier is the tell-tale sign of a stale dep olean.

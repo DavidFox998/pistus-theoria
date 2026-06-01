@@ -5,8 +5,23 @@ notes, proof sketches, drift footnotes, env vars, stack, where-things-live,
 gotchas). `replit.md` is the live-ops doc; the CHANGELOG is the version
 history. Roadmap → `docs/ROADMAP.md`.
 
-## Current status — 2026-05-31
+## Current status — 2026-06-01
 
+- **TOWER SEPARATION — COMPILING CanonicalSurfaces REGISTRIES (2026-06-01).**
+  Deleted the doc-only `Towers/CanonicalSurfaces.lean` and replaced it with TWO
+  COMPILING registries split by tower: `Towers/YM/CanonicalSurfaces.lean` (`def
+  YM_Clay_Open : Prop` = `(∀ T, MassGap_YM4_Clay_Surface T) ∧
+  kotecky_preiss_criterion_Surface ∧ (∀ d L n [NeZero L][NeZero n] U,
+  YM_mass_gap_Surface …)`) and `Towers/NS/CanonicalSurfaces.lean` (`def NS_Open
+  : Prop` = `(∀ u, enstrophy_bound_global_Surface u) ∧ (∀ s,
+  leray_proj_ker_eq_grad_Surface s)`). Both compile (direct-lean bypass), both
+  `#print axioms` = classical trio, both OPEN (conjunctions of hypotheses,
+  asserted by NO theorem). Added as `lakefile.lean` roots. They only NAME/group
+  the existing open surfaces — discharge NOTHING; NO "YM proven" / "mass gap" /
+  "NS solved" claim. NS file created under an EXPLICIT user unfreeze order,
+  purely additive (NS otherwise still frozen). VACUOUS count UNCHANGED at 11
+  (2 deprecated + 9 flagged) — the false "Vacuous: 0" was REFUSED. SORRY: 0;
+  classical trio. Per-file detail → `docs/CHANGELOG.md`.
 - **VACUOUS SURFACE PURGE + HONEST REGISTRY (2026-05-31).** Audit found 11 of
   the post-purge named `*_Surface` Props were VACUOUS under the stand-in defs
   (`spectral_radius_def := 1` / `Decay_constant_real := 1` ⟹ `1 < 1`
@@ -15,7 +30,9 @@ history. Roadmap → `docs/ROADMAP.md`.
   moved to `Towers/Deprecated/` (`UniformGap_Placeholder`, `Perron_Placeholder`;
   lakefile roots renamed); the other 9 are flagged in-place with a VACUOUS-AUDIT
   header in `Attempts/{ClusterExpansion,T_g}.lean`. The 6 GENUINE non-trivial
-  open surfaces are indexed in the doc-only `Towers/CanonicalSurfaces.lean`:
+  open surfaces were indexed in the doc-only `Towers/CanonicalSurfaces.lean`
+  (SUPERSEDED 2026-06-01 by the split compiling registries `Towers/YM/` +
+  `Towers/NS/CanonicalSurfaces.lean` — see top bullet):
   real-object — NS `Leray.leray_proj_ker_eq_grad`, NS
   `Enstrophy.enstrophy_bound_global` (simplified `‖u t 0‖` seminorm), YM
   `Transfer.kotecky_preiss_criterion` (real `T_L`), YM
@@ -106,6 +123,12 @@ history. Roadmap → `docs/ROADMAP.md`.
     `Regularity.weak_implies_strong` to a MODELED global-smoothness shape.
     SORRY: 0, axiom-free, NOT a brick. Proves NO regularity; Surfaces #1/#2 stay
     OPEN. NS otherwise still frozen.
+  - **Unfreeze exception (2026-06-01): `Towers/NS/CanonicalSurfaces.lean`** added
+    under an EXPLICIT user unfreeze order. Purely ADDITIVE registry — `def
+    NS_Open : Prop` that NAMES/groups the two genuine NS open surfaces
+    (`enstrophy_bound_global_Surface`, `leray_proj_ker_eq_grad_Surface`);
+    imports/modifies no frozen NS proof. SORRY: 0, classical trio, NOT a brick.
+    Discharges NOTHING; Surfaces #1/#2 stay OPEN. NS otherwise still frozen.
 - **Infra (in progress).** Disabling the `towers-build` auto-run and permanently
   locking the mathlib `v4.12.0` pin is tracked as a background Project Task
   (#294); until it lands, every boot/merge can still wipe the pin and require
