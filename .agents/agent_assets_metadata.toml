@@ -234,3 +234,9 @@ id = "qJ1G1FiZ2gEUQ-0nwma-o"
 uri = "file://docs/YM_Gap_Analysis.pdf"
 type = "pdf"
 title = "YM Gap Analysis — Two Distinct Concepts"
+
+[[outputs]]
+id = "rtuseLW1escxkVHcTXJ3V"
+uri = "file://docs/YM_audit_export.json"
+type = "unspecified"
+title = "Towers/YM audit export (machine-readable)"
