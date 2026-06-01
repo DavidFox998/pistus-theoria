@@ -288,3 +288,9 @@ id = "MJdeR0TQxY5Lytx-Yv_88"
 uri = "file://lean-proof-towers/exports/Final_Status_Bundle_2026-06-01.json"
 type = "unspecified"
 title = "Final Status Bundle — 2026-06-01 (Wall256 β₀ wiring locked)"
+
+[[outputs]]
+id = "Jq3hMqssM1KpHYVw1yW3s"
+uri = "file://lean-proof-towers/exports/hOS_Plan.md"
+type = "text"
+title = "hOS Dependency Map — 2026-06-01 (Wall256 leaf D5, IN-TOWER, map only)"
