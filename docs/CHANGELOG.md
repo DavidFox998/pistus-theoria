@@ -6,6 +6,53 @@ this file is the version history.
 
 ---
 
+## Hodge 12-curve set — `Towers/Hodge/Twelve.lean` (2026-06-01)
+
+Formalizes the REAL, documented 12-element CM set from the certificate chain
+(M10/M13) and STATES — does not prove — the Bost-bound violation conjecture.
+Real data only; the fabricated "269 exceptional curves" set is dropped (it
+exists nowhere in the docs: every "269" match is LaTeX `\c@table=\count269`
+counter noise). NOT a brick.
+
+Contents:
+
+- `exceptional_12 : Finset ℕ := {27,32,36,49,64,81,121,144,169,196,225,256}` —
+  the 12 CM levels `N` of M10/M13 Table 1 (the Lean `CM_LIST`,
+  `docs/M10_CM_Descent.tex` line 292; identical in `docs/M13_BC_CM.tex`). The two
+  NON-square cross-check levels 289, 361 are deliberately EXCLUDED — both papers'
+  abstracts list exactly twelve, "augmented with" 289/361 as cross-checks.
+- `structure CM_Curve where id : ℕ deriving DecidableEq`.
+- `ExceptionalSet₁₂ : Finset CM_Curve := exceptional_12.image CM_Curve.mk`.
+- `theorem twelve_card : ExceptionalSet₁₂.card = 12 := by decide` — a genuine
+  finite fact (via `Finset.card_image_of_injective` + `decide`).
+- `C (s : Finset ℕ) : ℝ := ∑ p in s, Real.log p * p/(p-1)` and
+  `BostBound s := C s > 2 * Real.sqrt 13`. The Bost-sum formula is ATTESTED in
+  M5 (`paper/modules/m05-bostbound.tex`: `C(S_4)=Σ log(p)·p/(p-1)`,
+  `C(S_4) ≈ 11.4221 > 2√13 ≈ 7.2111`).
+- `opaque S : CM_Curve → Finset ℕ` — the per-curve prime set `S_X`. Kept
+  abstract: the documents compute `S_X` numerically only for `S_4` (M4/M5), so
+  no honest body exists for the 12 curves. `opaque` adds NO axiom, NO `sorry`.
+- `TwelveViolation_Surface : Prop := ∃ X ∈ ExceptionalSet₁₂, ¬ BostBound (S X)`
+  — the OPEN violation conjecture, a named open surface asserted by NO theorem.
+
+Honesty / locks: registered as lakefile root `Towers.Hodge.Twelve`; direct-lean
+verify EXIT=0; `#print axioms` = classical trio for every decl (`exceptional_12`
+and `opaque S` use the `{propext, Quot.sound}` subset). SORRY: 0; no new axiom.
+
+REFUSED from the drafted spec because each would break a locked invariant:
+
+- `theorem twelve_card := by native_decide` — `native_decide` emits the extra
+  axiom `Lean.ofReduceBool`, off the classical trio. Replaced by `decide`.
+- `theorem twelve_check : … := by sorry` — `by sorry` emits `sorryAx`, forbidden
+  in any registered file (`Towers/` is `sorry`-free since the 2026-05-31 purge).
+  Replaced by the named open Prop `TwelveViolation_Surface` (Option-B pattern).
+- `opaque S (X) := sorry` — replaced by bodyless `opaque S : CM_Curve → Finset ℕ`.
+
+Proves NOTHING: no Hodge / BSD / Bost-violation claim; the conjecture stays
+OPEN. Commit drafted as "SORRY: 2" was shipped as **SORRY: 0**.
+
+---
+
 ## Hodge α₀ data layer — `Towers/Hodge/Defs.lean` (2026-06-01)
 
 Formalization Step 1 (user-chosen **Option 2**: number-theory layer only). A

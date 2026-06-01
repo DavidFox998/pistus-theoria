@@ -7,6 +7,26 @@ history. Roadmap → `docs/ROADMAP.md`.
 
 ## Current status — 2026-06-01
 
+- **HODGE 12-CURVE SET — `Towers/Hodge/Twelve.lean` (2026-06-01).** Real
+  documented CM data only (M10/M13), NO 269. `exceptional_12 : Finset ℕ :=
+  {27,32,36,49,64,81,121,144,169,196,225,256}` (the 12 CM levels `N` of M10/M13
+  Table 1 — the `CM_LIST`; the two NON-square cross-check levels 289,361 are
+  EXCLUDED). `structure CM_Curve where id:ℕ deriving DecidableEq`;
+  `ExceptionalSet₁₂ := exceptional_12.image CM_Curve.mk`; `theorem twelve_card :
+  card = 12 := by decide` (genuine finite fact). `C s := Σ_{p∈s} log p·p/(p-1)`
+  + `BostBound s := C s > 2·√13` (formula ATTESTED in M5
+  `paper/modules/m05-bostbound.tex`). `opaque S : CM_Curve → Finset ℕ` (the
+  per-curve prime set, NOT computed — docs give it numerically only for `S_4`).
+  The violation conjecture is a NAMED OPEN Prop `TwelveViolation_Surface := ∃ X
+  ∈ ExceptionalSet₁₂, ¬ BostBound (S X)`, asserted by NO theorem. Registered as
+  lakefile root `Towers.Hodge.Twelve`; direct-lean EXIT=0; classical trio
+  (`exceptional_12`/`S` use the `{propext, Quot.sound}` subset). REFUSED from the
+  drafted spec (would break the locks): `native_decide` (emits
+  `Lean.ofReduceBool`, off-trio) → `decide`; `theorem twelve_check := by sorry`
+  (emits `sorryAx`) → the named open Prop; `opaque S := sorry` → bodyless
+  `opaque`. SORRY: 0, no new axiom, NOT a brick. Proves NOTHING — no
+  Hodge/BSD/Bost-violation claim; the conjecture stays OPEN. Detail →
+  `docs/CHANGELOG.md`.
 - **HODGE α₀ DATA LAYER — `Towers/Hodge/Defs.lean` (2026-06-01).** Formalization
   Step 1, user-chosen **Option 2** (number-theory layer only). Pure DEFINITIONS
   file (no proofs / no computation / no `#eval`): `alpha_0 := 299 + π/10`,
