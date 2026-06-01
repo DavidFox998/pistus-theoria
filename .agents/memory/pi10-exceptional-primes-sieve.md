@@ -30,21 +30,45 @@ Task surface separate from the Lean tower: enumerate every prime p with
 
 **Honest result:** up to 10^4000 there are exactly **20** exceptional primes:
 2, 3, 19, 191, then 16 larger ones (13 → 3548 digits). Cross-validated: the
-sieve's results <=10^6 equal the independent brute force {2,3,19,191}.
-A circulated "v1.6" report claiming 14 was WRONG — only 3 of its 14 were
-exceptional; the rest were composite truncations, and it omitted 2, 19, 191.
+sieve's results <=10^6 equal the independent brute force {2,3,19,191}. There is
+NO clean criterion that yields exactly 14: `||p*pi/10||<1/p` gives 20, and the
+stricter Legendre `1/(2p)` would DROP 2,19,191 (all semiconvergents) leaving 8.
+
+**Three distinct "14" lists — do not conflate them:**
+1. **v1.3–v1.5 (BUGGY)** tested CF DENOMINATORS k_n instead of numerators h_n →
+   "desert holds" artifact + a composite tail. THIS is the bogus list hardcoded
+   as `S_14` in `Towers/Hodge/Defs.lean` / `data/exceptional_primes.csv`
+   (#8–#14 composite AND non-exceptional). `BostViolations/Compute.lean`'s
+   `C_rat≈842.42` is computed over it ⟹ also meaningless.
+2. **v1.6 (CORRECT but INCOMPLETE)** tested numerators h_n → 14 GENUINE primes
+   = exactly a SUBSET of the canonical 20. It finds 14 not 20 only because it
+   searches PRINCIPAL convergents (Legendre completeness needs the stricter
+   1/(2p)) and its 4010-digit pi tops out ~10^2005 (flags h4610 itself). So 14
+   is "method+precision limited," NOT wrong and NOT canonical.
+3. **A separately circulated list** `2,3,19,191,291,317,607,...,10651` — a
+   `299+pi` (NOT pi/10) computation, mislabeled, with arithmetic that doesn't
+   close; 291=3*97 composite; only 2,3,19,191 actually pass. See "Two traps".
+
+The CANONICAL machine-verified set is the 20 in
+`data/pi10_exceptional_primes.txt` (with completeness cert). Trust the data
+file, not Defs.lean's S_14. Defs.lean is NOT a brick ⟹ data-honesty defect, not
+an axiom-lock breach. Honest draft audit reconciling all this:
+`docs/exceptional-prime-gap-audit-draft.md` (has a re-runnable repro script).
+
+**Two traps that keep recurring:**
+- **pi vs pi/10.** alpha0 = 299 + pi/10 = **299.31415927**; the decimal
+  **302.14159265** is 299 + pi. Since 299p is integral, `||p*(299+t)||=||p*t||`,
+  so 299+pi/10 ⟺ pi/10 (ONE test). Testing 299+pi instead gives a DIFFERENT set
+  ({2,7,113} below 11000, vs {2,3,19,191} for pi/10).
+- **"float64 false positives" is impossible here.** Low precision returns
+  `0.0` (meaningless garbage), NEVER a false pass; float64's ~15 digits can't
+  even represent a 95- or 3548-digit prime. #10 needs pi to >=250 digits, #20
+  >=7200, to register; once sufficient the value is stable across dps. The 6
+  extras beyond v1.6's 14 are VERIFIED PRIME, not rounding artifacts.
 
 **Honesty caveat to always state:** BPSW has no known counterexample but is NOT
 a formal primality proof for the 3000+ digit entries (ECPP/Primo certs would be
 needed for that, impractical here).
-
-**Where the fabricated "14" list still lives:** the same bogus 14-prime tail is
-hardcoded as `S_14` in Lean `Towers/Hodge/Defs.lean` (entries #8–#14 are
-composite AND non-exceptional — verified at 220–400 dp). The CANONICAL
-machine-verified set is the 20 primes in `data/pi10_exceptional_primes.txt`; its
-first 7 match Defs.lean, the tail diverges. Trust the data file, not Defs.lean's
-S_14. (Defs.lean is NOT a brick, so this is a documentation/data-honesty defect,
-not an axiom-lock breach.)
 
 **Desert structure (the headline geometry):** first 4 primes (2,3,19,191) are
 immediate; then a boundary phase shift to p5≈3.99e12 (first desert width =

@@ -192,3 +192,9 @@ id = "N4MaFzKRUXlpJ2jdYLBRe"
 uri = "file://docs/Surface2_ResearchProgram.pdf"
 type = "pdf"
 title = "Surface 2 — Research Program"
+
+[[outputs]]
+id = "dh8Mlwxi48_vIuQ-gNZco"
+uri = "file://docs/exceptional-prime-gap-audit-draft.md"
+type = "text"
+title = "Exceptional-Prime Gap Audit (DRAFT — α₀ = 299 + π/10)"
