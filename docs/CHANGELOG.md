@@ -6,6 +6,40 @@ this file is the version history.
 
 ---
 
+## Hodge α₀ data layer — `Towers/Hodge/Defs.lean` (2026-06-01)
+
+Formalization Step 1 (user-chosen **Option 2**: number-theory layer only). A
+pure DEFINITIONS file — no proofs, no computation, no `#eval` — that moves the
+α₀ exceptional-set objects from prose (`paper/modules/m04-esete4.tex`, Machine
+Certificate v1.6) into Lean, separating data from claims:
+
+- `alpha_0 : ℝ := 299 + Real.pi / 10` (Module 1).
+- `nearestIntDist x := |x - round x|` — distance to nearest integer (the ‖·‖ in
+  the certificate condition, NOT absolute value of `x`).
+- `S_alpha_0 p : Prop := Nat.Prime p ∧ nearestIntDist (p·α₀) < 1/p`.
+- `S_14 : Finset ℕ` — the **REAL** 14 certified primes copied verbatim from M4
+  (`2, 3, 19, 191, 3993746143633, 3224057731518397, …,
+  3494164289073996361661384853541`).
+- `S_4 : Finset ℕ := {2, 3, 19, 191}` — leading subset used in M5.
+
+Registered as `lakefile.lean` root `Towers.Hodge.Defs`. Verified via direct-lean
+bypass: EXIT=0; `#print axioms` = classical trio for `S_alpha_0`/`alpha_0`/
+`nearestIntDist`, and `{propext, Quot.sound}` (a subset) for `S_14`/`S_4`. No
+`sorry` / `admit` / `sorryAx` / new axiom. NOT a brick.
+
+**Deviations from the original Step-1 spec, and why.** The originally drafted
+spec was REFUSED as un-shippable and partly false; the user agreed to Option 2.
+Dropped: (a) `import Mathlib.NumberTheory.CM` and the `CM_Curve` type — neither
+exists in mathlib v4.12.0 (verified), so `BostBound` / `ExceptionalSet₂₆₉` /
+`AnalyticObstruction` / `C` would not elaborate; (b) the `:= sorry` placeholders
+— `sorry` emits `sorryAx`, breaking the axiom lock and contradicting the
+proposed "classical trio only" commit line; (c) the fabricated `S_14` list
+(`379, 757, 911, 1471, …`) — those values are NOT in the certificate and were
+replaced with the real certified primes. This file therefore proves NOTHING,
+discharges NO open surface, and makes NO Hodge / BSD / mass-gap claim; it does
+not assert `S_14` equals the exceptional set on any range (that stays the
+certificate's claim).
+
 ## Theoria tower separation — compiling CanonicalSurfaces registries (2026-06-01)
 
 The prior `Towers/CanonicalSurfaces.lean` was a doc-only index (no imports, no

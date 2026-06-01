@@ -7,6 +7,23 @@ history. Roadmap → `docs/ROADMAP.md`.
 
 ## Current status — 2026-06-01
 
+- **HODGE α₀ DATA LAYER — `Towers/Hodge/Defs.lean` (2026-06-01).** Formalization
+  Step 1, user-chosen **Option 2** (number-theory layer only). Pure DEFINITIONS
+  file (no proofs / no computation / no `#eval`): `alpha_0 := 299 + π/10`,
+  `nearestIntDist x := |x - round x|` (distance to nearest integer, NOT abs),
+  `S_alpha_0 p := Nat.Prime p ∧ nearestIntDist (p·α₀) < 1/p`, `S_14 : Finset ℕ`
+  (the REAL 14 certified M4 primes, copied verbatim from
+  `paper/modules/m04-esete4.tex` — `2,3,19,191,3993746143633,…,
+  3494164289073996361661384853541`), `S_4 := {2,3,19,191}`. Registered as
+  lakefile root `Towers.Hodge.Defs`; direct-lean verify EXIT=0; `#print axioms`
+  classical trio (`S_14`/`S_4` use the `{propext, Quot.sound}` subset). SORRY: 0,
+  no new axiom, NOT a brick. DROPPED from the original spec (would not compile /
+  was false): `import Mathlib.NumberTheory.CM` + `CM_Curve` (do NOT exist in
+  v4.12.0), `BostBound`/`ExceptionalSet₂₆₉`/`AnalyticObstruction`/`C`, the three
+  `:= sorry` placeholders (sorry⟹sorryAx), and the fabricated `S_14` list
+  (`379,757,911,…` — NOT in the certificate). Proves NOTHING; asserts NO
+  `S_14 =` exceptional-set equality; NO Hodge/BSD/mass-gap claim. Detail →
+  `docs/CHANGELOG.md`.
 - **TOWER SEPARATION — COMPILING CanonicalSurfaces REGISTRIES (2026-06-01).**
   Deleted the doc-only `Towers/CanonicalSurfaces.lean` and replaced it with TWO
   COMPILING registries split by tower: `Towers/YM/CanonicalSurfaces.lean` (`def
