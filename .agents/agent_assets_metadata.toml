@@ -198,3 +198,15 @@ id = "dh8Mlwxi48_vIuQ-gNZco"
 uri = "file://docs/exceptional-prime-gap-audit-draft.md"
 type = "text"
 title = "Exceptional-Prime Gap Audit (DRAFT — α₀ = 299 + π/10)"
+
+[[outputs]]
+id = "Fc2D-p74A2w9JJ2RDXzv5"
+uri = "file://docs/exceptional-prime-desert-map.md"
+type = "text"
+title = "Exceptional-Prime Desert Map (P1–P20, α₀ = 299 + π/10)"
+
+[[outputs]]
+id = "lnQjfI3StslpGqKeEVNjW"
+uri = "file://data/desert_map.csv"
+type = "table"
+title = "Desert Map — exact integers & cumulative energy (CSV)"
