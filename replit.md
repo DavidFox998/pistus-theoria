@@ -7,7 +7,7 @@ history. Roadmap → `docs/ROADMAP.md`.
 
 ## Current status — 2026-06-01
 
-- **HODGE SMap BRIDGE — `Towers/Hodge/SMap.lean` (2026-06-01).** Honest
+- **EXCEPTIONAL-SET SMap BRIDGE — `Towers/Hodge/SMap.lean` (2026-06-01).** Honest
   cross-reference of `Twelve.lean` with Battle Plan v1.6 Modules 1–5, REAL data
   only. Ties the 12-curve scaffold to the SINGLE certified α₀ exceptional set:
   `Sexc := Defs.S_14` (the M4-certified window `S(α₀)∩[1,10^4000]=S_14`),
@@ -28,7 +28,7 @@ history. Roadmap → `docs/ROADMAP.md`.
   certificate). Proves NOTHING; under the real data the violation conjecture has
   NO support (one set, C only grows: M10 `C(S_5)=40.438`) — it stays OPEN and
   unasserted. Detail → `docs/CHANGELOG.md`.
-- **HODGE 12-CURVE SET — `Towers/Hodge/Twelve.lean` (2026-06-01).** Real
+- **EXCEPTIONAL 12-CURVE SET — `Towers/Hodge/Twelve.lean` (2026-06-01).** Real
   documented CM data only (M10/M13), NO 269. `exceptional_12 : Finset ℕ :=
   {27,32,36,49,64,81,121,144,169,196,225,256}` (the 12 CM levels `N` of M10/M13
   Table 1 — the `CM_LIST`; the two NON-square cross-check levels 289,361 are
@@ -48,7 +48,7 @@ history. Roadmap → `docs/ROADMAP.md`.
   `opaque`. SORRY: 0, no new axiom, NOT a brick. Proves NOTHING — no
   Hodge/BSD/Bost-violation claim; the conjecture stays OPEN. Detail →
   `docs/CHANGELOG.md`.
-- **HODGE α₀ DATA LAYER — `Towers/Hodge/Defs.lean` (2026-06-01).** Formalization
+- **EXCEPTIONAL-SET α₀ DATA LAYER — `Towers/Hodge/Defs.lean` (2026-06-01).** Formalization
   Step 1, user-chosen **Option 2** (number-theory layer only). Pure DEFINITIONS
   file (no proofs / no computation / no `#eval`): `alpha_0 := 299 + π/10`,
   `nearestIntDist x := |x - round x|` (distance to nearest integer, NOT abs),

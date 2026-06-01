@@ -6,7 +6,7 @@ this file is the version history.
 
 ---
 
-## Hodge SMap bridge — `Towers/Hodge/SMap.lean` (2026-06-01)
+## Exceptional-set SMap bridge — `Towers/Hodge/SMap.lean` (2026-06-01)
 
 Honest cross-reference of `Towers/Hodge/Twelve.lean` with Battle Plan v1.6
 Modules 1–5 (Machine Certificate v1.6, all SHAs attested), using REAL data only.
@@ -69,7 +69,7 @@ named-attestation bridge, **SORRY: 0**.
 
 ---
 
-## Hodge 12-curve set — `Towers/Hodge/Twelve.lean` (2026-06-01)
+## Exceptional 12-curve set — `Towers/Hodge/Twelve.lean` (2026-06-01)
 
 Formalizes the REAL, documented 12-element CM set from the certificate chain
 (M10/M13) and STATES — does not prove — the Bost-bound violation conjecture.
@@ -116,7 +116,7 @@ OPEN. Commit drafted as "SORRY: 2" was shipped as **SORRY: 0**.
 
 ---
 
-## Hodge α₀ data layer — `Towers/Hodge/Defs.lean` (2026-06-01)
+## Exceptional-set α₀ data layer — `Towers/Hodge/Defs.lean` (2026-06-01)
 
 Formalization Step 1 (user-chosen **Option 2**: number-theory layer only). A
 pure DEFINITIONS file — no proofs, no computation, no `#eval` — that moves the
