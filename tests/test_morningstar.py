@@ -784,6 +784,56 @@ def test_no_non_append_writes_to_hits_txt():
     )
 
 
+# ---------- repo lint: forbid reintroducing the exiled ornamental brick ----------
+
+# Tracked-path patterns that must never reappear. Each is tagged with the
+# reason it was exiled so a failure tells the developer exactly why.
+_FORBIDDEN_TRACKED_PATTERNS: list[tuple[str, str]] = [
+    (
+        r"Ornamental.*Brick1",
+        "Towers/Ornamental/Brick1_Foundation.lean was audited as fabricated "
+        "(numerological framing, a stand-in beta colliding with the real "
+        "Wall256 endpoint, native_decide + sorry proofs) and deleted. It "
+        "proved no result and discharged no surface. Do not reintroduce it; "
+        "if you need a genuine foundation brick, prove a real statement and "
+        "register it in scripts/check-towers.sh.",
+    ),
+]
+
+
+def test_exiled_ornamental_brick_stays_deleted():
+    """Forbid the Ornamental jailbreak: the fabricated `Ornamental/Brick1`
+    module stays exiled.
+
+    Mirrors the user's "Forbid Ornamental Jailbreak" CI intent in the
+    mechanism this repo actually runs (the `morningstar-tamper` pytest
+    workflow; there is no GitHub Actions here). Uses `git ls-files` so it
+    tracks exactly what is committed, matching the original
+    `git ls-files | grep "Ornamental.*Brick1"` check.
+    """
+    import re as _r
+
+    r = subprocess.run(
+        ["git", "ls-files"],
+        cwd=REPO_ROOT,
+        capture_output=True,
+        text=True,
+    )
+    assert r.returncode == 0, f"git ls-files failed: {r.stderr}"
+    tracked = r.stdout.splitlines()
+
+    violations: list[str] = []
+    for pat, reason in _FORBIDDEN_TRACKED_PATTERNS:
+        rx = _r.compile(pat)
+        for rel in tracked:
+            if rx.search(rel):
+                violations.append(f"{rel} — {reason}")
+    assert not violations, (
+        "BAND: an exiled file was reintroduced. Morning Star is law, not "
+        "fabric.\n  " + "\n  ".join(violations)
+    )
+
+
 # ---------- kernel.probe must abort on tampered Genesis ----------
 
 def test_probe_refuses_to_append_when_body_truncated(hits_backup, fresh_checkpoint):
