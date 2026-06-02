@@ -33,6 +33,7 @@ import Towers.YM.Interval
 namespace TheoremaAureum.Towers.YM.IntervalArith
 
 open scoped BigOperators
+open RatInterval
 
 /-- The Wall256 weight constant `β₀ = 2.079416880124` as an exact rational. -/
 def β₀_rat : ℚ := 2079416880124 / 1000000000000
@@ -78,7 +79,7 @@ private theorem exp_neg_iteratedDerivWithin (n : ℕ) :
       simpa using this
     have hd : HasDerivAt (fun y : ℝ => (-1 : ℝ) ^ n * Real.exp (-y))
         ((-1 : ℝ) ^ n * (-Real.exp (-x))) x := h1.const_mul _
-    rw [hd.derivWithin (hu x hx), pow_succ]
+    rw [hd.hasDerivWithinAt.derivWithin (hu x hx), pow_succ]
     ring
 
 /-- Cast of the rational partial sum to the real truncated series. -/
@@ -145,14 +146,13 @@ theorem exp_neg_beta0_enclosure :
     have hEcast : ((exp_neg_error β₀_rat 32 : ℚ) : ℝ)
         = (β₀_rat : ℝ) ^ (32 + 1) / ((32 + 1).factorial : ℝ) := by
       rw [exp_neg_error]; push_cast; ring
-    have hQpos : (0 : ℝ) < (β₀_rat : ℝ) ^ (32 + 1) / ((32 + 1).factorial : ℝ) := by positivity
+    have hQpos : (0 : ℝ) < (β₀_rat : ℝ) ^ (32 + 1) / ((32 + 1).factorial : ℝ) :=
+      div_pos (pow_pos beta0R_pos _) (by exact_mod_cast Nat.factorial_pos (32 + 1))
     have hRpos : (0 : ℝ) < R := by rw [hR]; exact mul_pos hexp_pos hQpos
     have hRlt : R < ((exp_neg_error β₀_rat 32 : ℚ) : ℝ) := by
       rw [hEcast, hR]
-      calc Real.exp (-x') * ((β₀_rat : ℝ) ^ (32 + 1) / ((32 + 1).factorial : ℝ))
-          < 1 * ((β₀_rat : ℝ) ^ (32 + 1) / ((32 + 1).factorial : ℝ)) :=
-            mul_lt_mul_of_pos_right hexp_lt1 hQpos
-        _ = (β₀_rat : ℝ) ^ (32 + 1) / ((32 + 1).factorial : ℝ) := one_mul _
+      have hmul := mul_lt_mul_of_pos_right hexp_lt1 hQpos
+      rwa [one_mul] at hmul
     -- exp (-β₀) = S_32 - R.
     have hexpeq : Real.exp (-(β₀_rat : ℝ)) = ((exp_neg_partial β₀_rat 32 : ℚ) : ℝ) - R := by
       have hD : (-1 : ℝ) ^ (32 + 1) * Real.exp (-x') * ((β₀_rat : ℝ) - 0) ^ (32 + 1)
@@ -175,6 +175,14 @@ theorem exp_neg_beta0_enclosure :
       show exp_neg_partial β₀_rat 32 - (exp_neg_partial β₀_rat 32 - exp_neg_error β₀_rat 32)
         = exp_neg_error β₀_rat 32 from by ring, exp_neg_error]
     norm_num [β₀_rat, Nat.factorial]
+
+/-- The concrete Phase-2a enclosure of `exp (-β₀)` at `N = 32`:
+the alternating Lagrange bracket `[S_32 - β₀^33/33!, S_32]`. -/
+def exp_beta0_interval : RatInterval := exp_neg_interval (ofRat β₀_rat) 32
+
+#eval exp_beta0_interval.lo                          -- S_32 - β₀^33/33!
+#eval exp_beta0_interval.hi                          -- S_32
+#eval exp_beta0_interval.hi - exp_beta0_interval.lo  -- width = β₀^33/33!
 
 end TheoremaAureum.Towers.YM.IntervalArith
 
