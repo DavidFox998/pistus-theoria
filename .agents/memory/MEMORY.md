@@ -21,6 +21,7 @@
 - [Finset.toList noncomputable v4.12.0](finset-tolist-noncomputable.md) — #eval over a Finset fails ("no executable code"); use `Finset.sort (·≤·)` to materialize a List, not toList.
 - [Explicit 4x4 det in v4.12.0](explicit-matrix-det-v4_12.md) — no det_fin_four; Laplace via PLAIN simp (not simp only)+Fin.succAbove/Fin.lt_def then ring; φ∉spectrum via spectrum.not_mem_iff+isUnit_iff_isUnit_det; `-/` in docstring closes it early.
 - [w1 SU(3) normalization & Wall256 β₀](w1-su3-normalization-threshold.md) — repo action is (3−Re tr)/3; w1<1/7 needs β>~2.08 NOT the stale doc's 0.85 (that's the un-normalized 3−Re tr); numerical only, discharges nothing.
+- [Interval determinant uniform-width](interval-det-uniform-width.md) — certify 3×3 det enclosure via width(det)≤18U²E (no per-k decide; decide dead on ℚ gcd); Nat.one_le_factorial doesn't exist (use factorial_ne_zero).
 - [exp(constant) enclosure recipe](exp-constant-enclosure-recipe.md) — bracket Real.exp(-c) via taylor_mean_remainder_lagrange (alternating ℚ bracket); HasDerivAt.derivWithin missing → .hasDerivWithinAt.derivWithin; positivity can't sign cast-ℚ; float can't check 3e-27 widths.
 - [Bessel Iν tail enclosure](bessel-tail-enclosure-recipe.md) — S_N≤I≤S_N+err geometric bracket (I0/I1/I2); odd ν needs 0≤y; isolate pow identities in `have`s so div_pow hits one subterm.
 - [Rat.cast_min/max gap v4.12.0](rat-cast-min-max-gap.md) — no Rat.cast_min/Rat.cast_max for ℚ→ℝ; prove cast/min(max) commute inline via le_total + min_eq_left/right.

@@ -734,10 +734,13 @@ theorem besselIn_error_beta0_lt (n : ℕ) :
     rw [hx]; norm_num [besselI0_error, β₀_rat, Nat.factorial]
   have hcmp : besselIn_error n x 40 ≤ besselI0_error x 40 := by
     unfold besselIn_error besselI0_error
-    rw [div_div, div_div]
-    refine div_le_div (pow_nonneg hx2nn _) hpow (mul_pos (mul_pos hF1 hF1) hDr0) ?_
-    refine mul_le_mul ?_ hDle hDr0.le (by positivity)
-    exact mul_le_mul_of_nonneg_left hfacN hF1.le
+    -- Goal: A/D1 ≤ C/D0 with A = num_n/den_n, C = num_0/den_0, D0 ≤ D1.
+    -- Step 1: A/D1 ≤ A/D0 (larger geometric denominator); Step 2: A/D0 ≤ C/D0.
+    refine le_trans (div_le_div_of_nonneg_left ?_ hDr0 hDle) ?_
+    · exact div_nonneg (pow_nonneg hx2nn _) (by positivity)
+    · exact (div_le_div_right hDr0).mpr
+        (div_le_div (pow_nonneg hx2nn _) hpow (mul_pos hF1 hF1)
+          (mul_le_mul_of_nonneg_left hfacN hF1.le))
   linarith
 
 /-- **Phase-2.5 general enclosure.** For every order `n`, `Iₙ(β₀/3) ∈
@@ -841,3 +844,4 @@ end TheoremaAureum.Towers.YM.IntervalArith
 #print axioms TheoremaAureum.Towers.YM.IntervalArith.besselI0_beta0_enclosure
 #print axioms TheoremaAureum.Towers.YM.IntervalArith.besselI1_beta0_enclosure
 #print axioms TheoremaAureum.Towers.YM.IntervalArith.besselI2_beta0_enclosure
+#print axioms TheoremaAureum.Towers.YM.IntervalArith.besselIn_beta0_enclosure
