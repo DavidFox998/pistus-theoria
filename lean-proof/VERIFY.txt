@@ -20,10 +20,6 @@ semantic build (riemannZeta / riemannXi); fetching the ~2 GB prebuilt oleans
 --------------------------------------------------------------------------------
 lake build
 --------------------------------------------------------------------------------
-✔ [3/7] Built TheoremaAureum.Certificates
-✔ [4/7] Built TheoremaAureum.M9_WeilTransfer
-✔ [5/7] Built TheoremaAureum.C_Chain
-✔ [6/7] Built TheoremaAureum
 Build completed successfully.
 
 --------------------------------------------------------------------------------
