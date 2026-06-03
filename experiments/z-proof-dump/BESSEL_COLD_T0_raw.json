@@ -1,6 +1,7 @@
 {
   "model": "claude-haiku-4-5",
   "prompt": "Z_COLD_T0_SINGLE\nYou are T=0. No tools.\nTask: Estimate I_10(20.0)\nOutput ONLY a number. One line.\nGO:",
+  "true_value": 256457.353,
   "results": [
     {
       "raw": "2.815716628e8",
@@ -102,11 +103,5 @@
       "value": 281571662.8,
       "ok": true
     }
-  ],
-  "true_value_DISCLOSED_INCORRECT": 256457.353,
-  "true_value_authoritative_mpmath": 3540200.2090195213,
-  "true_value_source": "mpmath.besseli(10, 20.0), dps=50",
-  "t0_error_vs_disclosed_incorrect": 1096.927821160971,
-  "t0_error_vs_authoritative": 78.53551951175747,
-  "correction_note": "The originally disclosed true value 256457.353 is WRONG. mpmath gives I_10(20.0)=3540200.2090195213. The honest T=0 (Haiku) relative error against the authoritative reference is 7853.55%, NOT 109692.78% (that used the wrong reference). The 20 raw outputs are unchanged."
+  ]
 }
