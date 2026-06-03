@@ -31,3 +31,4 @@
 - [decide stalls on Rat in kernel](decide-rat-kernel-stall.md) — whole-Bool `decide`/`rfl` gets stuck on `Rat.instDecidableLe`; discharge any `Rat ≤` clause from a hypothesis (or norm_num), not a kernel decide.
 - [mathlib-free #eval leaf](lean-corefree-eval-leaf.md) — flat `List Int`+structural chunk beats 120 nested `⟨⟩` literals (elab blowup); finish elan install via a workflow (120s bash cap kills it); `List.flatMap`→`List.bind` in v4.12.0.
 - [Vite ?raw vs alias JSON](vite-raw-vs-alias-json.md) — `@alias/...?raw` typechecks via vite/client ambient `*?raw` (no path resolution); plain `@alias/...json` needs a tsconfig paths entry or it's TS2307.
+- [Z Protocol honesty split](z-protocol-honesty-split.md) — under "refines not refutes" pressure: split T_s vs T_t (T_t causal), report error RATE not magnitude, keep digits=0% not 0.50, ∀-claim stays a labeled conjecture.

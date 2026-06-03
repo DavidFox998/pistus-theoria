@@ -1,5 +1,15 @@
 # Z Protocol: A Discovered Singularity Class in LLM Generation Where Temperature=0 Fails and Tool Use is Necessary
 
+> **⚠ SUPERSEDED by [`Z_PROTOCOL_V1_1.md`](./Z_PROTOCOL_V1_1.md) (2026-06-03).**
+> The 240-trial measurement showed the single temperature $T$ below was two
+> variables — sampling temperature $T_s$ and tool use $T_t$. v1.1 splits them: the
+> causal axis is $T_t$, not $T_s$. Two abstract claims below are **contradicted by
+> measurement** and must not be cited: (1) "≈50% error on digit counting" — measured
+> **0%** (100/100 correct); (2) "$E\approx(1-T)$" in sampling temperature — the error
+> rate is **flat across all $T_s$** (the law holds in $T_t$, not $T_s$). The abstract
+> is retained verbatim only as the historical record; see the status table below and
+> `CAUSALITY_LINK.json` for the per-claim mapping.
+
 **Author:** D. Fox · **Date:** 2026-06-03 · **Model under test:** `claude-haiku-4-5`
 
 ## Abstract (verbatim, as submitted)
@@ -24,8 +34,8 @@ Full machine-readable mapping: [`CAUSALITY_LINK.json`](./CAUSALITY_LINK.json).
 | True value `3,540,200.209` | **SUPPORTED** | `mpmath.besseli(10,20.0)`, dps=50 |
 | T=0 error ≈ `7853%` | **SUPPORTED** | vs the mpmath true value (= 7853.55%) |
 | Tool use (T=1) → `0%` error | **SUPPORTED** | T=1 path *is* the reference |
-| "50% error on digit counting pre-patch" | **UNSUPPORTED** | `Z_DIGITS_T0.csv`: all T=0 cells `NOT_RUN_NO_API`; no such measurement exists in this repo |
-| `E ≈ (1-T)` | **PARTIAL / schematic** | only T∈{0,1} measured; at T=0 fractional error ≈78.5, not ≈1 — qualitative, not a fitted law |
+| "50% error on digit counting pre-patch" | **REFUTED by measurement** | `Z_DIGITS_COLD_T0.csv`: 100 cold T=0 trials, **100/100 = `13`, 0% error**. The 50% premise does not hold; digits is M=1 (see v1.1 §5.1) |
+| `E ≈ (1-T)` | **REFINED by v1.1** | the single T was two axes: holds in tool use T_t (rate 1.00→0.00), NOT in sampling temperature T_s (rate flat 1.00 across T_s∈{0,…,1}). See `Z_PROTOCOL_V1_1.md` §2–4 |
 | "singularity class / metastable" generalization | **PARTIAL** | shown for one Sym=1 instance (Bessel); class-level breadth not yet collected |
 
 ### Honesty caveats (do not drop these)
