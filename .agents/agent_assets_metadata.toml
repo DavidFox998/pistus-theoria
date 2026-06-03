@@ -312,3 +312,9 @@ id = "RdOAJlpXGlbxXfqTrH2Ue"
 uri = "file://TOWERS_YM_v2.3.pdf"
 type = "pdf"
 title = "TOWERS_YM_v2.3.pdf — H4 Boundary Protocol + Z Experiment"
+
+[[outputs]]
+id = "0gSeF06u7fvq3Gu4aoOPp"
+uri = "file://experiments/z-metastability/Z_MEASURE.csv"
+type = "table"
+title = "Z_MEASURE.csv — 5000 trials (50 inputs × 100)"
