@@ -54,7 +54,9 @@ $T_s\in\{0,0.2,0.4,0.6,0.8,1.0\}$:
 $$
 \boxed{\;E\big(T_s,\,T_t{=}0\big)=1.00\ \ \text{at every sampled }T_s\qquad\gg\qquad E\big(T_t{=}1\big)=0.00\;}
 $$
-$E$ is a function of $T_t$, **not** of $T_s$. Regression of $E$ on $T_s$ over the six
+$E$ is governed by $T_t$, **not** by $T_s$ — though note $T_t{=}1$ is the deterministic
+reference arm (error $0$ by construction), not a separately sampled treatment, so this is an
+**operational switch under the protocol**, not a sampled causal estimate. Regression of $E$ on $T_s$ over the six
 sampled points: slope $=0$, $E\equiv 1.00$ (zero variance; $R^2$ undefined). Sampling
 temperature does not move the error; the tool switch sets it to zero. (Six discrete
 $T_s$ points are measured, not the full continuum — the flatness is asserted only where
@@ -134,6 +136,24 @@ $E=(1-T_t)\,\mathbb{1}[M{=}0]$ (the $a\to\infty$ limit of the ansatz):
 
 Hard-gate fit: residual $=0$ on all three condition means, $R^2=1.00$.
 
+**4.5a Reported $R^2$ for $E(T_s,T_t,\mathrm{Sym},M)$ — $R^2{=}1.0000$ on a degenerate,
+$M$-only-separable dataset ($T_t$/Sym unidentifiable here; per-trial, $n{=}240$).** Computed
+on the binary per-trial error indicator (digits via `correct`; ζ via absolute/scale error;
+Bessel via rel-err $>0.1$), $\bar E=0.5833$, $\mathrm{SS_{tot}}=58.33$:
+
+| model (all 240 trials) | variables actually used | $R^2$ |
+|---|---|---|
+| **Z v1.1** $E=(1-T_t)\,\mathbb{1}[M{=}0]$ | $T_t,\,M$ | $\mathbf{1.0000}$ |
+| constant / Sym-only (Sym$\equiv1$) | — | $0.0000$ |
+| v1.0 shape $E=(1-T_s)$ | $T_s$ | $-1.4686$ |
+
+So $R^2\big(E(T_s,T_t,\mathrm{Sym},M)\big)=\mathbf{1.0000}$ — **but the explained variance is
+carried entirely by $M$.** In this dataset $T_t\equiv0$ and $\mathrm{Sym}\equiv1$ (no
+variance, so neither can contribute to $R^2$), and $T_s$ is actively useless: the v1.0
+$T_s$-only fit scores $R^2=-1.47$, *worse than predicting the mean*. The number is a clean
+two-group separation by $M$, not evidence for the sigmoid shape or a $\mathrm{Sym}$ effect
+(see the caveat below and §8 for the tests that would actually exercise $T_t$ and Sym).
+
 > **What this $R^2$ does and does not mean (no overstatement).** The data contains only
 > **two** error-rate levels ($0$ and $1$), separated cleanly by $M$, with $\mathrm{Sym}$
 > held at $1$, $T_t$ held at $0$, and $T_s$ shown irrelevant. So $R^2=1$ is a clean
@@ -168,6 +188,19 @@ the absolute-error reading.
 
 ## 6. Conjecture (falsifiable — not a theorem)
 
+> **Conjecture 1 (Sym=1, M=0, T_t=0 ⇒ 100% error).** For an LLM with no tool
+> ($T_t{=}0$), any input that is $\mathrm{Sym}{=}1$ (no interpolable gradient) and
+> $M{=}0$ (answer not recoverable by the forward pass) has **error rate $=100\%$** at
+> every sampling temperature $T_s\in[0,1]$.
+>
+> *Status:* CONJECTURE, not a theorem. *Measured support:* 2/2 Sym=1,$M{=}0$ instances
+> at 100% (Bessel 120/120, ζ 20/20) across all six $T_s$; the $M{=}1$ control (digits)
+> correctly shows 0%. *Falsifier (one suffices):* a single Sym=1, $M{=}0$, $T_t{=}0$
+> input scoring $<100\%$ error. It quantifies over an infinite, ill-defined input class
+> on two confirming instances — support, not proof.
+
+The broader two-arm form (adding the $T_t{=}1 \Rightarrow$ error $<10^{-10}$ reference):
+
 > **Z Conjecture v1.1.** For any input that is $\mathrm{Sym}{=}1$ and $M{=}0$ (no
 > interpolable gradient, answer not recoverable by the forward pass), an LLM with
 > $T_t{=}0$ has, for **every** $T_s\in[0,1]$, median error $>10\%$ of the characteristic
@@ -191,10 +224,12 @@ proof, and I do not report it as one.
    answers do not fail — which is why v1.1 adds $M$. I make **no** claim about vendor
    patches or a measured $M$-transition; there is no such dataset here.
 
-3. **Flat $T_s$ sweep ($T_t$ causal).** The error rate is invariant across all six
-   sampling temperatures (slope $0$) while the tool reference is $0.00$. For the measured
-   $\mathrm{Sym}{=}1,M{=}0$ instances this **identifies $T_t$, not $T_s$, as the causal
-   switch.** (Scoped to the measured instances; not a population-level proof.)
+3. **Flat $T_s$ sweep ($T_t$ is the operative switch).** The error rate is invariant across
+   all six sampling temperatures (slope $0$) while the tool reference is $0.00$. For the
+   measured $\mathrm{Sym}{=}1,M{=}0$ instances this **identifies $T_t$, not $T_s$, as the
+   operative switch under this protocol.** (The $T_t{=}1$ arm is the deterministic reference,
+   not a separately sampled treatment; scoped to the measured instances — not a sampled
+   causal estimate or a population-level proof.)
 
 4. **ζ.** Under absolute / characteristic-scale error ($2.68$), the zero-point result
    **supports** the conjecture; the degenerate relative error is correctly discarded.
@@ -204,6 +239,36 @@ is solid for the measured Sym=1/$M{=}0$ inputs. What remains *not* established: 
 sigmoid shape, the constant $a$, any $\mathrm{Sym}$-dependence (no Sym=2 data), and the
 universal $\forall$-conjecture of §6. Those are open. No mass-gap, RH, or Clay-surface
 claim is made or implied anywhere in this document.
+
+## 8. Next tests to run (all Sym=1)
+
+Three new **LLM-only** $\mathrm{Sym}{=}1$ probes that would attack the open items above —
+each holds $\mathrm{Sym}{=}1$, varies one thing, and is a direct test of Conjecture 1.
+All are $T_t{=}0$ cold-LLM measurements with an mpmath ground truth.
+
+1. **T8 — falsifier sweep for Conjecture 1 (new Sym=1, $M{=}0$ instances).** Run $\ge5$
+   fresh non-interpolable, non-computable numeric targets — e.g. $I_{10}(20)$'s neighbors
+   $I_{10}(18.5)$, $I_{10}(21.3)$; a high-order log-gamma $\ln\Gamma(0.3+40i)$; an Airy
+   value $\mathrm{Ai}(-12.7)$; a Lerch/polylog $\mathrm{Li}_3(0.97)$ — each $n{=}20$ at
+   $T_s\in\{0,1\}$. **Purpose:** turn the conjecture's 2 confirming instances into many, or
+   *find the falsifier*. A single $<100\%$ result refutes Conjecture 1; that is the point.
+
+2. **T9 — the $M$ boundary (Sym=1, vary $M$ only).** Pair targets that differ *only* in
+   computability: digit-count / `len()` / small-integer factorials ($M{=}1$) vs. their
+   $M{=}0$ twins (e.g. $20! $ exact = $M{=}1$ vs. $\Gamma(21.4)$ = $M{=}0$); $n{=}20$ each.
+   **Purpose:** test whether $M$ alone flips the error rate $1.00\!\leftrightarrow\!0.00$
+   on otherwise-matched Sym=1 inputs — i.e. confirm $M$ is the real gate, not domain.
+
+3. **T10 — attractor stability across $T_s$ (Sym=1, $M{=}0$, finer $T_s$).** Re-run the
+   Bessel target at $T_s\in\{0,0.1,\dots,1.0\}$, $n{=}50$ per level, logging the **modal**
+   output, not just the rate. **Purpose:** quantify §3.4 — confirm the wrong attractor
+   ($3.5\times10^8$) stays modal as $T_s$ rises and that $T_s$ only fattens the tails
+   (variance), giving a real estimate of the $\varepsilon$ noise term the fit currently
+   sets to $0$.
+
+> These are **proposed**, not run. Each is reproducible by extending `z_protocol_full.py`
+> with the new target list; none requires anything beyond the existing cold-LLM + mpmath
+> harness, and none touches physics beyond the Bessel $I_{10}$ already used.
 
 ### Reproduce
 ```bash
