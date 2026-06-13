@@ -1,7 +1,7 @@
 {
   "_meta": {
     "scope": "Towers/YM/*.lean (142 files)",
-    "generated_utc": "2026-06-12T00:00:00Z",
+    "generated_utc": "2026-06-01T09:52:11Z",
     "honesty_notes": [
       "YM_mass_gap is sorry-free but CONDITIONAL on named-open Prop YM_mass_gap_Surface; 'carries a sorry' docstrings are stale.",
       "Brick_574 = 3993746143627 does NOT exist in repo (fabricated; = P5-6).",
