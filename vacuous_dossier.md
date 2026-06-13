@@ -1,5 +1,5 @@
 # Vacuous Brick Dossier — `TheoremaAureum.Towers.YM.OS`
-_Generated 2026-06-12T09:40:10Z · REPORT-ONLY (no rebuild, no deletion, no lake)_
+_Generated 2026-06-03T09:40:10Z · REPORT-ONLY (no rebuild, no deletion, no lake)_
 
 **Scope.** Of the 25 registered bricks in the `TheoremaAureum.Towers.YM.OS`
 namespace, these **13** are TRULY VACUOUS: each conclusion collapses to a
