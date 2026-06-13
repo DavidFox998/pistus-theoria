@@ -2,7 +2,7 @@
   "_about": "Sidecar for ym-audit-export.json. The contract JSON follows the user's AUDIT_EXPORT schema EXACTLY (no extra keys). This file holds the provenance, the second (T_L) operator, and honesty annotations that did not fit the strict schema. Nothing here weakens the contract data; it only explains it.",
   "task": "Project Task #316 — YM tower audit export",
   "scope": "lean-proof-towers/Towers/YM/*.lean (142 files, 26 stubs)",
-  "generated_utc": "2026-06-12T00:00:00Z",
+  "generated_utc": "2026-06-01T10:51:43Z",
   "generator": "scripts/build_ym_audit_export.py",
   "honesty_notes": [
     "TRUE repo state only. No mass-gap / μ>0 / Surface-#1-closed / Clay claim.",
