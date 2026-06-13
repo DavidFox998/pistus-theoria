@@ -1,4 +1,4 @@
-# Big Day Bundle — Manifest (2026-06-01)
+# Big Day Bundle — Manifest (2026-06-12)
 
 - `bundle_id: Final_Bundle_2026-06-01`
 - `scope: EXPORT_ONLY` — no Lean changes, no proofs, no new claims.
